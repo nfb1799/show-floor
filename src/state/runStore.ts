@@ -15,8 +15,8 @@ import {
 import { conditionRank } from '../game/cards/value';
 import { generateCards } from '../game/cards/generate';
 import { createRng, type Rng } from '../game/rng';
-import { getConditions, rollConditions } from '../game/conditions/registry';
-import { getUpgrade, getUpgrades, sellbackValue } from '../game/upgrades/registry';
+import { conditionsForShow, getConditions } from '../game/conditions/registry';
+import { getUpgrade, getUpgrades } from '../game/upgrades/registry';
 import { gradeCard, gradingFee } from '../game/shop/grading';
 import {
   getPackTier,
@@ -89,7 +89,6 @@ export interface RunState extends Omit<RunSnapshot, 'rngState'> {
   sellOnline: (cardId: string) => void;
   dismissGraded: () => void;
   buyUpgrade: (upgradeId: string) => void;
-  sellUpgrade: (upgradeId: string) => void;
   submitForGrading: (cardId: string) => void;
   applySupply: (supplyId: string, cardId: string) => void;
   buyPriceGuide: () => void;
@@ -104,6 +103,8 @@ export interface RunState extends Omit<RunSnapshot, 'rngState'> {
   reservedForFee: () => number;
   /** Bankroll minus the reserve. What the shop may actually take. */
   spendable: () => number;
+  /** House rules the next show will impose, knowable while still shopping. */
+  nextShowConditionIds: () => readonly string[];
 }
 
 function randomSeed(): string {
@@ -181,8 +182,8 @@ export const useRun = create<RunState>((set, get) => {
 
   /** Moves to the setup phase for `showIndex`, rolling conditions and a rumour. */
   const enterSetup = (showIndex: number): void => {
-    const { rng } = get();
-    const conditions = rollConditions(rng.fork(`conditions:${showIndex}`), showIndex);
+    const { rng, seed } = get();
+    const conditions = conditionsForShow(seed, showIndex);
     set({
       showIndex,
       conditionIds: conditions.map((c) => c.id),
@@ -453,18 +454,6 @@ export const useRun = create<RunState>((set, get) => {
       persist();
     },
 
-    sellUpgrade: (upgradeId) => {
-      const { ownedUpgradeIds, equippedUpgradeIds, bankroll } = get();
-      if (!ownedUpgradeIds.includes(upgradeId)) return;
-
-      set({
-        bankroll: bankroll + sellbackValue(getUpgrade(upgradeId)),
-        ownedUpgradeIds: ownedUpgradeIds.filter((id) => id !== upgradeId),
-        equippedUpgradeIds: equippedUpgradeIds.filter((id) => id !== upgradeId),
-      });
-      persist();
-    },
-
     submitForGrading: (cardId) => {
       const { inventory, rng } = get();
       const card = inventory.find((c) => c.id === cardId);
@@ -534,7 +523,7 @@ export const useRun = create<RunState>((set, get) => {
     showDeps: deps,
 
     reservedForFee: () => {
-      const { rng, equippedUpgradeIds, casesBought, inventory, showIndex, phase } = get();
+      const { rng, seed, equippedUpgradeIds, casesBought, inventory, showIndex, phase } = get();
       // Only the shop holds money back; during a show the fee is already paid.
       if (phase !== 'shop') return 0;
 
@@ -545,12 +534,18 @@ export const useRun = create<RunState>((set, get) => {
       return planShow(next, inventory.length, {
         rng,
         upgrades: getUpgrades(equippedUpgradeIds),
-        conditions: rollConditions(rng.fork(`conditions:${next}`), next),
+        conditions: conditionsForShow(seed, next),
         extraCaseSlots: casesBought,
       }).tableFee;
     },
 
     spendable: () => Math.max(0, get().bankroll - get().reservedForFee()),
+
+    nextShowConditionIds: () => {
+      const { seed, showIndex, phase } = get();
+      if (phase !== 'shop') return [];
+      return conditionsForShow(seed, showIndex + 1).map((c) => c.id);
+    },
   };
 });
 

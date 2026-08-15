@@ -12,7 +12,7 @@ import {
   CONDITION_STACK_FROM_SHOW,
 } from '../constants';
 import { conditionRank } from '../cards/value';
-import type { Rng } from '../rng';
+import { createRng, type Rng } from '../rng';
 import type { ConditionDef } from '../types';
 
 const condition = (
@@ -129,6 +129,19 @@ export function isConditionShow(showIndex: number): boolean {
 export function conditionCountForShow(showIndex: number): number {
   if (!isConditionShow(showIndex)) return 0;
   return showIndex >= CONDITION_STACK_FROM_SHOW ? 2 : 1;
+}
+
+/**
+ * A show's conditions, derived from the run seed and show number alone.
+ *
+ * Deliberately not forked off the live run RNG: `fork()` mixes the stream's
+ * *current* state, so the shop (which predicts the next fee) and setup (which
+ * rolls it for real) would disagree the moment the player opened a pack or
+ * rerolled in between. A tripled Convention Center fee could then arrive after
+ * the shop had already let them spend down past it.
+ */
+export function conditionsForShow(seed: string, showIndex: number): ConditionDef[] {
+  return rollConditions(createRng(`${seed}:conditions:${showIndex}`), showIndex);
 }
 
 export function rollConditions(rng: Rng, showIndex: number): ConditionDef[] {

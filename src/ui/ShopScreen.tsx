@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { formatMoney } from '../game/cards/value';
 import { PACK_TIERS, PRICE_GUIDE_MAX, SUPPLIES } from '../game/constants';
-import { getUpgrade, sellbackValue } from '../game/upgrades/registry';
 import { nextCaseCost, nextTableCost, rerollCost, upgradeSlotsFor } from '../game/shop/shop';
+import { conditionsForShow } from '../game/conditions/registry';
 import { useRun } from '../state/runStore';
 import { CardView } from './card/CardView';
 import { GradedOverlay } from './GradedOverlay';
@@ -24,18 +24,25 @@ export function ShopScreen() {
   const casesBought = useRun((s) => s.casesBought);
   const priceGuides = useRun((s) => s.priceGuides);
   const showIndex = useRun((s) => s.showIndex);
+  const seed = useRun((s) => s.seed);
 
   const buySingle = useRun((s) => s.buySingle);
   const rerollShop = useRun((s) => s.rerollShop);
   const buyPack = useRun((s) => s.buyPack);
   const buyUpgrade = useRun((s) => s.buyUpgrade);
-  const sellUpgrade = useRun((s) => s.sellUpgrade);
   const buyPriceGuide = useRun((s) => s.buyPriceGuide);
   const buyTable = useRun((s) => s.buyTable);
   const buyCase = useRun((s) => s.buyCase);
   const leaveShop = useRun((s) => s.leaveShop);
 
   const [overlay, setOverlay] = useState<'stock' | 'supplies' | null>(null);
+
+  // Computed here rather than through a store selector: a selector returning a
+  // fresh array fails Zustand's Object.is check every render and loops React.
+  const nextConditions = useMemo(
+    () => conditionsForShow(seed, showIndex + 1),
+    [seed, showIndex],
+  );
 
   if (!shop) return null;
 
@@ -80,6 +87,22 @@ export function ShopScreen() {
         </div>
 
         <div className={styles.scrollPane} style={{ padding: 18 }}>
+          {/* The next show's house rules can move the table fee — a tripled
+              Convention Center fee is the difference between a comfortable
+              shop and a dead run — so they are announced before you spend. */}
+          {nextConditions.length > 0 && (
+            <div className={styles.conditionStrip} style={{ marginBottom: 16 }}>
+              {nextConditions.map((c) => (
+                <div key={c.id} className={styles.conditionCard}>
+                  <Band title={`Next show · ${c.name}`} ink="red" />
+                  <div className={styles.conditionBody}>
+                    <div className={styles.conditionText}>{c.text}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className={styles.shopCols}>
             {/* Left column ------------------------------------------- */}
             <div className={styles.stack}>
@@ -170,28 +193,6 @@ export function ShopScreen() {
                     })}
                   </div>
 
-                  {owned.length > 0 && (
-                    <>
-                      <div className={styles.benchLabel} style={{ margin: '16px 0 8px' }}>
-                        SELL BACK — HALF PRICE
-                      </div>
-                      <div className={styles.rowWrap}>
-                        {owned.map((id) => {
-                          const def = getUpgrade(id);
-                          return (
-                            <button
-                              key={id}
-                              className={styles.btnSm}
-                              onClick={() => sellUpgrade(id)}
-                              title={def.text}
-                            >
-                              {def.name} · +{formatMoney(sellbackValue(def))}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
                 </div>
               </div>
 

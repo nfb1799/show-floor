@@ -68,7 +68,7 @@ export const ARCHETYPES: readonly ArchetypeDef[] = [
   {
     id: 'grader',
     label: 'Grader',
-    blurb: 'Looking for raw cards clean enough to submit.',
+    blurb: 'Looking for raw cards clean enough to submit. Beaten ones insult them.',
     buildWants: () => [
       {
         kind: 'rawMinCondition',
@@ -76,6 +76,13 @@ export const ARCHETYPES: readonly ArchetypeDef[] = [
         interestPerCard: WANT_INTEREST.grader,
       },
     ],
+    // He is buying to submit for grading, so a played card is not merely
+    // unwanted — it is a waste of his time.
+    turnoff: {
+      kind: 'rawBelowCondition',
+      minCondition: GRADER_MIN_CONDITION,
+      interestMult: REFUSAL_INTEREST_MULT,
+    },
   },
   {
     id: 'investor',

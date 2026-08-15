@@ -9,7 +9,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useRun } from './runStore';
 import { PRICE_GUIDE_MAX } from '../game/constants';
-import { tableFeeForShow } from '../game/show/showEngine';
+import { planShow, tableFeeForShow } from '../game/show/showEngine';
+import { conditionsForShow, getConditions } from '../game/conditions/registry';
+import { getUpgrades } from '../game/upgrades/registry';
 
 const run = () => useRun.getState();
 
@@ -117,5 +119,57 @@ describe('price guides', () => {
     run().leaveShop();
     expect(run().revealBuyerMix).toBe(true);
     expect(run().priceGuides).toBe(0);
+  });
+});
+
+describe('the reserve survives a house rule that moves the fee', () => {
+  it('holds back the tripled fee, not the base one', () => {
+    // Convention Center triples the table fee. Find a seed where the next show
+    // draws it, then check the shop reserves the real number.
+    const seed = (() => {
+      for (let i = 0; i < 200; i++) {
+        const candidate = `fee-${i}`;
+        if (conditionsForShow(candidate, 3).some((c) => c.id === 'conventionCenter')) {
+          return candidate;
+        }
+      }
+      throw new Error('no seed drew Convention Center');
+    })();
+
+    run().newRun(seed);
+    useRun.setState({ phase: 'shop', showIndex: 2, bankroll: 5000 });
+
+    expect(run().nextShowConditionIds()).toContain('conventionCenter');
+    expect(run().reservedForFee()).toBe(tableFeeForShow(3) * 3);
+  });
+
+  it('never lets the shop spend below a fee the next show will actually charge', () => {
+    // The old bug: conditions were forked off the live RNG, so spending in the
+    // shop changed which conditions the prediction saw. Buying things must not
+    // move the reserve.
+    for (let i = 0; i < 24; i++) {
+      const seed = `drift-${i}`;
+      run().newRun(seed);
+      useRun.setState({ phase: 'shop', showIndex: 2, bankroll: 4000 });
+
+      const predicted = run().reservedForFee();
+      for (let n = 0; n < 8; n++) {
+        run().buyPack('bulkLot');
+        run().resolvePack([]);
+        run().rerollShop();
+      }
+      expect(run().reservedForFee(), seed).toBe(predicted);
+
+      run().leaveShop();
+      const actual = planShow(3, run().inventory.length, {
+        rng: run().rng,
+        upgrades: getUpgrades(run().equippedUpgradeIds),
+        conditions: getConditions(run().conditionIds),
+        extraCaseSlots: run().casesBought,
+      }).tableFee;
+
+      expect(actual, seed).toBe(predicted);
+      expect(run().bankroll, seed).toBeGreaterThanOrEqual(actual);
+    }
   });
 });

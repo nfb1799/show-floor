@@ -6,6 +6,11 @@
 .card {
   container-type: inline-size;
   position: relative;
+  /* The art block is absolutely positioned, so a card has no intrinsic width.
+     Without this it collapses to its borders inside any flex container that
+     does not stretch it (align-items: center), which rendered the pack and
+     grading reveals as 6px slivers. */
+  width: 100%;
   border: 3px solid var(--ink);
   background: var(--paper);
   display: flex;

@@ -40,8 +40,8 @@ export function PackOverlay() {
 
   if (!pack) return null;
 
-  const listed = cards.filter((c) => !kept.includes(c.id));
-  const payout = listed.reduce((sum, c) => sum + onlineValue(c), 0);
+  const sold = cards.filter((c) => !kept.includes(c.id));
+  const payout = sold.reduce((sum, c) => sum + onlineValue(c), 0);
   const allShown = revealed >= cards.length;
 
   const toggle = (id: string): void =>
@@ -52,7 +52,7 @@ export function PackOverlay() {
       <div className={styles.packPanel}>
         <Band
           title={`${pack.tierName} — ${cards.length} cards`}
-          note={allShown ? 'CLICK A CARD TO LIST IT INSTEAD' : 'OPENING…'}
+          note={allShown ? 'CLICK A CARD TO SELL IT INSTEAD' : 'OPENING…'}
           ink="red"
         />
 
@@ -65,15 +65,15 @@ export function PackOverlay() {
                 key={card.id}
                 className={styles.packSlot}
                 data-shown={shown}
-                data-listed={shown && !keeping}
+                data-sold={shown && !keeping}
               >
                 <CardView
                   card={card}
                   size="small"
                   {...(shown ? { onClick: () => toggle(card.id) } : {})}
                 />
-                <span className={styles.packTag} data-listed={!keeping}>
-                  {keeping ? 'KEEP' : `LIST ${formatMoney(onlineValue(card))}`}
+                <span className={styles.packTag} data-sold={!keeping}>
+                  {keeping ? 'KEEP' : `SELL ${formatMoney(onlineValue(card))}`}
                 </span>
               </div>
             );
@@ -82,22 +82,22 @@ export function PackOverlay() {
 
         <div className={styles.packFoot}>
           <div className={styles.dim}>
-            {listed.length === 0
+            {sold.length === 0
               ? 'Keeping the whole pack.'
-              : `Listing ${listed.length} card${listed.length === 1 ? '' : 's'} online for ${formatMoney(payout)}.`}
+              : `Selling ${sold.length} card${sold.length === 1 ? '' : 's'} online for ${formatMoney(payout)}.`}
           </div>
           <div className={styles.rowWrap}>
             <button
               className={styles.btnSm}
               onClick={() => setKept([])}
-              disabled={!allShown || listed.length === cards.length}
+              disabled={!allShown || sold.length === cards.length}
             >
-              LIST ALL
+              SELL ALL
             </button>
             <button
               className={styles.btnSm}
               onClick={() => setKept(cards.map((c) => c.id))}
-              disabled={!allShown || listed.length === 0}
+              disabled={!allShown || sold.length === 0}
             >
               KEEP ALL
             </button>

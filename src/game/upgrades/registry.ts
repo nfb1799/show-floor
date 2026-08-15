@@ -5,7 +5,6 @@
  * knows any of these ids exist — they are only ever folded through the hooks.
  */
 
-import { UPGRADE_SELLBACK } from '../constants';
 import type { Rng } from '../rng';
 import type { UpgradeDef, UpgradeTier } from '../types';
 import { TIER_1 } from './tier1';
@@ -24,10 +23,6 @@ export function getUpgrade(id: string): UpgradeDef {
 
 export function getUpgrades(ids: readonly string[]): UpgradeDef[] {
   return ids.map(getUpgrade);
-}
-
-export function sellbackValue(upgrade: UpgradeDef): number {
-  return Math.round(upgrade.cost * UPGRADE_SELLBACK);
 }
 
 /**

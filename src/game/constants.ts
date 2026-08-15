@@ -350,9 +350,6 @@ export const SHOP_REROLL_STEP = 15;
 export const SHOP_PRICE_MARKUP = 1.6;
 export const SHOP_MIN_PRICE = 4;
 
-/** Upgrades sell back at this fraction of purchase price. */
-export const UPGRADE_SELLBACK = 0.5;
-
 export interface PackTier {
   readonly id: string;
   readonly name: string;

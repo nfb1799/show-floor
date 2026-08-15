@@ -92,10 +92,18 @@ function wantLabel(want: Want, count: number): string {
 }
 
 function turnoffApplies(cards: readonly Card[], buyer: Buyer): boolean {
-  if (!buyer.turnoff) return false;
-  return buyer.turnoff.kind === 'anyRaw'
-    ? cards.some((c) => !c.slabbed)
-    : cards.some((c) => c.slabbed);
+  const turnoff = buyer.turnoff;
+  if (!turnoff) return false;
+  switch (turnoff.kind) {
+    case 'anyRaw':
+      return cards.some((c) => !c.slabbed);
+    case 'anySlab':
+      return cards.some((c) => c.slabbed);
+    case 'rawBelowCondition':
+      return cards.some(
+        (c) => !c.slabbed && conditionRank(c.condition) < conditionRank(turnoff.minCondition),
+      );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -156,7 +164,12 @@ function scoreAs(pitchType: PitchTypeId, input: PitchInput, rng: Rng): PitchResu
   // --- Interest from the buyer's refusal -----------------------------------
   if (buyer.turnoff && turnoffApplies(cards, buyer)) {
     interestMultLines.push({
-      label: buyer.turnoff.kind === 'anyRaw' ? 'Refuses raw' : 'Refuses slabs',
+      label:
+        buyer.turnoff.kind === 'anyRaw'
+          ? 'Refuses raw'
+          : buyer.turnoff.kind === 'anySlab'
+            ? 'Refuses slabs'
+            : 'Insulted by beaten cards',
       amount: buyer.turnoff.interestMult,
       source: 'turnoff',
     });
