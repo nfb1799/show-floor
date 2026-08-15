@@ -371,6 +371,51 @@
   line-height: 1.35;
 }
 
+/* --- Hover tooltip -------------------------------------------------------
+   Anything carrying data-tip explains itself on hover. Used on gear, where
+   the name alone ("The Regular") says nothing about what the thing does. */
+
+.tip {
+  position: relative;
+}
+
+.tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 40;
+  width: max-content;
+  max-width: 250px;
+  padding: 8px 11px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 rgb(28 24 19 / 30%);
+  font-family: 'Barlow', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 90ms ease;
+}
+
+.tip:hover::after,
+.tip:focus-visible::after {
+  opacity: 1;
+}
+
+/* Shop gear sits at the top of a scrolling pane, where a tooltip above the
+   card is clipped by the pane. Hang it underneath instead. */
+.tipBelow::after {
+  bottom: auto;
+  top: calc(100% + 8px);
+}
+
 .benchRow {
   display: flex;
   align-items: center;

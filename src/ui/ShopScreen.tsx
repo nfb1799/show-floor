@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { formatMoney } from '../game/cards/value';
-import { PACK_TIERS, PRICE_GUIDE_MAX, SUPPLIES } from '../game/constants';
+import { PACK_TIERS, PRICE_GUIDE_COST, PRICE_GUIDE_MAX } from '../game/constants';
 import { nextCaseCost, nextTableCost, rerollCost, upgradeSlotsFor } from '../game/shop/shop';
 import { conditionsForShow } from '../game/conditions/registry';
 import { useRun } from '../state/runStore';
@@ -8,7 +8,6 @@ import { CardView } from './card/CardView';
 import { GradedOverlay } from './GradedOverlay';
 import { PackOverlay } from './PackOverlay';
 import { StockOverlay } from './StockOverlay';
-import { SuppliesOverlay } from './SuppliesOverlay';
 import { Band, ScreenHead, Sheet } from './kit';
 import styles from './app.module.css';
 
@@ -35,7 +34,7 @@ export function ShopScreen() {
   const buyCase = useRun((s) => s.buyCase);
   const leaveShop = useRun((s) => s.leaveShop);
 
-  const [overlay, setOverlay] = useState<'stock' | 'supplies' | null>(null);
+  const [overlay, setOverlay] = useState<'stock' | null>(null);
 
   // Computed here rather than through a store selector: a selector returning a
   // fresh array fails Zustand's Object.is check every render and loops React.
@@ -171,7 +170,12 @@ export function ShopScreen() {
                       const bought =
                         shop.purchasedUpgradeIds.includes(def.id) || owned.includes(def.id);
                       return (
-                        <div key={def.id} className={styles.gearCard} style={{ cursor: 'default' }}>
+                        <div
+                          key={def.id}
+                          className={`${styles.gearCard} ${styles.tip} ${styles.tipBelow}`}
+                          style={{ cursor: 'default' }}
+                          data-tip={def.text}
+                        >
                           <div className={styles.gearTag} data-state={bought ? 'bench' : undefined}>
                             TIER {def.tier}
                           </div>
@@ -198,52 +202,7 @@ export function ShopScreen() {
 
               <div className={styles.sheetFlat}>
                 <Band
-                  title="Supplies"
-                  note={
-                    <button
-                      className={styles.helpBtn}
-                      onClick={() => setOverlay('supplies')}
-                      aria-label="What are supplies for?"
-                      title="What are supplies for?"
-                    >
-                      ?
-                    </button>
-                  }
-                  goldTitle
-                />
-                <div className={styles.pad}>
-                  <div className={styles.rowWrap}>
-                    {SUPPLIES.map((supply) =>
-                      supply.id === 'priceGuide' ? (
-                        <button
-                          key={supply.id}
-                          className={styles.btnSm}
-                          disabled={guidesFull || spendable < supply.cost}
-                          onClick={buyPriceGuide}
-                        >
-                          {guidesFull
-                            ? 'PRICE GUIDE · HELD'
-                            : `${supply.name.toUpperCase()} ${formatMoney(supply.cost)}`}
-                        </button>
-                      ) : (
-                        // Card-targeted, so buying happens against a card in
-                        // the stock overlay rather than here.
-                        <button
-                          key={supply.id}
-                          className={styles.btnSm}
-                          onClick={() => setOverlay('stock')}
-                        >
-                          {supply.name.toUpperCase()} {formatMoney(supply.cost)}
-                        </button>
-                      ),
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.sheetFlat}>
-                <Band
-                  title="Tables &amp; cases"
+                  title="Table, cases &amp; guide"
                   note={`${upgradeSlotsFor(tableTier)} GEAR SLOTS`}
                   goldTitle
                 />
@@ -265,6 +224,18 @@ export function ShopScreen() {
                     >
                       {caseCost === null ? 'CASE MAXED' : `+1 CASE SLOT · ${formatMoney(caseCost)}`}
                     </button>
+                    {/* The guide is the one consumable left now that sleeving
+                        is priced against a specific card in your stock. */}
+                    <button
+                      className={styles.btnSm}
+                      disabled={guidesFull || spendable < PRICE_GUIDE_COST}
+                      onClick={buyPriceGuide}
+                      title="Reveals the next show's four buyers - their budgets and what they want - before you pay the table fee. Spent on that show."
+                    >
+                      {guidesFull
+                        ? 'PRICE GUIDE · HELD'
+                        : `PRICE GUIDE · ${formatMoney(PRICE_GUIDE_COST)}`}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -283,7 +254,6 @@ export function ShopScreen() {
       </Sheet>
 
       {overlay === 'stock' && <StockOverlay onClose={() => setOverlay(null)} />}
-      {overlay === 'supplies' && <SuppliesOverlay onClose={() => setOverlay(null)} />}
       <PackOverlay />
       <GradedOverlay />
     </div>

@@ -165,14 +165,4 @@ describe('Damp Hall', () => {
     expect(closeDoorsOn([card]).replacements.has('damp-worst')).toBe(false);
   });
 
-  it('spends a toploader instead of taking the condition step', () => {
-    const card: RawCard = {
-      ...raw({ id: 'damp-top', rarity: 'rare', condition: 'nearMint' }),
-      toploaded: true,
-    };
-    const replacement = closeDoorsOn([card]).replacements.get('damp-top') as RawCard;
-
-    expect(replacement.condition).toBe('nearMint');
-    expect(replacement.toploaded).toBe(false);
-  });
 });

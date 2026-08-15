@@ -10,7 +10,8 @@ import {
   PRICE_GUIDE_MAX,
   STARTING_BANKROLL,
   STARTING_INVENTORY_SIZE,
-  SUPPLIES,
+  SLEEVE_COST,
+  PRICE_GUIDE_COST,
 } from '../game/constants';
 import { conditionRank } from '../game/cards/value';
 import { generateCards } from '../game/cards/generate';
@@ -94,7 +95,7 @@ export interface RunState extends Omit<RunSnapshot, 'rngState'> {
   dismissGraded: () => void;
   buyUpgrade: (upgradeId: string) => void;
   submitForGrading: (cardId: string) => void;
-  applySupply: (supplyId: string, cardId: string) => void;
+  sleeveCard: (cardId: string) => void;
   buyPriceGuide: () => void;
   buyTable: () => void;
   buyCase: () => void;
@@ -278,8 +279,16 @@ export const useRun = create<RunState>((set, get) => {
       const { equippedUpgradeIds, ownedUpgradeIds } = get();
       if (!ownedUpgradeIds.includes(upgradeId)) return;
       if (equippedUpgradeIds.includes(upgradeId)) return;
-      if (equippedUpgradeIds.length >= get().upgradeSlots()) return;
-      set({ equippedUpgradeIds: [...equippedUpgradeIds, upgradeId] });
+
+      // A full booth swaps instead of refusing: the new piece goes on the front
+      // and the oldest falls off the end, so equipping is one click rather than
+      // unequip-then-equip.
+      const slots = get().upgradeSlots();
+      const kept =
+        equippedUpgradeIds.length >= slots
+          ? equippedUpgradeIds.slice(0, Math.max(0, slots - 1))
+          : equippedUpgradeIds;
+      set({ equippedUpgradeIds: [upgradeId, ...kept] });
       persist();
     },
 
@@ -482,33 +491,26 @@ export const useRun = create<RunState>((set, get) => {
       persist();
     },
 
-    applySupply: (supplyId, cardId) => {
+    sleeveCard: (cardId) => {
       const { inventory } = get();
-      const supply = SUPPLIES.find((s) => s.id === supplyId);
       const card = inventory.find((c) => c.id === cardId);
-      if (!supply || !card || card.slabbed) return;
-      if (!spend(supply.cost)) return;
+      if (!card || card.slabbed) return;
 
-      const updated: RawCard =
-        supplyId === 'sleeve'
-          ? {
-              ...card,
-              condition:
-                CONDITION_ORDER[
-                  Math.min(CONDITION_ORDER.length - 1, conditionRank(card.condition) + 1)
-                ] ?? card.condition,
-            }
-          : { ...card, toploaded: true };
+      const cost = SLEEVE_COST[card.condition];
+      const next = CONDITION_ORDER[conditionRank(card.condition) + 1];
+      // Mint has no step above it, so it has no price either.
+      if (cost === undefined || next === undefined) return;
+      if (!spend(cost)) return;
 
+      const updated: RawCard = { ...card, condition: next };
       set({ inventory: inventory.map((c) => (c.id === cardId ? updated : c)) });
       persist();
     },
 
     buyPriceGuide: () => {
-      const supply = SUPPLIES.find((s) => s.id === 'priceGuide');
       // One is spent per show, so stockpiling them did nothing but drain money.
-      if (!supply || get().priceGuides >= PRICE_GUIDE_MAX) return;
-      if (!spend(supply.cost)) return;
+      if (get().priceGuides >= PRICE_GUIDE_MAX) return;
+      if (!spend(PRICE_GUIDE_COST)) return;
       set({ priceGuides: get().priceGuides + 1 });
       persist();
     },

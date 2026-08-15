@@ -24,8 +24,6 @@ interface CardBase {
 export interface RawCard extends CardBase {
   readonly slabbed: false;
   readonly condition: Condition;
-  /** Toploader supply: survives one condition-damaging effect, then is spent. */
-  readonly toploaded?: boolean;
 }
 
 export interface SlabCard extends CardBase {

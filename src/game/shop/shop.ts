@@ -13,10 +13,8 @@ import {
   SELL_ONLINE_RATE,
   SHOP_SINGLES_COUNT,
   SHOP_UPGRADES_COUNT,
-  SUPPLIES,
   TABLE_TIERS,
   type PackTier,
-  type SupplyDef,
 } from '../constants';
 import { cardValue } from '../cards/value';
 import { generateCard } from '../cards/generate';
@@ -124,14 +122,8 @@ export function openPack(tier: PackTier, rng: Rng, idPrefix: string): Card[] {
 }
 
 // ---------------------------------------------------------------------------
-// Supplies and capacity
+// Permanent capacity
 // ---------------------------------------------------------------------------
-
-export function getSupply(id: string): SupplyDef {
-  const found = SUPPLIES.find((s) => s.id === id);
-  if (!found) throw new Error(`Unknown supply: ${id}`);
-  return found;
-}
 
 /** Cost of the next table tier, or null when maxed. */
 export function nextTableCost(tableTier: number): number | null {

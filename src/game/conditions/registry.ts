@@ -65,15 +65,6 @@ export const ALL_CONDITIONS: readonly ConditionDef[] = [
       onShowEnd: (ctx, fx) => {
         for (const card of ctx.unsoldCase) {
           if (card.slabbed) continue;
-          if (card.toploaded) {
-            // The toploader is spent protecting it.
-            fx.replaceCard(
-              card.id,
-              { ...card, toploaded: false },
-              `${card.subject} was in a toploader`,
-            );
-            continue;
-          }
           const next = CONDITION_ORDER[Math.max(0, conditionRank(card.condition) - 1)];
           if (!next || next === card.condition) continue;
           fx.replaceCard(card.id, { ...card, condition: next }, `${card.subject} took on damp`);

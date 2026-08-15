@@ -412,49 +412,22 @@ export const PACK_TIERS: readonly PackTier[] = [
   },
 ];
 
-export interface SupplyDef {
-  readonly id: string;
-  readonly name: string;
-  readonly cost: number;
-  /** What it does, mechanically. */
-  readonly text: string;
-  /** Why a player would spend money on it. Shown in the supplies explainer. */
-  readonly why: string;
-}
+/**
+ * Sleeving lifts a raw card one condition step. The price is per step rather
+ * than flat, because the steps are not worth the same: Played to Lightly
+ * Played adds 0.3x of base value, Near Mint to Mint adds 0.3x of a card that
+ * is already worth 2.5x as much. A flat fee made the top step an automatic
+ * buy on anything expensive and the bottom step a waste of money.
+ *
+ * Mint has nowhere to go, so it is absent — the action is hidden there.
+ */
+export const SLEEVE_COST: Partial<Record<Condition, number>> = {
+  played: 15,
+  lightlyPlayed: 30,
+  nearMint: 65,
+};
 
-export const SUPPLIES: readonly SupplyDef[] = [
-  {
-    id: 'sleeve',
-    name: 'Penny Sleeves',
-    cost: 35,
-    text: 'Bump one raw card up a condition step.',
-    why:
-      'Condition multiplies card value: Played pays 0.4x, Near Mint 1.0x, Mint 1.3x. ' +
-      'Sleeving a Near Mint card into Mint is worth 30% of its value forever, so it pays best ' +
-      'on your most expensive raw cards. It also turns a card the Grader would refuse into one ' +
-      'they want.',
-  },
-  {
-    id: 'toploader',
-    name: 'Toploader',
-    cost: 50,
-    text: 'One raw card survives the next effect that would damage it.',
-    why:
-      'Only one thing currently damages cards: the Damp Hall show condition, which drops every ' +
-      'unsold raw card a condition step when the doors close. Worth it if you are carrying an ' +
-      'expensive raw card into a show that might roll it.',
-  },
-  {
-    id: 'priceGuide',
-    name: 'Price Guide',
-    cost: 70,
-    text: "Reveal the next show's buyer mix during setup.",
-    why:
-      'You see which four archetypes are coming before you pay the table fee, so you know ' +
-      'whether to bring slabs or raw, and whether the crowd can afford what you are holding. ' +
-      'Single use — it is spent on the next show.',
-  },
-];
+export const PRICE_GUIDE_COST = 70;
 
 /** A Price Guide is a single-use peek, so holding more than one does nothing. */
 export const PRICE_GUIDE_MAX = 1;

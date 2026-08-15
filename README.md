@@ -209,10 +209,21 @@ price. The pending pack is persisted, so a paid-for pack survives a reload.
 on "waiting on the grader" before showing the grade and what it did to the
 card's value. No decision here — the slab is already yours.
 
-**Supplies are all in one place again.** Sleeves and toploaders are bought from
-the shop's Supplies panel and applied from the stock overlay, which is where
-grading and online selling already live. The stale tooltip explaining where they
-went is gone; the `?` explainer covers it.
+**Supplies stopped being a shop section at all.** A panel of consumables you
+bought blind and applied later was one hop too many, so it is gone. Sleeving is
+now an action on a card in your stock, priced against that card's condition:
+$15 out of Played, $30 out of Lightly Played, $65 out of Near Mint. The steps
+are not worth the same — Near Mint to Mint adds 0.3x of a card already worth
+2.5x as much — so a flat fee made the top step an automatic buy and the bottom
+step a waste. Toploaders are cut entirely; the only thing they protected against
+was one show condition, and paying up front against a maybe was never a real
+decision. The Price Guide, the one remaining consumable, sits with the tables
+and cases.
+
+**Gear explains itself on hover, and a full booth swaps.** Everywhere a piece of
+gear appears it carries its rules text as a tooltip, including on the bench where
+only the name fits. Clicking a benched piece with no free slot used to do
+nothing; it now goes on the front and the oldest piece falls off the end.
 
 **Assorted clarity.** *Toploader Stack* is now *Box of Toploaders*, and its
 rules text says what it does — "every raw card sells as if it were Near Mint,

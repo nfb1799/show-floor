@@ -174,7 +174,12 @@ export function SetupScreen() {
                   {equipped.map((id) => {
                     const def = getUpgrade(id);
                     return (
-                      <button key={id} className={styles.gearCard} onClick={() => unequip(id)}>
+                      <button
+                        key={id}
+                        className={`${styles.gearCard} ${styles.tip}`}
+                        data-tip={`${def.text} Click to bench it.`}
+                        onClick={() => unequip(id)}
+                      >
                         <div className={styles.gearTag}>EQUIPPED</div>
                         <div className={styles.gearBody}>
                           <div className={styles.gearName}>{def.name}</div>
@@ -191,12 +196,16 @@ export function SetupScreen() {
                     {bench.map((id) => {
                       const def = getUpgrade(id);
                       const full = equipped.length >= slots;
+                      const last = equipped[slots - 1];
                       return (
                         <button
                           key={id}
-                          className={styles.chip}
-                          title={full ? 'No free slot — unequip something first' : def.text}
-                          disabled={full}
+                          className={`${styles.chip} ${styles.tip}`}
+                          data-tip={
+                            full && last
+                              ? `${def.text} Booth is full — this bumps ${getUpgrade(last).name}.`
+                              : def.text
+                          }
                           onClick={() => equip(id)}
                         >
                           {def.name}

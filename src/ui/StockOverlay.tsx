@@ -9,7 +9,7 @@
 
 import { useState } from 'react';
 import { cardValue, formatMoney } from '../game/cards/value';
-import { SUPPLIES } from '../game/constants';
+import { CONDITION_ORDER, SLEEVE_COST } from '../game/constants';
 import { collectionDepth } from '../game/run/collection';
 import { gradingFee, gradingOutcomeRange } from '../game/shop/grading';
 import { onlineValue } from '../game/shop/shop';
@@ -19,18 +19,29 @@ import { Band } from './kit';
 import type { Card } from '../game/types';
 import styles from './app.module.css';
 
-const SLEEVE = SUPPLIES.find((s) => s.id === 'sleeve')!;
-const TOPLOADER = SUPPLIES.find((s) => s.id === 'toploader')!;
+/** Spelled out here: the card face prints the abbreviation, a price needs words. */
+const CONDITION_NAME: Record<string, string> = {
+  played: 'Played',
+  lightlyPlayed: 'Lightly Played',
+  nearMint: 'Near Mint',
+  mint: 'Mint',
+};
 
 function CardActions({ card, onDone }: { card: Card; onDone: () => void }) {
   const spendable = useRun((s) => s.spendable());
   const submitForGrading = useRun((s) => s.submitForGrading);
-  const applySupply = useRun((s) => s.applySupply);
+  const sleeveCard = useRun((s) => s.sleeveCard);
   const sellOnline = useRun((s) => s.sellOnline);
 
   const raw = !card.slabbed;
   const fee = raw ? gradingFee(card) : 0;
   const range = raw ? gradingOutcomeRange(card) : null;
+
+  // Sleeving is priced by the step it buys, and Mint has no step left.
+  const sleeveCost = card.slabbed ? undefined : SLEEVE_COST[card.condition];
+  const sleeveTo = card.slabbed
+    ? undefined
+    : CONDITION_ORDER[CONDITION_ORDER.indexOf(card.condition) + 1];
 
   const act = (fn: () => void): void => {
     fn();
@@ -70,26 +81,22 @@ function CardActions({ card, onDone }: { card: Card; onDone: () => void }) {
           <div className={styles.dim}>Already slabbed — grading is done.</div>
         )}
 
-        {raw && (
-          <>
+        {raw &&
+          (sleeveCost !== undefined && sleeveTo !== undefined ? (
             <button
               className={styles.btnSm}
-              disabled={spendable < SLEEVE.cost}
-              onClick={() => act(() => applySupply('sleeve', card.id))}
+              disabled={spendable < sleeveCost}
+              onClick={() => act(() => sleeveCard(card.id))}
             >
-              {SLEEVE.name.toUpperCase()} · {formatMoney(SLEEVE.cost)}
-              <span className={styles.actionHint}> up one condition step</span>
+              SLEEVE · {formatMoney(sleeveCost)}
+              <span className={styles.actionHint}>
+                {' '}
+                {CONDITION_NAME[card.condition]} to {CONDITION_NAME[sleeveTo]}
+              </span>
             </button>
-            <button
-              className={styles.btnSm}
-              disabled={spendable < TOPLOADER.cost || card.toploaded === true}
-              onClick={() => act(() => applySupply('toploader', card.id))}
-            >
-              {card.toploaded ? 'TOPLOADED' : `${TOPLOADER.name.toUpperCase()} · ${formatMoney(TOPLOADER.cost)}`}
-              {!card.toploaded && <span className={styles.actionHint}> survives one knock</span>}
-            </button>
-          </>
-        )}
+          ) : (
+            <div className={styles.dim}>Mint already — sleeving has nothing to add.</div>
+          ))}
 
         <button className={styles.btnSm} onClick={() => act(() => sellOnline(card.id))}>
           SELL ONLINE · +{formatMoney(onlineValue(card))}

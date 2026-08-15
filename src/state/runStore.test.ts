@@ -8,7 +8,7 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useRun } from './runStore';
-import { PRICE_GUIDE_MAX } from '../game/constants';
+import { PRICE_GUIDE_MAX, SLEEVE_COST } from '../game/constants';
 import { planShow, tableFeeForShow } from '../game/show/showEngine';
 import { conditionsForShow, getConditions } from '../game/conditions/registry';
 import { getUpgrades } from '../game/upgrades/registry';
@@ -171,5 +171,62 @@ describe('the reserve survives a house rule that moves the fee', () => {
       expect(actual, seed).toBe(predicted);
       expect(run().bankroll, seed).toBeGreaterThanOrEqual(actual);
     }
+  });
+});
+
+describe('sleeving', () => {
+  /** Puts one raw card of a known condition in stock, in the shop. */
+  function stockOne(condition: 'played' | 'nearMint' | 'mint') {
+    enterShop(1, 4000);
+    const card = run().inventory.find((c) => !c.slabbed)!;
+    useRun.setState({ inventory: [{ ...card, slabbed: false, condition }] });
+    return run().inventory[0]!.id;
+  }
+
+  it('charges by the step it buys, not a flat fee', () => {
+    const id = stockOne('played');
+    const before = run().bankroll;
+    run().sleeveCard(id);
+
+    expect(run().bankroll).toBe(before - SLEEVE_COST.played!);
+    expect(run().inventory[0]).toMatchObject({ condition: 'lightlyPlayed' });
+  });
+
+  it('charges more at the top of the ladder than the bottom', () => {
+    expect(SLEEVE_COST.nearMint!).toBeGreaterThan(SLEEVE_COST.played!);
+  });
+
+  it('refuses a Mint card rather than charging for nothing', () => {
+    const id = stockOne('mint');
+    const before = run().bankroll;
+    run().sleeveCard(id);
+
+    expect(run().bankroll).toBe(before);
+    expect(run().inventory[0]).toMatchObject({ condition: 'mint' });
+  });
+});
+
+describe('equipping gear', () => {
+  it('swaps the oldest piece out when the booth is full', () => {
+    const slots = run().upgradeSlots();
+    const owned = ['uvDisplayCase', 'pennySleeves', 'toploaderStack', 'halfPriceBin'];
+    useRun.setState({
+      ownedUpgradeIds: owned,
+      equippedUpgradeIds: owned.slice(0, slots),
+    });
+
+    const bumped = run().equippedUpgradeIds[slots - 1]!;
+    const benched = owned.find((id) => !run().equippedUpgradeIds.includes(id))!;
+    run().equip(benched);
+
+    expect(run().equippedUpgradeIds).toHaveLength(slots);
+    expect(run().equippedUpgradeIds[0]).toBe(benched);
+    expect(run().equippedUpgradeIds).not.toContain(bumped);
+  });
+
+  it('just adds when there is room', () => {
+    useRun.setState({ ownedUpgradeIds: ['uvDisplayCase'], equippedUpgradeIds: [] });
+    run().equip('uvDisplayCase');
+    expect(run().equippedUpgradeIds).toEqual(['uvDisplayCase']);
   });
 });
