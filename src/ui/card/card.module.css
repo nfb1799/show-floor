@@ -1,0 +1,270 @@
+/* ---------------------------------------------------------------------------
+   Card layout. Owns geometry and typography only — every colour that depends
+   on the card itself comes from custom properties set by the art layer.
+   --------------------------------------------------------------------------- */
+
+.card {
+  container-type: inline-size;
+  position: relative;
+  border: 3px solid var(--ink);
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 3px 3px 0 rgb(28 24 19 / 18%);
+  transition: transform 90ms ease, box-shadow 90ms ease;
+}
+
+.card:hover:not([data-disabled='true']) {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 rgb(28 24 19 / 26%);
+}
+
+.card[data-selected='true'] {
+  box-shadow: 4px 4px 0 rgb(207 58 46 / 40%);
+}
+
+.card[data-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* --- Art slot ------------------------------------------------------------ */
+
+.artSlot {
+  position: relative;
+  height: 96px;
+  border-bottom: 3px solid var(--ink);
+  overflow: hidden;
+  flex: none;
+}
+
+.card[data-size='small'] .artSlot {
+  height: 66px;
+  border-bottom-width: 2px;
+}
+
+.card[data-size='tiny'] .artSlot {
+  height: auto;
+  flex: 1;
+  border-bottom: none;
+}
+
+/* --- Condition / grade stamp --------------------------------------------- */
+
+.stamp {
+  position: absolute;
+  top: 5%;
+  right: 5%;
+  z-index: 2;
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: clamp(8px, 7.4cqw, 14px);
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  padding: 2px 6px;
+}
+
+.stamp[data-slab='true'] {
+  background: var(--gold);
+}
+
+/* --- Data block ---------------------------------------------------------- */
+
+/* Type scales with the card's own width (cqw), so a bigger card is genuinely
+   more readable rather than just larger. Clamps keep it sane at both ends.
+
+   The art is now the smaller half: it carries set colour, rarity spine and the
+   subject, none of which need much room. The data block gets the rest. */
+
+.data {
+  flex: none;
+  padding: 5% 6% 6%;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px;
+  margin-bottom: 2px;
+}
+
+.price {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: clamp(15px, 15cqw, 30px);
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.rarityTag {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: clamp(7px, 6.4cqw, 12px);
+  letter-spacing: 0.06em;
+  color: var(--rarity-ink, var(--muted));
+  text-align: right;
+  line-height: 1.1;
+  flex: none;
+  max-width: 52%;
+}
+
+.attrRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px;
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-size: clamp(8px, 7.2cqw, 13px);
+  line-height: 1.25;
+  border-top: 1px dotted var(--rule);
+  padding-top: 2px;
+}
+
+.franchise {
+  font-weight: 700;
+  color: var(--body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setName {
+  font-weight: 600;
+  color: var(--muted-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setNumber,
+.year {
+  flex: none;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The year is what makes "vintage" legible: buyers who want old cards name a
+   cutoff, not a list of set names. */
+.year[data-vintage='true'] {
+  color: var(--ink);
+  background: var(--gold);
+  padding: 0 4px;
+  border: 1px solid var(--ink);
+}
+
+/* Below this the attribute rows cannot be read at any size, so drop the two
+   weakest rather than print ellipses. */
+@container (max-width: 84px) {
+  .attrRow {
+    display: none;
+  }
+}
+
+/* --- Selection ----------------------------------------------------------- */
+
+.selectRule {
+  position: absolute;
+  inset: 0;
+  border: 4px solid var(--red);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.selectBadge {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  z-index: 4;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--red);
+  border: 3px solid var(--ink);
+  display: grid;
+  place-items: center;
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--paper);
+}
+
+.card[data-size='small'] .selectBadge {
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+  top: -8px;
+  left: -8px;
+  border-width: 2px;
+}
+
+/* --- Locked (held by an upgrade) ----------------------------------------- */
+
+.card[data-locked='true'] {
+  filter: grayscale(0.5);
+}
+
+.card[data-locked='true']:hover {
+  transform: none;
+  box-shadow: 3px 3px 0 rgb(28 24 19 / 18%);
+}
+
+.lockBadge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-6deg);
+  z-index: 5;
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  color: var(--red);
+  white-space: nowrap;
+}
+
+/* --- Tiny (pitch recap / sold row) --------------------------------------- */
+
+.card[data-size='tiny'] {
+  aspect-ratio: 2.5 / 3.4;
+  border-width: 2px;
+  box-shadow: 3px 3px 0 rgb(28 24 19 / 28%);
+  cursor: default;
+}
+
+.card[data-size='tiny']:hover {
+  transform: none;
+  box-shadow: 3px 3px 0 rgb(28 24 19 / 28%);
+}
+
+.card[data-size='tiny'] .footer,
+.card[data-size='tiny'] .stamp {
+  display: none;
+}
+
+.card[data-faded='true'] {
+  opacity: 0.55;
+}
+
+
+/* Fill mode: the card takes its container's height and the art absorbs the
+   slack, so the case row can shrink cards instead of the page scrolling. */
+.card[data-fill='true'] {
+  height: 100%;
+}
+
+.card[data-fill='true'] .artSlot {
+  height: auto;
+  flex: 1;
+  min-height: 0;
+}

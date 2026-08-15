@@ -1,0 +1,2328 @@
+/* ===========================================================================
+   Screen chrome for the price-guide redesign.
+
+   Building blocks, used by every screen:
+     .sheet      a bordered paper panel with a hard offset shadow
+     .band       a coloured header bar across the top of a sheet
+     .rule       a 3px ink divider
+     .num        Bungee numerals
+     .lbl        condensed uppercase micro-label
+   =========================================================================== */
+
+.shell {
+  height: 100vh;
+  overflow: hidden;
+  padding: 18px 24px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Panels that can outgrow the viewport scroll inside themselves rather than
+   handing a scrollbar to the page. */
+.scrollPane {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.wide {
+  max-width: 1680px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* --- Primitives ---------------------------------------------------------- */
+
+.sheet {
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  box-shadow: var(--shadow-hard);
+}
+
+.sheetFlat {
+  background: var(--paper);
+  border: 3px solid var(--ink);
+}
+
+.band {
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--ink);
+}
+
+.band[data-ink='red'] {
+  background: var(--red);
+}
+.band[data-ink='blue'] {
+  background: var(--blue);
+}
+.band[data-ink='gold'] {
+  background: var(--gold);
+}
+.band[data-ink='green'] {
+  background: var(--green);
+}
+
+.bandTitle {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--paper);
+}
+
+.band[data-ink='gold'] .bandTitle {
+  color: var(--ink);
+}
+
+.band .bandTitleGold {
+  color: var(--gold);
+}
+
+.bandNote {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--paper);
+  opacity: 0.85;
+}
+
+.num {
+  font-family: 'Bungee', system-ui, sans-serif;
+  line-height: 1;
+}
+
+.lbl {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dim {
+  color: var(--muted-2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.dotted {
+  border-bottom: 2px dotted var(--rule);
+}
+
+/* --- Masthead ------------------------------------------------------------ */
+
+.masthead {
+  display: inline-flex;
+  align-items: stretch;
+  border: 3px solid var(--ink);
+  box-shadow: 7px 7px 0 rgb(28 24 19 / 22%);
+}
+
+.mastheadName {
+  background: var(--red);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+}
+
+.mastheadName span {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 28px;
+  color: var(--paper);
+  line-height: 1;
+}
+
+.mastheadTag {
+  background: var(--ink);
+  padding: 0 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.mastheadTag span {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+}
+
+/* --- Screen heading (sits on the page, outside any sheet) ---------------- */
+
+.screenHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.screenNum {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 20px;
+  color: var(--red);
+}
+
+.screenTitle {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+.screenNote {
+  font-size: 14px;
+  color: var(--page-dim);
+}
+
+/* --- Hall header band ---------------------------------------------------- */
+
+.hallBand {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: var(--ink);
+  padding: 14px 24px;
+  flex-wrap: wrap;
+}
+
+.hallName {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 26px;
+  color: var(--paper);
+}
+
+.hallWhen {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+}
+
+.hallStatLabel {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: #a9c0b4;
+}
+
+.hallStatValue {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 24px;
+  color: var(--paper);
+  line-height: 1;
+}
+
+/* --- The wire (rumour) --------------------------------------------------- */
+
+.wire {
+  display: flex;
+  align-items: stretch;
+  border: 3px solid var(--ink);
+}
+
+.wireTab {
+  flex: none;
+  background: var(--gold);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+}
+
+.wireTab span {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.wireBody {
+  flex: 1;
+  background: var(--paper);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+/* --- Setup grid ---------------------------------------------------------- */
+
+.setupCols {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .setupCols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ledgerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.ledgerRow:first-child {
+  padding-top: 0;
+}
+
+.ledgerRow:last-child {
+  padding-bottom: 0;
+}
+
+.feeBig {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 42px;
+  color: var(--red);
+  line-height: 1;
+}
+
+.feeFoot {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 3px solid var(--ink);
+}
+
+/* --- Gear ---------------------------------------------------------------- */
+
+.gearGrid {
+  padding: 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+}
+
+.gearCard {
+  border: 2px solid var(--ink);
+  background: var(--paper-2);
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  transition: transform 90ms ease, box-shadow 90ms ease;
+}
+
+.gearCard:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 rgb(28 24 19 / 25%);
+}
+
+.gearCard:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.gearTag {
+  background: var(--gold);
+  padding: 5px 12px;
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+}
+
+.gearTag[data-state='bench'] {
+  background: var(--paper-3);
+  color: var(--muted-2);
+}
+
+.gearBody {
+  padding: 12px 14px;
+}
+
+.gearName {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 17px;
+  line-height: 1.1;
+}
+
+.gearText {
+  font-size: 13px;
+  color: var(--muted-2);
+  margin-top: 3px;
+  line-height: 1.35;
+}
+
+.benchRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 0 18px 16px;
+}
+
+.benchLabel {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.chip {
+  font-size: 13px;
+  border: 2px solid var(--rule);
+  padding: 4px 11px;
+  background: transparent;
+  font-family: inherit;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--ink);
+}
+
+/* --- Buttons ------------------------------------------------------------- */
+
+.btn {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 17px;
+  color: var(--paper);
+  background: var(--red);
+  border: 3px solid var(--ink);
+  padding: 15px 26px;
+  cursor: pointer;
+  box-shadow: var(--shadow-btn);
+  transition: transform 80ms ease, box-shadow 80ms ease;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0 var(--ink);
+}
+
+.btn:active:not(:disabled) {
+  transform: translate(3px, 3px);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn[data-ink='gold'] {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.btn[data-ink='paper'] {
+  background: var(--paper-2);
+  color: var(--red);
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.btnSm {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: var(--paper-2);
+  border: 3px solid var(--ink);
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 90ms ease;
+}
+
+.btnSm:hover:not(:disabled) {
+  background: var(--gold);
+}
+
+.btnSm:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btnSm[data-active='true'] {
+  background: var(--gold);
+}
+
+/* --- Box score HUD ------------------------------------------------------- */
+
+.hud {
+  display: flex;
+  border: 3px solid var(--ink);
+  background: var(--paper);
+  flex-wrap: wrap;
+}
+
+.hudCell {
+  flex: none;
+  padding: 11px 20px;
+  border-right: 2px solid var(--ink);
+  text-align: center;
+}
+
+.hudCell:last-child {
+  border-right: none;
+}
+
+.hudGrow {
+  flex: 1;
+  min-width: 220px;
+  padding: 11px 22px;
+  border-right: 2px solid var(--ink);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.hudValue {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.quotaHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.quotaFigure {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.quotaFigure em {
+  font-style: normal;
+  color: var(--rule);
+}
+
+.track {
+  position: relative;
+  height: 18px;
+  background: var(--paper-3);
+  border: 3px solid var(--ink);
+  box-shadow: inset 0 2px 0 rgb(28 24 19 / 10%);
+}
+
+.trackBig {
+  height: 22px;
+  border-width: 3px;
+}
+
+.trackFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--red);
+  transition: width 260ms ease;
+}
+
+.trackFill[data-met='true'] {
+  background: var(--green);
+}
+
+.trackHatch {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(45deg, transparent 0 5px, #0000001f 5px 7px);
+}
+
+.pips {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+}
+
+.pip {
+  width: 12px;
+  height: 12px;
+  background: var(--red);
+  border: 2px solid var(--ink);
+}
+
+.pip[data-spent='true'] {
+  background: var(--rule);
+}
+
+.pipLg {
+  width: 18px;
+  height: 18px;
+  background: var(--gold);
+  border: 2px solid var(--ink);
+}
+
+.pipLg[data-spent='true'] {
+  background: var(--paper-3);
+}
+
+/* --- Buyer row ----------------------------------------------------------- */
+
+.buyerRow {
+  display: flex;
+  gap: 14px;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+.buyerCard {
+  flex: none;
+  width: 520px;
+  max-width: 100%;
+  border: 3px solid var(--ink);
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+}
+
+.buyerBody {
+  padding: 18px 20px;
+  flex: 1;
+}
+
+.buyerIdent {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.buyerMark {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  background: var(--ink);
+  display: grid;
+  place-items: center;
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 22px;
+  color: var(--gold);
+}
+
+.buyerName {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.buyerBlurb {
+  font-size: 14px;
+  color: var(--muted-2);
+  margin-top: 4px;
+}
+
+.buyerFigures {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.figureBox {
+  flex: 1;
+  min-width: 140px;
+  border: 3px solid var(--ink);
+  background: var(--paper-2);
+}
+
+.figureBoxTight {
+  flex: none;
+  width: 150px;
+}
+
+.figureValue {
+  padding: 8px 12px 10px;
+}
+
+.figureValue .num {
+  font-size: 34px;
+}
+
+.figureHint {
+  font-size: 12px;
+  color: var(--muted);
+  margin-left: 6px;
+}
+
+.wants {
+  margin-top: 16px;
+  border-top: 3px solid var(--ink);
+  padding-top: 14px;
+}
+
+.wantChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--green);
+  border: 2px solid var(--ink);
+  padding: 7px 13px;
+  margin: 0 6px 6px 0;
+}
+
+.wantChip[data-tone='bad'] {
+  background: var(--red);
+}
+
+.wantChipText {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--paper);
+}
+
+.wantChipBonus {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 13px;
+  color: var(--paper);
+}
+
+.wantNote {
+  font-size: 13px;
+  color: var(--muted-2);
+  margin-top: 10px;
+  line-height: 1.4;
+}
+
+/* --- Queue --------------------------------------------------------------- */
+
+.queueCol {
+  flex: 1 1 300px;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Unrevealed queue slots are just position markers — they do not need to be
+   as wide as a populated card. */
+.queueList[data-revealed='false'] .queueCard {
+  min-width: 62px;
+}
+
+.queueHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  border-bottom: 3px solid var(--ink);
+  padding-bottom: 7px;
+  flex-wrap: wrap;
+}
+
+.queueHeadTitle {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+}
+
+.queueHeadNote {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: var(--paper-3);
+  border: 2px solid var(--ink);
+  padding: 2px 8px;
+}
+
+.queueList {
+  flex: 1;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.queueCard {
+  flex: 1;
+  min-width: 150px;
+  border: 3px solid var(--ink);
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+}
+
+.queueCardHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 2px solid var(--ink);
+  background: var(--paper-2);
+}
+
+.queueNum {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 13px;
+  color: var(--muted-2);
+}
+
+.queuePips {
+  display: flex;
+  gap: 4px;
+}
+
+.queuePip {
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--ink);
+}
+
+.queueBody {
+  padding: 12px;
+}
+
+.queueName {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 19px;
+  line-height: 1;
+}
+
+.queueKind {
+  font-size: 12px;
+  color: var(--muted-2);
+}
+
+.queueCap {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 17px;
+  margin-top: 12px;
+}
+
+.queueFoot {
+  margin-top: auto;
+  padding: 10px 12px;
+  border-top: 2px dotted var(--rule);
+}
+
+.queueWants {
+  font-size: 12px;
+  color: var(--body);
+  line-height: 1.35;
+}
+
+.queueTag {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+}
+
+.queueHidden {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 26px 12px;
+  color: var(--rule);
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 30px;
+}
+
+/* --- The case ------------------------------------------------------------ */
+
+.caseHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 3px solid var(--ink);
+  padding-bottom: 7px;
+  flex-wrap: wrap;
+}
+
+.caseTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.caseTitle > span:first-child {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+}
+
+.casePulled {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--red);
+}
+
+.caseGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 14px;
+}
+
+.caseEmpty {
+  padding: 50px 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* --- The tally ----------------------------------------------------------- */
+
+.tallyBody {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+.tallyMath {
+  flex: 1;
+  min-width: 320px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-right: 3px solid var(--ink);
+}
+
+.mathRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mathBox {
+  border: 2px solid var(--ink);
+  background: var(--paper-2);
+}
+
+.mathBoxLabel {
+  background: var(--paper-3);
+  padding: 2px 9px;
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--muted-2);
+}
+
+.mathBoxValue {
+  padding: 5px 10px;
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 18px;
+}
+
+.mathOp {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 18px;
+  color: var(--red);
+}
+
+.mathAppeal {
+  border: 3px solid var(--ink);
+  background: var(--blue);
+}
+
+.mathAppeal .mathBoxLabel {
+  background: transparent;
+  color: #cfe0f2;
+  font-weight: 800;
+}
+
+.mathAppeal .mathBoxValue {
+  color: var(--paper);
+  font-size: 20px;
+  padding: 5px 12px;
+}
+
+.mathGain {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--green);
+}
+
+.mathLoss {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--red);
+}
+
+.struck {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.cappedFlag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--gold);
+  border: 2px solid var(--ink);
+  padding: 5px 11px;
+  flex-wrap: wrap;
+}
+
+.cappedFlagTitle {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+
+.cappedFlagNote {
+  font-size: 12px;
+  color: #3a2c0a;
+}
+
+.tallyPay {
+  flex: none;
+  width: 300px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.payAmount {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 44px;
+  line-height: 1;
+}
+
+.payButtons {
+  display: flex;
+  gap: 10px;
+}
+
+.payButtons .btn {
+  flex: 1;
+  font-size: 15px;
+  padding: 13px 0;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.payButtons .btnSm {
+  flex: none;
+  padding: 13px 14px;
+}
+
+.tallyIdle {
+  padding: 22px;
+  color: var(--muted-2);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* --- Haggle -------------------------------------------------------------- */
+
+.haggleCols {
+  display: grid;
+  grid-template-columns: 0.82fr 1fr;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .haggleCols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.haggleRecap {
+  padding: 24px;
+  border-right: 3px solid var(--ink);
+  display: flex;
+  flex-direction: column;
+}
+
+.haggleType {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.haggleTypeName {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 26px;
+}
+
+.countTag {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 12px;
+  color: var(--paper);
+  background: var(--blue);
+  border: 2px solid var(--ink);
+  padding: 4px 10px;
+}
+
+.tinyRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.haggleBuyer {
+  margin-top: auto;
+  border: 3px solid var(--ink);
+  background: var(--paper);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  flex-wrap: wrap;
+}
+
+.haggleOffer {
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+}
+
+.offerLead {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--red);
+  text-transform: uppercase;
+}
+
+.offerBig {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 88px;
+  line-height: 0.95;
+  margin: 10px 0 4px;
+}
+
+.heads {
+  display: flex;
+  align-items: stretch;
+  border: 3px solid var(--ink);
+  margin-top: 24px;
+}
+
+.headsTab {
+  flex: none;
+  background: var(--gold);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+}
+
+.headsTab span {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+}
+
+.headsBody {
+  flex: 1;
+  background: var(--paper-2);
+  padding: 13px 16px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.haggleActions {
+  margin-top: auto;
+  padding-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.haggleActions .btn {
+  width: 100%;
+  padding: 18px 0;
+  font-size: 20px;
+}
+
+.pushNote {
+  font-family: 'Barlow', system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* --- Sold ---------------------------------------------------------------- */
+
+.soldStamp {
+  text-align: center;
+  padding: 10px 0 4px;
+}
+
+.soldStampMark {
+  display: inline-block;
+  transform: rotate(-4deg);
+  border: 5px solid var(--red);
+  padding: 6px 28px;
+}
+
+.soldStampMark span {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 40px;
+  color: var(--red);
+  letter-spacing: 0.04em;
+}
+
+.soldAmount {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 60px;
+  margin-top: 16px;
+  line-height: 1;
+}
+
+.soldCards {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 24px 0 28px;
+}
+
+.soldCardSlot {
+  width: 96px;
+}
+
+.nextUp {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 3px solid var(--ink);
+  background: var(--paper);
+  padding: 14px 18px;
+  flex-wrap: wrap;
+}
+
+/* --- Log ----------------------------------------------------------------- */
+
+.logList {
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.logEntry {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted-2);
+  border-left: 3px solid var(--rule);
+  padding-left: 9px;
+}
+
+.logEntry[data-tone='sale'] {
+  color: var(--green);
+  border-left-color: var(--green);
+}
+
+.logEntry[data-tone='walk'] {
+  color: var(--red);
+  border-left-color: var(--red);
+}
+
+.logEntry[data-tone='turnAway'] {
+  color: var(--gold-dk);
+  border-left-color: var(--gold);
+}
+
+/* --- Conditions ---------------------------------------------------------- */
+
+.conditionStrip {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.conditionCard {
+  flex: 1;
+  min-width: 260px;
+  border: 3px solid var(--ink);
+  background: var(--paper);
+}
+
+.conditionBody {
+  padding: 12px 16px;
+}
+
+.conditionText {
+  font-size: 13px;
+  color: var(--body);
+  line-height: 1.45;
+}
+
+/* --- Shop ---------------------------------------------------------------- */
+
+.shopCols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .shopCols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.pad {
+  padding: 16px 18px;
+}
+
+.shopShelf {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 14px;
+}
+
+.shopItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shopItem[data-sold='true'] {
+  opacity: 0.35;
+}
+
+.rowWrap {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.packCard {
+  flex: 1 1 190px;
+  border: 3px solid var(--ink);
+  background: var(--paper-2);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.inventoryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+  max-height: 460px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.toolNote {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.toolHint {
+  color: var(--red);
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+}
+
+/* --- Centred screens ----------------------------------------------------- */
+
+.center {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.centerSheet {
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  box-shadow: var(--shadow-hard);
+  padding: 28px 34px;
+  max-width: 640px;
+  width: 100%;
+  /* End screens carry a lot of copy; the sheet scrolls before the page does. */
+  max-height: calc(100vh - 72px);
+  overflow-y: auto;
+}
+
+.bigTitle {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 44px;
+  line-height: 1.05;
+}
+
+.bigTitle[data-tone='bad'] {
+  color: var(--red);
+}
+
+.sub {
+  font-size: 16px;
+  color: var(--body);
+  line-height: 1.55;
+  margin: 14px 0 0;
+}
+
+.seedLine {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.statsTable {
+  margin: 18px 0 0;
+  border: 3px solid var(--ink);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.statsRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 14px;
+  font-size: 14px;
+  color: var(--body);
+}
+
+.statsRow:nth-child(odd) {
+  background: var(--paper-2);
+}
+
+.statsValue {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.titleActions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 22px;
+}
+
+.seedInput {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-align: center;
+  color: var(--ink);
+  background: var(--paper-2);
+  border: 3px solid var(--ink);
+  padding: 9px 14px;
+  width: 220px;
+  margin-top: 14px;
+}
+
+.seedInput::placeholder {
+  color: var(--muted);
+}
+
+/* ===========================================================================
+   Fixed-viewport layout.
+
+   The board must never scroll: everything a player needs during a pitch is on
+   screen at once. The case row takes the leftover height and the cards scale
+   to fill it, so a short viewport shrinks the cards rather than adding a
+   scrollbar. Long lists inside panels (shop stock) scroll within the panel.
+   =========================================================================== */
+
+.fixed {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 18px 14px;
+}
+
+.tableGrid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.topBarTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.ticker {
+  font-size: 12px;
+  color: var(--page-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 46vw;
+}
+
+/* Case row: cards derive their width from the row height. */
+.caseRow {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: stretch;
+  min-height: 0;
+  flex-wrap: wrap;
+}
+
+.caseSlot {
+  height: 100%;
+  aspect-ratio: 132 / 196;
+  min-width: 0;
+}
+
+@media (max-height: 780px) {
+  .caseRow {
+    flex-wrap: nowrap;
+  }
+}
+
+/* --- Sale animation ------------------------------------------------------ */
+
+@keyframes saleRise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 14px) scale(0.94);
+  }
+  14% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  74% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -26px) scale(0.98);
+  }
+}
+
+.saleToast {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--gold);
+  border: 3px solid var(--ink);
+  box-shadow: 7px 7px 0 rgb(28 24 19 / 35%);
+  padding: 12px 20px;
+  animation: saleRise 1900ms ease forwards;
+  pointer-events: none;
+}
+
+.saleToastAmount {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.saleToastNote {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: #3a2c0a;
+}
+
+@keyframes figureBump {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.16);
+    color: var(--green);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.bump {
+  display: inline-block;
+  animation: figureBump 700ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .saleToast,
+  .bump {
+    animation-duration: 1ms;
+  }
+}
+
+/* --- Haggle overlay ------------------------------------------------------ */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(28 24 19 / 45%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.scrim[data-hidden='true'] {
+  background: transparent;
+  pointer-events: none;
+}
+
+.hagglePanel {
+  width: min(1080px, 100%);
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  box-shadow: 10px 10px 0 rgb(28 24 19 / 40%);
+  pointer-events: auto;
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(16px) scale(0.99);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.hagglePanel {
+  animation: slideUp 180ms ease;
+}
+
+.haggleInner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  min-height: 0;
+}
+
+@media (max-width: 860px) {
+  .haggleInner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.hagglePitch {
+  padding: 16px 18px;
+  border-right: 3px solid var(--ink);
+  min-width: 0;
+}
+
+.haggleCards {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.haggleCardSlot {
+  width: 116px;
+  flex: none;
+}
+
+.haggleDeal {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--paper-2);
+  min-width: 0;
+}
+
+.dealAmount {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 60px;
+  line-height: 0.95;
+}
+
+.dealActions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.dealActions .btn {
+  width: 100%;
+  padding: 14px 0;
+  font-size: 18px;
+}
+
+.pushRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.pushDelta {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 15px;
+}
+
+.pushDelta[data-dir='up'] {
+  color: var(--green);
+}
+
+.pushDelta[data-dir='down'] {
+  color: var(--red);
+}
+
+/* The collapsed state: a bar the player can bring the deal back from. */
+.haggleTab {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--gold);
+  border: 3px solid var(--ink);
+  border-bottom: none;
+  box-shadow: 0 -4px 0 rgb(28 24 19 / 25%);
+  padding: 9px 18px;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.haggleTabAmount {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 22px;
+  line-height: 1;
+}
+
+/* A sheet that fills the remaining viewport height, so its inner pane scrolls
+   instead of the page. */
+.fillSheet {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------------------------------------------------------------------------
+   Short-viewport compaction.
+
+   The case must stay readable, so it gets a floor and everything around it
+   gives up height first: the buyer panel drops its prose, the tally tightens,
+   type steps down. Below the smallest step the board is still whole — it just
+   runs out of ornament rather than growing a scrollbar.
+   --------------------------------------------------------------------------- */
+
+.caseRow {
+  min-height: 132px;
+}
+
+.caseSlot {
+  min-height: 132px;
+}
+
+@media (max-height: 860px) {
+  .fixed {
+    gap: 8px;
+    padding: 10px 16px 12px;
+  }
+  .tableGrid {
+    gap: 8px;
+  }
+  .buyerName {
+    font-size: 24px;
+  }
+  .buyerMark {
+    width: 52px;
+    height: 52px;
+    font-size: 18px;
+  }
+  .buyerBody {
+    padding: 12px 14px;
+  }
+  .buyerFigures {
+    margin-top: 12px;
+  }
+  .figureValue .num {
+    font-size: 26px;
+  }
+  .wants {
+    margin-top: 11px;
+    padding-top: 10px;
+  }
+  .tallyMath {
+    padding: 12px 14px;
+    gap: 9px;
+  }
+  .tallyPay {
+    padding: 11px 14px;
+    gap: 9px;
+  }
+  .payAmount {
+    font-size: 34px;
+  }
+  .queueCap {
+    margin-top: 7px;
+  }
+}
+
+@media (max-height: 720px) {
+  .buyerBlurb,
+  .wantNote,
+  .queueKind {
+    display: none;
+  }
+  .buyerName {
+    font-size: 21px;
+  }
+  .buyerCard {
+    width: 460px;
+  }
+  .mathBoxValue {
+    font-size: 15px;
+    padding: 3px 8px;
+  }
+  .payAmount {
+    font-size: 28px;
+  }
+  .payButtons .btn {
+    font-size: 13px;
+    padding: 10px 0;
+  }
+  .caseHead {
+    display: none;
+  }
+}
+
+@media (max-height: 640px) {
+  .queueFoot,
+  .conditionChip,
+  .ticker {
+    display: none;
+  }
+  .buyerFigures {
+    margin-top: 8px;
+  }
+  .wants {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+}
+
+/* The case is the main interaction, so it gets the leftover height and a
+   generous ceiling — cards should be readable, not merely present. */
+.caseRow {
+  align-items: center;
+  align-content: center;
+}
+
+.caseSlot {
+  max-height: 340px;
+}
+
+.fixed > * {
+  max-width: 1720px;
+  width: 100%;
+  margin-inline: auto;
+}
+
+/* On a short viewport the buyer panel and tally give up height first so the
+   case can stay large — the cards are what the player is actually reading. */
+@media (max-height: 820px) {
+  /* Lay the buyer panel out as a strip rather than a column: same information,
+     roughly half the height, which all goes to the case. */
+  .buyerBody {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 12px;
+    padding: 10px 12px;
+  }
+  .buyerIdent {
+    flex: none;
+    width: 132px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .buyerFigures {
+    flex: none;
+    margin-top: 0;
+    align-items: flex-start;
+  }
+  .wants {
+    flex: 1 1 200px;
+    /* The chips are the point of the panel; they must not be squeezed into a
+       column too narrow to read. The card grows instead. */
+    min-width: 190px;
+    margin-top: 0;
+    padding-top: 0;
+    padding-left: 12px;
+    border-top: none;
+    border-left: 3px solid var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  /* The chips read on their own; the heading only costs height here. */
+  .wants > .benchLabel {
+    display: none;
+  }
+  .buyerCard {
+    width: auto;
+    flex: 0 1 auto;
+    min-width: 520px;
+    /* Sized to its content: past this it is just white space on the right. */
+    max-width: 760px;
+  }
+  .hudCell,
+  .hudGrow {
+    padding: 7px 16px;
+  }
+  .hudValue {
+    font-size: 18px;
+  }
+  .band {
+    padding: 5px 12px;
+  }
+  .bandTitle,
+  .bandNote {
+    font-size: 11px;
+  }
+  .tallyMath {
+    padding: 10px 12px;
+    gap: 7px;
+  }
+  .tallyPay {
+    padding: 9px 12px;
+    gap: 7px;
+  }
+  .wantChip {
+    padding: 4px 9px;
+    margin: 0 4px 4px 0;
+  }
+  .wantChipText {
+    font-size: 12px;
+  }
+  .figureValue {
+    padding: 5px 10px 7px;
+  }
+}
+
+@media (max-height: 820px) {
+  .buyerMark {
+    width: 42px;
+    height: 42px;
+    font-size: 15px;
+  }
+  .buyerName {
+    font-size: 19px;
+  }
+  .figureValue .num {
+    font-size: 22px;
+  }
+  .figureBox {
+    min-width: 118px;
+  }
+  .wantChipText {
+    font-size: 11.5px;
+  }
+}
+
+@media (max-height: 820px) {
+  .centerSheet {
+    padding: 20px 24px;
+  }
+  .bigTitle {
+    font-size: 34px;
+  }
+  .sub {
+    font-size: 14px;
+    margin-top: 10px;
+  }
+  .statsRow {
+    padding: 4px 12px;
+    font-size: 13px;
+  }
+}
+
+/* --- Stock and help overlays --------------------------------------------- */
+
+.stockPanel,
+.helpPanel {
+  width: min(1100px, 100%);
+  max-height: calc(100vh - 48px);
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  box-shadow: 10px 10px 0 rgb(28 24 19 / 40%);
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+  animation: slideUp 180ms ease;
+}
+
+.helpPanel {
+  width: min(680px, 100%);
+}
+
+.stockTools {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 3px solid var(--ink);
+  background: var(--paper-2);
+}
+
+.stockBudget {
+  margin-left: auto;
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+}
+
+.stockHelp {
+  padding: 10px 16px;
+  border-bottom: 2px dotted var(--rule);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--body);
+  background: rgb(227 169 42 / 14%);
+}
+
+.stockGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 12px;
+  padding: 16px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* --- Help panel body ------------------------------------------------------ */
+
+.helpBody {
+  padding: 16px 18px;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.helpItem {
+  border: 2px solid var(--ink);
+  background: var(--paper-2);
+  padding: 12px 14px;
+}
+
+.helpHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.helpName {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 17px;
+}
+
+.helpRule {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--blue);
+  margin-top: 2px;
+}
+
+.helpWhy {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--body);
+  margin: 8px 0 0;
+}
+
+.helpBtn {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--ink);
+  background: var(--gold);
+  border: 2px solid var(--ink);
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.helpBtn:hover {
+  background: var(--paper);
+}
+
+.shopActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.shopActions .btn {
+  flex: 1;
+  min-width: 180px;
+}
+
+/* --- Pack and grading reveals -------------------------------------------- */
+
+.packPanel,
+.gradePanel {
+  width: min(880px, 100%);
+  max-height: calc(100vh - 48px);
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  box-shadow: 10px 10px 0 rgb(28 24 19 / 40%);
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+  animation: slideUp 180ms ease;
+}
+
+.gradePanel {
+  width: min(560px, 100%);
+}
+
+.packGrid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  padding: 20px 18px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.packSlot {
+  width: 118px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.packSlot[data-shown='true'] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.packSlot[data-listed='true'] {
+  opacity: 0.45;
+}
+
+.packTag {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border: 2px solid var(--ink);
+  background: var(--green);
+  color: var(--paper);
+}
+
+.packTag[data-listed='true'] {
+  background: var(--paper-3);
+  color: var(--ink);
+}
+
+.packFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border-top: 3px solid var(--ink);
+  background: var(--paper-2);
+}
+
+.packFoot .btn {
+  padding: 10px 20px;
+  font-size: 15px;
+}
+
+/* --- Grading reveal ------------------------------------------------------- */
+
+.gradeBody {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.gradeCards {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.gradeSide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  width: 118px;
+}
+
+.gradeArrow {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 26px;
+  color: var(--rule);
+  transition: color 240ms ease;
+}
+
+.gradeArrow[data-revealed='true'] {
+  color: var(--green);
+}
+
+.gradePending {
+  width: 100%;
+  aspect-ratio: 2.5 / 3.4;
+  border: 3px dashed var(--rule);
+  display: grid;
+  place-items: center;
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 36px;
+  color: var(--rule);
+  animation: pendingPulse 900ms ease-in-out infinite;
+}
+
+@keyframes pendingPulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.gradeVerdict {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.gradeNumber {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 24px;
+  background: var(--gold);
+  border: 3px solid var(--ink);
+  padding: 4px 14px;
+}
+
+.gradeDelta {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 22px;
+}
+
+.gradeDelta[data-dir='up'] {
+  color: var(--green);
+}
+
+.gradeDelta[data-dir='down'] {
+  color: var(--red);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .packSlot,
+  .gradePending {
+    transition: none;
+    animation: none;
+  }
+}

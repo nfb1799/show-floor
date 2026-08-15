@@ -1,0 +1,110 @@
+/* ---------------------------------------------------------------------------
+   Show Floor — print / price-guide visual language.
+
+   Newsprint and pricing-annual: flat ink blocks, 3px black rules, hard offset
+   shadows with no blur, square corners everywhere. Bungee for numerals and
+   display, Barlow Semi Condensed for labels, Barlow for body copy.
+   --------------------------------------------------------------------------- */
+
+:root {
+  /* Ink and paper. The page is the palest step; sheets sit on top in white. */
+  --ink: #1c1813;
+  --page: #eceae1;
+  --paper: #ffffff;
+  --paper-2: #f4f2ea;
+  --paper-3: #ddd9cb;
+  --rule: #b3ad9c;
+
+  /* Type greys, darkest last */
+  --muted: #798175;
+  --muted-2: #5d645b;
+  --body: #3c423a;
+
+  /* The press inks */
+  --red: #cf3a2e;
+  --red-dk: #a72c22;
+  --gold: #e3a92a;
+  --gold-dk: #c8901f;
+  --blue: #1f5fa8;
+  --green: #2f7d52;
+  --purple: #8e3b8f;
+  --orange: #d97b1e;
+  --brown: #5c5346;
+
+  /* Text that sits directly on the page rather than inside a sheet. */
+  --page-text: #3c423a;
+  --page-dim: #6d7268;
+
+  --shadow-hard: 9px 9px 0 rgba(28, 24, 19, 0.22);
+  --shadow-btn: 5px 5px 0 var(--ink);
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  /* Newsprint tooth, in ink rather than white, so the texture survives on a
+     pale page without muddying it. */
+  background:
+    repeating-linear-gradient(45deg, #1c181308 0 2px, transparent 2px 7px),
+    radial-gradient(#1c181309 1px, transparent 1.6px),
+    var(--page);
+  background-size: auto, 7px 7px, auto;
+  color: var(--ink);
+  font-family: 'Barlow', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+}
+
+a {
+  color: var(--red);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: var(--red-dk);
+}
+
+/* Fonts load from Google; if they fail the fallbacks below keep the layout
+   intact rather than collapsing to a serif. */
+.display,
+.num {
+  font-family: 'Bungee', 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 400;
+}
+
+.label {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--paper-3);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ink);
+  border: 3px solid var(--paper-3);
+}
