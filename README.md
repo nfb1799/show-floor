@@ -1,6 +1,9 @@
 # Show Floor
 
 Browser roguelike deckbuilder about vending at trading card shows.
+
+**▶ Play: https://nfb1799.github.io/show-floor/**
+
 See `show-floor-design-doc.md` for the full design.
 
 ```bash
@@ -8,6 +11,26 @@ npm install
 npm run dev
 npm test
 ```
+
+The dev server runs at http://localhost:5173/show-floor/ — the base path is
+fixed rather than build-only so dev, `npm run preview` and the deployed site all
+resolve assets identically.
+
+## Deploying
+
+Pushing to `main` builds and publishes via
+[.github/workflows/deploy.yml](.github/workflows/deploy.yml). Tests gate the
+deploy, so a red suite never reaches players.
+
+Pages itself was enabled once, out of band — the workflow token cannot create
+the site:
+
+```bash
+gh api --method POST repos/OWNER/REPO/pages -f build_type=workflow
+```
+
+Runs save to `localStorage`, so each playtester's progress is per-browser and
+nothing is shared or collected.
 
 ## Build state
 
