@@ -48,8 +48,8 @@ export const ALL_CONDITIONS: readonly ConditionDef[] = [
     onShowStart: (_ctx, fx) => fx.addOfferRatio(-0.2, 'Undercutter'),
   }),
 
-  condition('impatientFloor', 'Impatient Floor', 'Every buyer has goodwill 1.', 6, {
-    onBuyerArrive: (_ctx, fx) => fx.setGoodwill(1, 'Impatient Floor'),
+  condition('impatientFloor', 'Impatient Floor', 'The crowd has only 2 goodwill all show.', 6, {
+    onShowStart: (_ctx, fx) => fx.setGoodwill(2, 'Impatient Floor'),
   }),
 
   condition('cashOnly', 'Cash Only', 'All budgets are halved.', 9, {

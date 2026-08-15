@@ -104,15 +104,18 @@ export type Want =
   /** Bulk Guy: per-card bonus, but only on pitches of at least minCards. */
   | { readonly kind: 'volume'; readonly minCards: number; readonly interestPerCard: number }
   /**
-   * Flipper: the pitch type contributes no value for this buyer — he prices
-   * the cards themselves and is not impressed by the packaging.
+   * Flipper: pays for cards worth real money, counted one by one.
    *
-   * This replaces the doc's "card value must reach 2x the offer" threshold,
-   * which is unsatisfiable: the offer includes the card value, so the test
-   * reduces to V >= 1.4(P + V), which has no solution. See the Flipper notes
-   * in the README.
+   * The doc's version ("card value must reach 2x the offer") is unsatisfiable —
+   * the offer contains the card value, so it reduces to V >= 1.4(P + V). A
+   * per-card threshold is countable off the card faces and reads like every
+   * other want. The threshold scales with his budget so it stays meaningful.
    */
-  | { readonly kind: 'valueOnly' };
+  | {
+      readonly kind: 'minCardValue';
+      readonly minValue: number;
+      readonly interestPerCard: number;
+    };
 
 export type Turnoff =
   | { readonly kind: 'anyRaw'; readonly interestMult: number }
@@ -131,7 +134,6 @@ export interface Buyer {
   readonly label: string;
   /** Hard cap on money received from this buyer. */
   readonly budget: number;
-  readonly goodwill: number;
   readonly wants: readonly Want[];
   readonly turnoff?: Turnoff;
   /** Subject name. Required for The Grail; most buyers have none. */
@@ -208,6 +210,13 @@ export interface ShowStartEffects {
   addOfferRatio(delta: number, label: string): void;
   /** Fake Grail Display: hold N cards in the case that cannot be pitched. */
   lockCaseSlots(amount: number, label: string): void;
+  /**
+   * Goodwill is the crowd's patience with you, pooled across the whole show
+   * rather than held per buyer: pushing one buyer for more leaves less room to
+   * make the next one wait while you dig through the box.
+   */
+  addGoodwill(amount: number, label: string): void;
+  setGoodwill(value: number, label: string): void;
   /** Price Guide Binder: show who is next in the queue. */
   revealNextBuyer(label: string): void;
   /** Estate Sale Contact: stock arrives before the doors open. */
@@ -226,8 +235,6 @@ export interface BuyerArriveContext {
 
 export interface BuyerArriveEffects {
   multiplyBudget(factor: number, label: string): void;
-  addGoodwill(amount: number, label: string): void;
-  setGoodwill(value: number, label: string): void;
   setChaseCard(subject: string, label: string): void;
   /**
    * Tags the buyer for later hook stages to read. This is how a decision made

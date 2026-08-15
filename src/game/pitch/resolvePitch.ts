@@ -65,9 +65,8 @@ function cardsMatchingWant(cards: readonly Card[], want: Want): Card[] {
       return cards.filter((c) => isHolo(c.rarity));
     case 'volume':
       return cards.length >= want.minCards ? [...cards] : [];
-    case 'valueOnly':
-      // Not a per-card bonus: it changes how the offer is built.
-      return [];
+    case 'minCardValue':
+      return cards.filter((c) => cardValue(c) >= want.minValue);
   }
 }
 
@@ -86,8 +85,8 @@ function wantLabel(want: Want, count: number): string {
       return `Holo${suffix}`;
     case 'volume':
       return `Volume${suffix}`;
-    case 'valueOnly':
-      return 'Cards only';
+    case 'minCardValue':
+      return `$${want.minValue}+ cards${suffix}`;
   }
 }
 
@@ -131,18 +130,10 @@ function scoreAs(pitchType: PitchTypeId, input: PitchInput, rng: Rng): PitchResu
   // --- Value ---------------------------------------------------------------
   const cardValueTotal = totalCardValue(cards);
 
-  // The Flipper prices the cards themselves — the pitch type adds nothing for
-  // him. Interest still applies, so a clever pitch of good cards still pays;
-  // a clever pitch of junk does not.
-  const pricesCardsOnly = buyer.wants.some((w) => w.kind === 'valueOnly');
-  const pitchValue = pricesCardsOnly ? 0 : def.value;
+  const pitchValue = def.value;
 
   const valueLines: ScoreLine[] = [
-    {
-      label: pricesCardsOnly ? `${def.label} — not counted` : def.label,
-      amount: pitchValue,
-      source: 'pitchType',
-    },
+    { label: def.label, amount: pitchValue, source: 'pitchType' },
     { label: `${cards.length} card${cards.length === 1 ? '' : 's'}`, amount: cardValueTotal, source: 'cards' },
   ];
 
@@ -151,7 +142,6 @@ function scoreAs(pitchType: PitchTypeId, input: PitchInput, rng: Rng): PitchResu
   const interestMultLines: ScoreLine[] = [];
 
   for (const want of buyer.wants) {
-    if (want.kind === 'valueOnly') continue; // shapes the offer, adds no interest
     const matches = cardsMatchingWant(cards, want);
     if (matches.length === 0) continue;
     interestAddLines.push({
@@ -209,7 +199,7 @@ function scoreAs(pitchType: PitchTypeId, input: PitchInput, rng: Rng): PitchResu
     pitchTypeLabel: pitchTypeLabel(pitchType, cards.length),
     cardIds: cards.map((c) => c.id),
     pitchValue,
-    pitchValueCounted: !pricesCardsOnly,
+    pitchValueCounted: true,
     cardValue: cardValueTotal,
     valueLines,
     value,

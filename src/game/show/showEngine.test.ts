@@ -4,6 +4,7 @@ import { generateCards } from '../cards/generate';
 import {
   accept,
   createShow,
+  digFromStock,
   previewPitch,
   previewPush,
   pitch,
@@ -126,18 +127,26 @@ describe('resolving a buyer', () => {
 });
 
 describe('haggling', () => {
-  it('spends goodwill to raise the offer ratio', () => {
+  it('spends from the show-wide goodwill pool to raise the offer ratio', () => {
     const { state, deps: d } = newShow();
-    // Find a show where the first buyer has goodwill to spend.
-    const withGoodwill = state.buyer!.goodwill > 0 ? state : newShow('patient').state;
-    const d2 = withGoodwill === state ? d : deps('patient');
-
-    const offered = pitch(selectFirst(withGoodwill, 3), d2);
-    const pushed = push(offered, d2);
+    const offered = pitch(selectFirst(state, 3), d);
+    const pushed = push(offered, d);
 
     expect(pushed.offerRatio).toBeCloseTo(offered.offerRatio + 0.15);
-    expect(pushed.buyer!.goodwill).toBe(offered.buyer!.goodwill - 1);
+    expect(pushed.goodwill).toBe(offered.goodwill - 1);
     expect(pushed.phase).toBe('haggling');
+  });
+
+  it('carries the pool across buyers rather than resetting it', () => {
+    // Goodwill is the crowd's patience with you, not one buyer's, so spending
+    // it early leaves less for the rest of the show.
+    const { state, deps: d } = newShow();
+    const spent = push(pitch(selectFirst(state, 3), d), d);
+    const nextBuyer = accept(spent, d);
+
+    expect(nextBuyer.queueIndex).toBe(1);
+    expect(nextBuyer.goodwill).toBe(spent.goodwill);
+    expect(nextBuyer.goodwill).toBeLessThan(state.config.goodwill);
   });
 
   it('shrinks the wallet on every push, so pushing is a real decision', () => {
@@ -148,13 +157,13 @@ describe('haggling', () => {
     const pushed = push(offered, d);
 
     expect(pushed.buyer!.budget).toBeLessThan(offered.buyer!.budget);
-    expect(pushed.buyer!.goodwill).toBe(offered.buyer!.goodwill - 1);
+    expect(pushed.goodwill).toBe(offered.goodwill - 1);
   });
 
   it('pays a capped buyer strictly less for being pushed', () => {
     const { state, deps: d } = newShow();
     // A tiny budget guarantees the cap binds before and after the push.
-    const capped: ShowState = { ...state, buyer: { ...state.buyer!, budget: 8, goodwill: 3 } };
+    const capped: ShowState = { ...state, buyer: { ...state.buyer!, budget: 8 }, goodwill: 3 };
     const offered = pitch(selectFirst(capped, 3), d);
     const pushed = push(offered, d);
 
@@ -173,13 +182,13 @@ describe('haggling', () => {
 
   it('offers no push preview once goodwill is gone', () => {
     const { state, deps: d } = newShow();
-    const seeded: ShowState = { ...state, buyer: { ...state.buyer!, goodwill: 0 } };
+    const seeded: ShowState = { ...state, goodwill: 0 };
     expect(previewPush(pitch(selectFirst(seeded, 2), d), d)).toBeNull();
   });
 
   it('loses the buyer when pushed at zero goodwill', () => {
     const { state, deps: d } = newShow();
-    const seeded: ShowState = { ...state, buyer: { ...state.buyer!, goodwill: 0 } };
+    const seeded: ShowState = { ...state, goodwill: 0 };
     const offered = pitch(selectFirst(seeded, 2), d);
     const walked = push(offered, d);
 
@@ -190,7 +199,7 @@ describe('haggling', () => {
 
   it('does not sell the cards when a buyer walks', () => {
     const { state, deps: d } = newShow();
-    const seeded: ShowState = { ...state, buyer: { ...state.buyer!, goodwill: 0 } };
+    const seeded: ShowState = { ...state, goodwill: 0 };
     const selected = selectFirst(seeded, 2);
     const pitchedIds = selected.selection;
     const walked = push(pitch(selected, d), d);
@@ -288,5 +297,40 @@ describe('determinism', () => {
 
     expect(play().earned).toBe(play().earned);
     expect(play().log.map((l) => l.text)).toEqual(play().log.map((l) => l.text));
+  });
+});
+
+describe('digging through the box', () => {
+  it('swaps a chosen case card for a chosen stock card without losing the buyer', () => {
+    const { state } = newShow();
+    const out = state.displayCase[0]!;
+    const wanted = state.inventory[0]!;
+
+    const after = digFromStock(state, out.id, wanted.id);
+
+    expect(after.displayCase.map((c) => c.id)).toContain(wanted.id);
+    expect(after.displayCase.map((c) => c.id)).not.toContain(out.id);
+    expect(after.inventory.map((c) => c.id)).toContain(out.id);
+    // The whole point: the buyer you are fetching for is still standing there.
+    expect(after.buyer!.id).toBe(state.buyer!.id);
+    expect(after.queueIndex).toBe(state.queueIndex);
+  });
+
+  it('spends goodwill from the show pool', () => {
+    const { state } = newShow();
+    const after = digFromStock(state, state.displayCase[0]!.id, state.inventory[0]!.id);
+    expect(after.goodwill).toBe(state.goodwill - 1);
+  });
+
+  it('is refused with no goodwill left', () => {
+    const { state } = newShow();
+    const broke: ShowState = { ...state, goodwill: 0 };
+    expect(digFromStock(broke, broke.displayCase[0]!.id, broke.inventory[0]!.id)).toBe(broke);
+  });
+
+  it('keeps the case the same size', () => {
+    const { state } = newShow();
+    const after = digFromStock(state, state.displayCase[0]!.id, state.inventory[0]!.id);
+    expect(after.displayCase).toHaveLength(state.displayCase.length);
   });
 });

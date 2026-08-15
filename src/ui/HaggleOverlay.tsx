@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { formatMoney } from '../game/cards/value';
-import { BUYER_GOODWILL_MAX, HAGGLE_BUDGET_PENALTY } from '../game/constants';
+import { HAGGLE_BUDGET_PENALTY, SHOW_GOODWILL } from '../game/constants';
 import { previewPush } from '../game/show/showEngine';
 import { useRun } from '../state/runStore';
 import { CardView } from './card/CardView';
@@ -25,7 +25,7 @@ export function HaggleOverlay() {
 
   const { buyer, pending } = show;
   const cards = show.displayCase.filter((c) => show.selection.includes(c.id));
-  const outOfGoodwill = buyer.goodwill <= 0;
+  const outOfGoodwill = show.goodwill <= 0;
   const delta = projected === null ? 0 : projected - pending.offer;
 
   if (hidden) {
@@ -86,10 +86,10 @@ export function HaggleOverlay() {
                 {initialsOf(buyer.label)}
               </div>
               <div>
-                <div className={styles.lbl}>Goodwill left</div>
+                <div className={styles.lbl}>Crowd goodwill — whole show</div>
                 <Pips
-                  total={Math.max(BUYER_GOODWILL_MAX, buyer.goodwill)}
-                  filled={buyer.goodwill}
+                  total={Math.max(SHOW_GOODWILL, show.goodwill)}
+                  filled={show.goodwill}
                   large
                 />
               </div>

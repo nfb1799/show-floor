@@ -126,6 +126,8 @@ export interface ShowStartHookResult {
   readonly tableFeeMult: number;
   readonly offerRatioDelta: number;
   readonly lockedSlots: number;
+  readonly goodwillDelta: number;
+  readonly goodwillOverride: number | null;
   readonly revealNextBuyer: boolean;
   readonly addedCards: Card[];
   readonly lines: ScoreLine[];
@@ -142,6 +144,8 @@ export function runShowStartHooks(
   let tableFeeMult = 1;
   let offerRatioDelta = 0;
   let lockedSlots = 0;
+  let goodwillDelta = 0;
+  let goodwillOverride: number | null = null;
   let revealNextBuyer = false;
   const addedCards: Card[] = [];
   const lines: ScoreLine[] = [];
@@ -182,6 +186,14 @@ export function runShowStartHooks(
           lockedSlots += amount;
           note(label, amount);
         },
+        addGoodwill: (amount, label) => {
+          goodwillDelta += amount;
+          note(label, amount);
+        },
+        setGoodwill: (value, label) => {
+          goodwillOverride = value;
+          note(label, value);
+        },
         revealNextBuyer: (label) => {
           revealNextBuyer = true;
           note(label, 1);
@@ -202,6 +214,8 @@ export function runShowStartHooks(
     tableFeeMult,
     offerRatioDelta,
     lockedSlots,
+    goodwillDelta,
+    goodwillOverride,
     revealNextBuyer,
     addedCards,
     lines,
@@ -224,8 +238,6 @@ export function runBuyerArriveHooks(
 ): BuyerArriveHookResult {
   let buyer = ctx.buyer;
   let budgetMult = 1;
-  let goodwillDelta = 0;
-  let goodwillOverride: number | null = null;
   let scaredOff = false;
   const marks: string[] = [...(buyer.marks ?? [])];
   const lines: ScoreLine[] = [];
@@ -241,14 +253,6 @@ export function runBuyerArriveHooks(
         multiplyBudget: (factor, label) => {
           budgetMult *= factor;
           note(label, factor);
-        },
-        addGoodwill: (amount, label) => {
-          goodwillDelta += amount;
-          note(label, amount);
-        },
-        setGoodwill: (value, label) => {
-          goodwillOverride = value;
-          note(label, value);
         },
         setChaseCard: (subject, label) => {
           buyer = { ...buyer, chaseCard: subject };
@@ -270,12 +274,10 @@ export function runBuyerArriveHooks(
     );
   }
 
-  const baseGoodwill = goodwillOverride ?? buyer.goodwill;
   return {
     buyer: {
       ...buyer,
       budget: Math.max(1, Math.round(buyer.budget * budgetMult)),
-      goodwill: Math.max(0, baseGoodwill + (goodwillOverride === null ? goodwillDelta : 0)),
       marks,
     },
     scaredOff,

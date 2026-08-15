@@ -21,8 +21,10 @@ interface TallyProps {
   turnAwaysLeft: number;
   canPitch: boolean;
   canTurnAway: boolean;
+  canDig: boolean;
   onPitch: () => void;
   onTurnAway: () => void;
+  onDig: () => void;
 }
 
 export function Tally({
@@ -30,8 +32,10 @@ export function Tally({
   turnAwaysLeft,
   canPitch,
   canTurnAway,
+  canDig,
   onPitch,
   onTurnAway,
+  onDig,
 }: TallyProps) {
   if (!result) {
     return (
@@ -54,6 +58,9 @@ export function Tally({
             <div className={styles.payButtons}>
               <button className={styles.btn} disabled>
                 SEND IT
+              </button>
+              <button className={styles.btnSm} onClick={onDig} disabled={!canDig}>
+                DIG
               </button>
               <button className={styles.btnSm} onClick={onTurnAway} disabled={!canTurnAway}>
                 PASS · {turnAwaysLeft}
@@ -178,6 +185,9 @@ export function Tally({
           <div className={styles.payButtons}>
             <button className={styles.btn} onClick={onPitch} disabled={!canPitch}>
               SEND IT
+            </button>
+            <button className={styles.btnSm} onClick={onDig} disabled={!canDig}>
+              DIG
             </button>
             <button className={styles.btnSm} onClick={onTurnAway} disabled={!canTurnAway}>
               PASS · {turnAwaysLeft}

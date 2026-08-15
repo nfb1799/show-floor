@@ -9,6 +9,8 @@
 import {
   BUYERS_PER_SHOW,
   DISPLAY_CASE_SIZE,
+  GOODWILL_COST_DIG,
+  GOODWILL_COST_PUSH,
   HAGGLE_BUDGET_PENALTY,
   HAGGLE_RATIO_STEP,
   MAX_PITCH_CARDS,
@@ -17,6 +19,7 @@ import {
   QUOTA_GROWTH,
   QUOTA_SOFTEN_AFTER_SHOW,
   QUOTA_SOFT_GROWTH,
+  SHOW_GOODWILL,
   TABLE_FEE_BASE,
   TABLE_FEE_GROWTH,
   TURN_AWAYS_PER_SHOW,
@@ -67,6 +70,8 @@ export interface ShowConfig {
   readonly buyerCount: number;
   readonly turnAways: number;
   readonly startingOfferRatio: number;
+  /** Goodwill the crowd starts the show with. */
+  readonly goodwill: number;
   /** Case slots held by an upgrade and unavailable to pitch. */
   readonly lockedSlots: number;
   readonly revealNextBuyer: boolean;
@@ -92,6 +97,8 @@ export interface ShowState {
   readonly queueIndex: number;
   readonly buyer: Buyer | null;
   readonly turnAwaysLeft: number;
+  /** Shared across the whole show: spent pushing a price or digging stock. */
+  readonly goodwill: number;
   readonly offerRatio: number;
   readonly phase: ShowPhase;
   /** The offer on the table during haggling. */
@@ -358,6 +365,11 @@ function buildConfig(
     buyerCount: Math.max(1, BUYERS_PER_SHOW + start.extraBuyers),
     turnAways: Math.max(0, TURN_AWAYS_PER_SHOW + start.extraTurnAways),
     startingOfferRatio: Math.max(0.05, OFFER_RATIO_START + start.offerRatioDelta),
+    goodwill: Math.max(
+      0,
+      (start.goodwillOverride ?? SHOW_GOODWILL) +
+        (start.goodwillOverride === null ? start.goodwillDelta : 0),
+    ),
     lockedSlots: start.lockedSlots,
     revealNextBuyer: start.revealNextBuyer,
     conditionIds: deps.conditions.map((c) => c.id),
@@ -388,6 +400,7 @@ export function createShow(
     queueIndex: 0,
     buyer: null,
     turnAwaysLeft: config.turnAways,
+    goodwill: config.goodwill,
     offerRatio: config.startingOfferRatio,
     phase: 'pitching',
     pending: null,
@@ -536,8 +549,8 @@ export function accept(state: ShowState, deps: ShowDeps): ShowState {
 export function push(state: ShowState, deps: ShowDeps): ShowState {
   if (state.phase !== 'haggling' || !state.pending || !state.buyer) return state;
 
-  // Goodwill 0 means the next push is the one that loses them.
-  if (state.buyer.goodwill <= 0) {
+  // An empty pool means the next push is the one that loses them.
+  if (state.goodwill < GOODWILL_COST_PUSH) {
     const walked = log(
       {
         ...state,
@@ -556,11 +569,16 @@ export function push(state: ShowState, deps: ShowDeps): ShowState {
   // off against an uncapped buyer and costs you against a capped one.
   const buyer: Buyer = {
     ...state.buyer,
-    goodwill: state.buyer.goodwill - 1,
     budget: Math.max(1, Math.round(state.buyer.budget * HAGGLE_BUDGET_PENALTY)),
   };
   const offerRatio = state.offerRatio + HAGGLE_RATIO_STEP;
-  const haggled: ShowState = { ...state, buyer, offerRatio, phase: 'pitching' };
+  const haggled: ShowState = {
+    ...state,
+    buyer,
+    offerRatio,
+    goodwill: state.goodwill - GOODWILL_COST_PUSH,
+    phase: 'pitching',
+  };
   const result = previewPitch(haggled, deps);
 
   const before = state.pending.offer;
@@ -583,7 +601,7 @@ export function push(state: ShowState, deps: ShowDeps): ShowState {
  */
 export function previewPush(state: ShowState, deps: ShowDeps): number | null {
   if (state.phase !== 'haggling' || !state.buyer || !state.pending) return null;
-  if (state.buyer.goodwill <= 0) return null;
+  if (state.goodwill < GOODWILL_COST_PUSH) return null;
 
   const probe: ShowState = {
     ...state,
@@ -637,6 +655,41 @@ export function turnAway(state: ShowState, deps: ShowDeps): ShowState {
   );
 
   return seatBuyer(drawUp(next, deps), deps);
+}
+
+/**
+ * Swaps one card out of the case for a named card from stock, for the price of
+ * a goodwill pip — the buyer is waiting while you rummage.
+ *
+ * This is the answer to "the buyer wants a Tidefin and I have three in the
+ * box": it does not dismiss them, because dismissing them defeats the point.
+ */
+export function digFromStock(
+  state: ShowState,
+  outCardId: string,
+  inCardId: string,
+): ShowState {
+  if (state.phase !== 'pitching') return state;
+  if (state.goodwill < GOODWILL_COST_DIG) return state;
+  if (isLocked(state, outCardId)) return state;
+
+  const outCard = state.displayCase.find((c) => c.id === outCardId);
+  const inCard = state.inventory.find((c) => c.id === inCardId);
+  if (!outCard || !inCard) return state;
+
+  const next: ShowState = {
+    ...state,
+    displayCase: state.displayCase.map((c) => (c.id === outCardId ? inCard : c)),
+    inventory: state.inventory.filter((c) => c.id !== inCardId).concat(outCard),
+    selection: state.selection.filter((id) => id !== outCardId),
+    goodwill: state.goodwill - GOODWILL_COST_DIG,
+  };
+
+  return log(
+    applyLocks(next),
+    `You dig out ${inCard.subject} while ${state.buyer?.label ?? 'the buyer'} waits.`,
+    'turnAway',
+  );
 }
 
 /** Cards still in the case go back to the run's inventory when the show ends. */

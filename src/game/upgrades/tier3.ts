@@ -70,7 +70,6 @@ export const TIER_3: readonly UpgradeDef[] = [
           archetype: 'personalCollector',
           label: 'The Regular',
           budget: Math.round(budgetForShow('personalCollector', ctx.showIndex) * 1.2),
-          goodwill: 3,
           wants: [
             {
               kind: 'subject',
@@ -182,10 +181,8 @@ export const TIER_3: readonly UpgradeDef[] = [
     },
   }),
 
-  upgrade('theGrinder', 'The Grinder', 380, 'Every buyer after the first has +1 goodwill.', {
-    onBuyerArrive: (ctx, fx) => {
-      if (ctx.buyerIndex > 0) fx.addGoodwill(1, 'The Grinder');
-    },
+  upgrade('theGrinder', 'The Grinder', 380, 'The crowd starts each show with +3 goodwill.', {
+    onShowStart: (_ctx, fx) => fx.addGoodwill(3, 'The Grinder'),
   }),
 
   upgrade('auctionScout', 'Auction Scout', 600, 'Offers are 35% higher. Budgets are 15% lower.', {

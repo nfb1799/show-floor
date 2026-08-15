@@ -55,7 +55,6 @@ interface BuyerOverrides {
   archetype?: BuyerArchetypeId;
   label?: string;
   budget?: number;
-  goodwill?: number;
   wants?: Want[];
   turnoff?: Turnoff;
   chaseCard?: string;
@@ -69,7 +68,6 @@ export function buyer(o: BuyerOverrides = {}): Buyer {
     archetype: o.archetype ?? 'bulkGuy',
     label: o.label ?? 'Test Buyer',
     budget: o.budget ?? 1_000_000,
-    goodwill: o.goodwill ?? 3,
     wants: o.wants ?? [],
     ...(o.turnoff ? { turnoff: o.turnoff } : {}),
     ...(o.chaseCard !== undefined ? { chaseCard: o.chaseCard } : {}),

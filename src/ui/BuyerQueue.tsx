@@ -1,6 +1,5 @@
 import { formatMoney } from '../game/cards/value';
 import { getArchetype } from '../game/buyers/archetypes';
-import { BUYER_GOODWILL_MAX } from '../game/constants';
 import type { Buyer } from '../game/types';
 import { describeTurnoff, describeWant } from './wantText';
 import styles from './app.module.css';
@@ -14,9 +13,6 @@ function tagFor(buyer: Buyer): { text: string; color: string } {
     };
   }
   const want = buyer.wants[0];
-  if (want && want.kind === 'valueOnly') {
-    return { text: 'IGNORES PITCH TYPE', color: 'var(--gold-dk)' };
-  }
   if (want && 'interestPerCard' in want) {
     return { text: `+${want.interestPerCard} INTEREST EACH`, color: 'var(--green)' };
   }
@@ -62,18 +58,6 @@ export function BuyerQueue({
             <div key={buyer.id} className={styles.queueCard}>
               <div className={styles.queueCardHead}>
                 <span className={styles.queueNum}>#{startIndex + i}</span>
-                <div className={styles.queuePips}>
-                  {Array.from({ length: BUYER_GOODWILL_MAX }, (_, p) => (
-                    <span
-                      key={p}
-                      className={styles.queuePip}
-                      style={{
-                        background:
-                          revealed && p < buyer.goodwill ? 'var(--gold)' : 'var(--rule)',
-                      }}
-                    />
-                  ))}
-                </div>
               </div>
 
               {revealed ? (

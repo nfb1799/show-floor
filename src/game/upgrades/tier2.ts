@@ -36,9 +36,9 @@ export const TIER_2: readonly UpgradeDef[] = [
     'loudNeighbor',
     'Loud Neighbor',
     450,
-    'All buyers lose 1 goodwill. All offers are 50% higher.',
+    'The crowd has 3 less goodwill all show. All offers are 50% higher.',
     {
-      onBuyerArrive: (_ctx, fx) => fx.addGoodwill(-1, 'Loud Neighbor'),
+      onShowStart: (_ctx, fx) => fx.addGoodwill(-3, 'Loud Neighbor'),
       onOfferFinalize: (_ctx, fx) => fx.multiplyOffer(1.5, 'Loud Neighbor'),
     },
   ),
@@ -115,10 +115,8 @@ export const TIER_2: readonly UpgradeDef[] = [
     },
   ),
 
-  upgrade('crowdBarrier', 'Crowd Barrier', 220, 'The first buyer of each show has +2 goodwill.', {
-    onBuyerArrive: (ctx, fx) => {
-      if (ctx.buyerIndex === 0) fx.addGoodwill(2, 'Crowd Barrier');
-    },
+  upgrade('crowdBarrier', 'Crowd Barrier', 220, 'The crowd starts each show with +2 goodwill.', {
+    onShowStart: (_ctx, fx) => fx.addGoodwill(2, 'Crowd Barrier'),
   }),
 
   upgrade('neonOpenSign', 'Neon Open Sign', 400, 'Every offer is 20% higher.', {

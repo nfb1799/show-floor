@@ -130,9 +130,10 @@ describe('show-shape conditions', () => {
     expect(planShow(3, 40, deps(['undercutter'])).startingOfferRatio).toBeCloseTo(0.5);
   });
 
-  it('Impatient Floor pins every buyer to goodwill 1', () => {
+  it('Impatient Floor squeezes the show-wide goodwill pool', () => {
     const show = createShow(3, generateCards(createRng('inv'), 30, 'inv'), deps(['impatientFloor']));
-    expect(show.buyer!.goodwill).toBe(1);
+    expect(show.config.goodwill).toBe(2);
+    expect(show.goodwill).toBe(2);
   });
 });
 

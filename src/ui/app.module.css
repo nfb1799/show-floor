@@ -2354,3 +2354,127 @@
     animation: none;
   }
 }
+
+/* --- Dig overlay ---------------------------------------------------------- */
+
+.digPanel {
+  width: min(1180px, 100%);
+  max-height: calc(100vh - 48px);
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  box-shadow: 10px 10px 0 rgb(28 24 19 / 40%);
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+  animation: slideUp 180ms ease;
+}
+
+.digCols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .digCols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.digSide {
+  padding: 14px 16px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.digSide:first-child {
+  border-right: 3px solid var(--ink);
+  background: var(--paper-2);
+}
+
+.digHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.digSearch {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  padding: 5px 10px;
+  width: 170px;
+}
+
+.digGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+  overflow-y: auto;
+  min-height: 0;
+  max-height: 46vh;
+}
+
+.digEmpty {
+  padding: 34px 20px;
+  text-align: center;
+  color: var(--muted-2);
+  font-size: 14px;
+}
+
+/* --- Collection depth ----------------------------------------------------- */
+
+.depthList {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.depthRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 2px solid var(--ink);
+  background: var(--paper-2);
+  padding: 7px 11px;
+}
+
+.depthRow[data-active='true'] {
+  background: rgb(47 125 82 / 12%);
+  border-color: var(--green);
+}
+
+.depthName {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  flex: 1;
+  min-width: 0;
+}
+
+.depthCount {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 15px;
+  flex: none;
+}
+
+.depthBonus {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--green);
+  flex: none;
+}
+
+.depthNext {
+  font-size: 12px;
+  color: var(--muted);
+  flex: none;
+}

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatMoney } from '../game/cards/value';
-import { MAX_PITCH_CARDS } from '../game/constants';
+import { GOODWILL_COST_DIG, MAX_PITCH_CARDS } from '../game/constants';
 import { getConditions } from '../game/conditions/registry';
 import { remainingQueue, type SaleRecord } from '../game/show/showEngine';
 import { useRun } from '../state/runStore';
 import { BuyerPanel } from './BuyerPanel';
 import { BuyerQueue } from './BuyerQueue';
+import { DigOverlay } from './DigOverlay';
 import { HaggleOverlay } from './HaggleOverlay';
 import { Tally } from './Tally';
 import { CardView } from './card/CardView';
@@ -41,6 +42,7 @@ export function ShowScreen() {
   const turnAway = useRun((s) => s.turnAway);
 
   const flash = useSaleFlash(show?.lastSale ?? null);
+  const [digging, setDigging] = useState(false);
 
   if (!show || !show.buyer) return null;
 
@@ -108,6 +110,14 @@ export function ShowScreen() {
             </div>
             <Pips total={show.config.turnAways} filled={show.turnAwaysLeft} />
           </div>
+          {/* Goodwill belongs to the whole show, so it lives on the board
+              rather than on any one buyer. */}
+          <div className={styles.hudCell}>
+            <div className={styles.lbl} style={{ marginBottom: 6 }}>
+              Goodwill
+            </div>
+            <Pips total={show.config.goodwill} filled={show.goodwill} />
+          </div>
         </div>
 
         {/* Buyer + queue --------------------------------------------- */}
@@ -156,6 +166,8 @@ export function ShowScreen() {
 
         {/* The tally -------------------------------------------------- */}
         <Tally
+          onDig={() => setDigging(true)}
+          canDig={!haggling && show.goodwill >= GOODWILL_COST_DIG && show.inventory.length > 0}
           result={result}
           turnAwaysLeft={show.turnAwaysLeft}
           canPitch={show.selection.length > 0 && !haggling}
@@ -166,6 +178,7 @@ export function ShowScreen() {
       </div>
 
       {haggling && <HaggleOverlay />}
+      {digging && <DigOverlay onClose={() => setDigging(false)} />}
 
       {flash && (
         <div className={styles.saleToast}>

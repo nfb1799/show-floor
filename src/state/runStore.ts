@@ -33,6 +33,7 @@ import {
   upgradeSlotsFor,
   type ShopStock,
 } from '../game/shop/shop';
+import { collectionModifiers } from '../game/run/collection';
 import { rollRumor } from '../game/run/rumors';
 import {
   EMPTY_STATS,
@@ -45,6 +46,7 @@ import type { Card, PitchResult, RawCard } from '../game/types';
 import {
   accept as engineAccept,
   createShow,
+  digFromStock,
   planShow,
   previewPitch,
   pitch as enginePitch,
@@ -76,6 +78,8 @@ export interface RunState extends Omit<RunSnapshot, 'rngState'> {
   accept: () => void;
   push: () => void;
   turnAway: () => void;
+  /** Swap a case card for a named card from stock, for a goodwill pip. */
+  dig: (outCardId: string, inCardId: string) => void;
   preview: () => PitchResult | null;
 
   collectShow: () => void;
@@ -114,11 +118,19 @@ function randomSeed(): string {
 let packSeq = 0;
 
 export const useRun = create<RunState>((set, get) => {
+  /** Everything the player owns right now, wherever it currently sits. */
+  const collection = (): Card[] => {
+    const { inventory, show } = get();
+    return show ? [...show.inventory, ...show.displayCase] : [...inventory];
+  };
+
   const deps = (): ShowDeps => {
     const { rng, equippedUpgradeIds, conditionIds, casesBought } = get();
     return {
       rng,
-      upgrades: getUpgrades(equippedUpgradeIds),
+      // Collection depth rides the same hook as any upgrade, so scoring needs
+      // no concept of a collection at all.
+      upgrades: [...getUpgrades(equippedUpgradeIds), ...collectionModifiers(collection())],
       conditions: getConditions(conditionIds),
       extraCaseSlots: casesBought,
     };
@@ -318,6 +330,7 @@ export const useRun = create<RunState>((set, get) => {
     accept: () => applyShow(engineAccept),
     push: () => applyShow(enginePush),
     turnAway: () => applyShow(engineTurnAway),
+    dig: (outCardId, inCardId) => applyShow((st) => digFromStock(st, outCardId, inCardId)),
 
     preview: () => {
       const { show } = get();

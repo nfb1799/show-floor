@@ -3,6 +3,15 @@ import { createRng } from '../rng';
 import { InvalidPitchError, resolvePitch, type PitchInput } from './resolvePitch';
 import { buyer, franchiseSpread, modifier, raw, slab } from '../testing/factories';
 import type { Buyer, Card, Modifier } from '../types';
+import { getArchetype } from '../buyers/archetypes';
+
+/** A Flipper built the way the game builds one, for the scaling check. */
+function generateBuyerAt(showIndex: number): Buyer {
+  return buyer({
+    archetype: 'flipper',
+    wants: getArchetype('flipper').buildWants(createRng('bar'), showIndex),
+  });
+}
 
 function pitch(
   cards: Card[],
@@ -151,56 +160,57 @@ describe('buyer wants', () => {
 });
 
 describe('Flipper', () => {
-  const flipper = (budget = 1_000_000) =>
-    buyer({ archetype: 'flipper', budget, wants: [{ kind: 'valueOnly' }] });
+  const flipper = (minValue = 40) =>
+    buyer({
+      archetype: 'flipper',
+      wants: [{ kind: 'minCardValue', minValue, interestPerCard: 4 }],
+    });
 
   /**
    * The doc's Flipper ("card value must reach 2x the offer, or x0.5 Interest")
    * is unsatisfiable: the offer contains the card value, so the test reduces to
    * V >= 1.4(P + V), which has no solution for any positive pitch value. He sat
-   * permanently at x0.5. He now prices the cards and ignores the packaging.
+   * permanently at x0.5. He now pays per card that clears a value bar, which is
+   * countable off the card faces.
    */
-  it('pays nothing for the pitch type', () => {
-    const cards = franchiseSpread('grimoire', ['A', 'B', 'C', 'D', 'E'], { rarity: 'rare' });
-    const result = resolvePitch(pitch(cards, { buyer: flipper() }));
+  it('pays per card that clears the bar', () => {
+    const dear = franchiseSpread('grimoire', ['A', 'B', 'C'], { rarity: 'rareHolo' });
+    const result = resolvePitch(pitch(dear, { buyer: flipper(30) }));
 
-    expect(result.pitchType).toBe('fullCase'); // 85 value for anyone else
-    expect(result.pitchValue).toBe(0);
-    expect(result.value).toBeCloseTo(result.cardValue);
+    // 3 rare holo near mint = $35 each, all over the bar.
+    expect(result.interestAddLines.map((l) => l.amount)).toEqual([12]);
   });
 
-  it('still counts the cards, and interest still applies', () => {
-    const cards = franchiseSpread('grimoire', ['A', 'B', 'C', 'D', 'E'], { rarity: 'rare' });
-    const result = resolvePitch(pitch(cards, { buyer: flipper() }));
-
-    // 5 rare near mint = 60 card value, Full Case interest 5, ratio 0.7.
-    expect(result.cardValue).toBeCloseTo(60);
-    expect(result.interest).toBe(5);
-    expect(result.offer).toBe(210);
+  it('ignores filler under the bar', () => {
+    const junk = franchiseSpread('grimoire', ['A', 'B', 'C'], {
+      rarity: 'common',
+      condition: 'played',
+    });
+    expect(resolvePitch(pitch(junk, { buyer: flipper(30) })).interestAddLines).toHaveLength(0);
   });
 
-  it('never applies a blanket penalty', () => {
+  it('counts only the cards that clear it, not the whole pitch', () => {
+    const mixed = [
+      raw({ subject: 'A', rarity: 'rareHolo', franchise: 'grimoire' }),
+      raw({ subject: 'B', rarity: 'common', condition: 'played', franchise: 'grimoire' }),
+      raw({ subject: 'C', rarity: 'common', condition: 'played', franchise: 'grimoire' }),
+    ];
+    expect(resolvePitch(pitch(mixed, { buyer: flipper(30) })).interestAddLines[0]?.amount).toBe(4);
+  });
+
+  it('applies no blanket penalty', () => {
     const junk = [raw({ rarity: 'common', condition: 'played' })];
     expect(resolvePitch(pitch(junk, { buyer: flipper() })).interestMultLines).toHaveLength(0);
   });
 
-  it('pays far less for junk dressed up as a good pitch type', () => {
-    const junk = franchiseSpread('grimoire', ['A', 'B', 'C', 'D', 'E'], {
-      rarity: 'common',
-      condition: 'played',
-    });
-    const good = franchiseSpread('grimoire', ['A', 'B', 'C', 'D', 'E'], {
-      rarity: 'ultra',
-      condition: 'mint',
-    });
-
-    const toFlipper = (cards: typeof junk) =>
-      resolvePitch(pitch(cards, { buyer: flipper() })).offer;
-    const toAnyone = (cards: typeof junk) => resolvePitch(pitch(cards)).offer;
-
-    // Both are a Full Case, but the Flipper prices what is actually in it.
-    expect(toFlipper(junk) / toAnyone(junk)).toBeLessThan(0.1);
-    expect(toFlipper(good) / toAnyone(good)).toBeGreaterThan(0.8);
+  it('scales its bar with the run', () => {
+    const early = generateBuyerAt(1);
+    const late = generateBuyerAt(8);
+    const barOf = (b: Buyer) => {
+      const want = b.wants.find((w) => w.kind === 'minCardValue');
+      return want && want.kind === 'minCardValue' ? want.minValue : 0;
+    };
+    expect(barOf(late)).toBeGreaterThan(barOf(early));
   });
 });
 

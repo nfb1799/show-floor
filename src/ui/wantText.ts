@@ -29,21 +29,21 @@ export function describeWant(want: Want): string {
       return 'Anything holo';
     case 'volume':
       return `Pitches of ${want.minCards}+ cards`;
-    case 'valueOnly':
-      return 'Pays for the cards, not the pitch';
+    case 'minCardValue':
+      return `Cards worth $${want.minValue} or more`;
   }
 }
 
 export function wantBonus(want: Want): string {
-  if (want.kind === 'valueOnly') return 'no bonus';
+
   return `+${want.interestPerCard} each`;
 }
 
 /** Long-form explanation, shown under the buyer where there is room. */
 export function explainWant(want: Want): string | null {
   switch (want.kind) {
-    case 'valueOnly':
-      return 'He resells everything, so he pays for what the cards are worth and ignores the pitch type bonus entirely. Interest still applies — a clever pitch of good cards pays well, a clever pitch of junk does not.';
+    case 'minCardValue':
+      return `He resells everything, so only cards he can actually flip interest him. Every card in the pitch priced at $${want.minValue} or more adds Interest; cheap filler adds nothing. Card prices are printed on the faces.`;
     case 'fromSets':
       return want.setIds.length > 1
         ? 'Every card face prints its set year — anything at or under the cutoff counts.'

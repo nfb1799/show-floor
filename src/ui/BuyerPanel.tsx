@@ -1,9 +1,8 @@
 import { formatMoney } from '../game/cards/value';
 import { getArchetype } from '../game/buyers/archetypes';
-import { BUYER_GOODWILL_MAX } from '../game/constants';
 import { pitchTypeLabel } from '../game/pitch/pitchTypes';
 import type { Buyer, PitchTypeId } from '../game/types';
-import { Band, initialsOf, Pips } from './kit';
+import { Band, initialsOf } from './kit';
 import { describeTurnoff, describeWant, explainWant, wantBonus } from './wantText';
 import styles from './app.module.css';
 
@@ -44,16 +43,6 @@ export function BuyerPanel({
               <span className={styles.figureHint}>hard cap</span>
             </div>
           </div>
-          <div className={`${styles.figureBox} ${styles.figureBoxTight}`}>
-            <Band title="Goodwill" goldTitle />
-            <div style={{ padding: 12 }}>
-              <Pips
-                total={Math.max(BUYER_GOODWILL_MAX, buyer.goodwill)}
-                filled={buyer.goodwill}
-                large
-              />
-            </div>
-          </div>
         </div>
 
         <div className={styles.wants}>
@@ -65,7 +54,7 @@ export function BuyerPanel({
             <span
               key={i}
               className={styles.wantChip}
-              data-tone={want.kind === 'valueOnly' ? 'bad' : 'good'}
+              data-tone="good"
               // The long form is the only place some demands are explained at
               // all, so keep it reachable even where the note below is hidden.
               title={explainWant(want) ?? describeWant(want)}

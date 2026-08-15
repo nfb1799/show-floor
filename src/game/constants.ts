@@ -197,15 +197,27 @@ export const WANT_INTEREST: Record<BuyerArchetypeId, number> = {
   kid: 6,
   bulkGuy: 2,
   nostalgia: 5,
-  flipper: 0, // the Flipper's demand changes the shape of the offer, not its size
+  flipper: 4, // per card that clears his value bar
 };
+
+/**
+ * Flipper: cards worth at least this fraction of his budget earn the bonus.
+ * Expressed against budget so the bar scales with the run automatically.
+ */
+export const FLIPPER_VALUE_FRACTION = 0.2;
 
 export const GRADER_MIN_CONDITION: Condition = 'nearMint';
 export const INVESTOR_MIN_GRADE = 9;
 export const BULK_GUY_MIN_CARDS = 4;
 
-export const BUYER_GOODWILL_MIN = 1;
-export const BUYER_GOODWILL_MAX = 3;
+/**
+ * Goodwill is a single pool for the whole show, not a per-buyer allowance.
+ * Spent to push a price up, or to make a buyer wait while you dig through
+ * stock — so the two compete for the same budget.
+ */
+export const SHOW_GOODWILL = 6;
+export const GOODWILL_COST_PUSH = 1;
+export const GOODWILL_COST_DIG = 1;
 
 /** Relative frequency of each archetype in the buyer queue. */
 export const ARCHETYPE_WEIGHTS: Record<BuyerArchetypeId, number> = {
@@ -266,6 +278,22 @@ export const BUYER_BUDGET_GROWTH = 1.35;
 /** Must at least cover show 1's table fee or the run ends before it starts. */
 export const STARTING_BANKROLL = 100;
 export const STARTING_INVENTORY_SIZE = 32;
+
+/**
+ * Collection depth: hold enough of one franchise and its cards pitch harder.
+ *
+ * The roguelike promise is a deck that becomes something. Without this a run's
+ * collection only ever shrinks and the shop is a lateral move; with it,
+ * dumping off-franchise stock online is how you sharpen.
+ */
+export const COLLECTION_DEPTH_TIERS: readonly {
+  readonly minCards: number;
+  readonly interestPerCard: number;
+}[] = [
+  { minCards: 8, interestPerCard: 1 },
+  { minCards: 14, interestPerCard: 2 },
+  { minCards: 20, interestPerCard: 3 },
+];
 
 // ---------------------------------------------------------------------------
 // Card generation
