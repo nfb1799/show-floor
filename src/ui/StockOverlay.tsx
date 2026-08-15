@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { cardValue, formatMoney } from '../game/cards/value';
 import { SUPPLIES } from '../game/constants';
+import { collectionDepth } from '../game/run/collection';
 import { gradingFee, gradingOutcomeRange } from '../game/shop/grading';
 import { onlineValue } from '../game/shop/shop';
 import { useRun } from '../state/runStore';
@@ -110,6 +111,9 @@ export function StockOverlay({ onClose }: { onClose: () => void }) {
   const sorted = [...inventory].sort((a, b) => cardValue(b) - cardValue(a));
   const totalValue = inventory.reduce((sum, c) => sum + cardValue(c), 0);
   const selected = inventory.find((c) => c.id === selectedId) ?? null;
+  // Depth lives here rather than on the setup screen: this is the only place
+  // it is actionable, because this is where you buy and sell.
+  const depth = collectionDepth(inventory);
 
   return (
     <div className={styles.scrim} onClick={onClose}>
@@ -130,19 +134,48 @@ export function StockOverlay({ onClose }: { onClose: () => void }) {
         {selected ? (
           <CardActions card={selected} onDone={() => setSelectedId(null)} />
         ) : (
-          <div className={styles.stockGrid}>
-            {inventory.length === 0 && (
-              <p className={styles.dim}>Nothing in stock. Buy singles or a pack.</p>
+          <>
+            {depth.length > 0 && (
+              <div className={styles.depthStrip}>
+                <span className={styles.lbl}>Depth</span>
+                {depth.map((entry) => (
+                  <span
+                    key={entry.franchiseId}
+                    className={styles.depthChip}
+                    data-active={entry.interestPerCard > 0}
+                    title={
+                      entry.interestPerCard > 0
+                        ? `Every ${entry.name} card in a pitch adds +${entry.interestPerCard} Interest.`
+                        : `Hold ${entry.nextAt} ${entry.name} cards to make them pitch harder.`
+                    }
+                  >
+                    {entry.name} <strong>{entry.count}</strong>
+                    {entry.interestPerCard > 0 ? (
+                      <em className={styles.depthChipBonus}>+{entry.interestPerCard}/card</em>
+                    ) : (
+                      entry.nextAt !== null && (
+                        <em className={styles.depthChipNext}>{entry.nextAt - entry.count} to go</em>
+                      )
+                    )}
+                  </span>
+                ))}
+              </div>
             )}
-            {sorted.map((card) => (
-              <CardView
-                key={card.id}
-                card={card}
-                size="small"
-                onClick={() => setSelectedId(card.id)}
-              />
-            ))}
-          </div>
+
+            <div className={styles.stockGrid}>
+              {inventory.length === 0 && (
+                <p className={styles.dim}>Nothing in stock. Buy singles or a pack.</p>
+              )}
+              {sorted.map((card) => (
+                <CardView
+                  key={card.id}
+                  card={card}
+                  size="small"
+                  onClick={() => setSelectedId(card.id)}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>

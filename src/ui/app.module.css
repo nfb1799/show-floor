@@ -2431,50 +2431,55 @@
 
 /* --- Collection depth ----------------------------------------------------- */
 
-.depthList {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.depthRow {
+/* A strip rather than a list: it sits above the stock grid, which already
+   scrolls, so it must not eat the height the cards need. */
+.depthStrip {
   display: flex;
   align-items: center;
-  gap: 10px;
-  border: 2px solid var(--ink);
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 11px 16px;
+  border-bottom: 3px solid var(--ink);
   background: var(--paper-2);
-  padding: 7px 11px;
 }
 
-.depthRow[data-active='true'] {
-  background: rgb(47 125 82 / 12%);
-  border-color: var(--green);
-}
-
-.depthName {
+.depthChip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  border: 2px solid var(--rule);
+  padding: 3px 9px;
   font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
-  font-weight: 800;
-  font-size: 15px;
-  flex: 1;
-  min-width: 0;
-}
-
-.depthCount {
-  font-family: 'Bungee', system-ui, sans-serif;
-  font-size: 15px;
-  flex: none;
-}
-
-.depthBonus {
-  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
-  font-weight: 800;
+  font-weight: 600;
   font-size: 13px;
-  color: var(--green);
-  flex: none;
+  color: var(--muted-2);
 }
 
-.depthNext {
-  font-size: 12px;
-  color: var(--muted);
-  flex: none;
+.depthChip strong {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink);
 }
+
+.depthChip[data-active='true'] {
+  border-color: var(--green);
+  background: rgb(47 125 82 / 12%);
+  color: var(--ink);
+}
+
+.depthChipBonus,
+.depthChipNext {
+  font-style: normal;
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.depthChipBonus {
+  color: var(--green);
+}
+
+.depthChipNext {
+  color: var(--muted);
+}
+

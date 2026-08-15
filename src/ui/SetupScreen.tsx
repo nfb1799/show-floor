@@ -2,7 +2,6 @@ import { formatMoney } from '../game/cards/value';
 import { getConditions } from '../game/conditions/registry';
 import { getArchetype } from '../game/buyers/archetypes';
 import { getUpgrade, getUpgrades } from '../game/upgrades/registry';
-import { collectionDepth } from '../game/run/collection';
 import { peekArchetypes } from '../game/run/rumors';
 import { planShow } from '../game/show/showEngine';
 import { useRun } from '../state/runStore';
@@ -39,7 +38,6 @@ export function SetupScreen() {
   const canOpen = canAfford && inventory.length > 0;
   const mix = revealBuyerMix ? peekArchetypes(rng, showIndex, config.buyerCount) : null;
   const bench = owned.filter((id) => !equipped.includes(id));
-  const depth = collectionDepth(inventory);
 
   return (
     <div className={`${styles.shell} ${styles.wide}`}>
@@ -157,47 +155,6 @@ export function SetupScreen() {
               ))}
             </div>
           )}
-
-          {/* Collection depth ------------------------------------------ */}
-          <div className={styles.sheetFlat}>
-            <Band
-              title="Your collection"
-              note="DEPTH IN ONE FRANCHISE MAKES ITS CARDS PITCH HARDER"
-              goldTitle
-            />
-            <div style={{ padding: 14 }}>
-              {depth.length === 0 ? (
-                <p className={styles.dim} style={{ margin: 0 }}>
-                  Nothing in stock yet.
-                </p>
-              ) : (
-                <div className={styles.depthList}>
-                  {depth.map((entry) => (
-                    <div
-                      key={entry.franchiseId}
-                      className={styles.depthRow}
-                      data-active={entry.interestPerCard > 0}
-                    >
-                      <span className={styles.depthName}>{entry.name}</span>
-                      <span className={styles.depthCount}>{entry.count}</span>
-                      {entry.interestPerCard > 0 ? (
-                        <span className={styles.depthBonus}>
-                          +{entry.interestPerCard} Interest per card
-                        </span>
-                      ) : (
-                        <span className={styles.depthNext}>no bonus yet</span>
-                      )}
-                      {entry.nextAt !== null && (
-                        <span className={styles.depthNext}>
-                          {entry.nextAt - entry.count} more for the next tier
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* Booth gear ------------------------------------------------ */}
           <div className={styles.sheetFlat}>
