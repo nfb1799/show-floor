@@ -60,10 +60,12 @@ export const TIER_1: readonly UpgradeDef[] = [
     onShowStart: (_ctx, fx) => fx.addDisplayCaseSlots(2, 'Backup Showcase'),
   }),
 
-  upgrade('cardLadder', 'Card Ladder Subscription', 175, 'Earn $15 extra per slab sold.', {
+  // Renamed from a real price-tracking service. Everything named in this game
+  // is invented, brands included.
+  upgrade('cardLadder', 'Comp Sheet Subscription', 175, 'Earn $15 extra per slab sold.', {
     onSale: (ctx, fx) => {
       const slabs = ctx.cards.filter((c) => c.slabbed).length;
-      if (slabs > 0) fx.addMoney(slabs * 15, `Card Ladder x${slabs}`);
+      if (slabs > 0) fx.addMoney(slabs * 15, `Comp Sheet x${slabs}`);
     },
   }),
 
