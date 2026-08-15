@@ -35,11 +35,11 @@ jobs:
       - run: npm test
       - run: npm run build
 
-      # enablement turns Pages on if the repo has never published, so the very
-      # first run does not fail with "Get Pages site failed".
+      # Pages itself was enabled once, out of band:
+      #   gh api --method POST repos/OWNER/REPO/pages -f build_type=workflow
+      # The workflow token cannot create the site (it gets "Resource not
+      # accessible by integration"), so `enablement: true` here does not work.
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
