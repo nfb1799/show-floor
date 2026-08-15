@@ -17,7 +17,12 @@ import {
   type ShowDeps,
   type ShowState,
 } from './showEngine';
-import { DISPLAY_CASE_SIZE, BUYERS_PER_SHOW, TURN_AWAYS_PER_SHOW } from '../constants';
+import {
+  DISPLAY_CASE_SIZE,
+  BUYERS_PER_SHOW,
+  MAX_PITCH_CARDS,
+  TURN_AWAYS_PER_SHOW,
+} from '../constants';
 
 function deps(seed = 'show-test'): ShowDeps {
   return { rng: createRng(seed), upgrades: [], conditions: [] };
@@ -332,5 +337,27 @@ describe('digging through the box', () => {
     const { state } = newShow();
     const after = digFromStock(state, state.displayCase[0]!.id, state.inventory[0]!.id);
     expect(after.displayCase).toHaveLength(state.displayCase.length);
+  });
+
+  it('lands the dug card in the first slot, already in the pitch', () => {
+    const { state } = newShow();
+    const wanted = state.inventory[0]!;
+    const after = digFromStock(state, state.displayCase[3]!.id, wanted.id);
+
+    expect(after.displayCase[0]!.id).toBe(wanted.id);
+    expect(after.selection).toContain(wanted.id);
+  });
+
+  it('leaves a full pitch alone rather than shuffling a card out of it', () => {
+    const { state } = newShow();
+    const full: ShowState = {
+      ...state,
+      selection: state.displayCase.slice(0, MAX_PITCH_CARDS).map((c) => c.id),
+    };
+    const wanted = full.inventory[0]!;
+    // The swapped-out card is not in the pitch, so there is no room to add.
+    const after = digFromStock(full, full.displayCase[MAX_PITCH_CARDS]!.id, wanted.id);
+
+    expect(after.selection).toEqual(full.selection);
   });
 });

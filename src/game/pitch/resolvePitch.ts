@@ -17,6 +17,7 @@ import {
   OFFER_RATIO_START,
 } from '../constants';
 import { cardValue, conditionRank, isHolo, totalCardValue } from '../cards/value';
+import { getFranchise } from '../cards/catalog';
 import type { Rng } from '../rng';
 import type {
   Buyer,
@@ -53,8 +54,8 @@ function cardsMatchingWant(cards: readonly Card[], want: Want): Card[] {
   switch (want.kind) {
     case 'fromSets':
       return cards.filter((c) => want.setIds.includes(c.setId));
-    case 'subject':
-      return cards.filter((c) => c.subject === want.subject);
+    case 'franchise':
+      return cards.filter((c) => c.franchise === want.franchiseId);
     case 'rawMinCondition':
       return cards.filter(
         (c) => !c.slabbed && conditionRank(c.condition) >= conditionRank(want.minCondition),
@@ -65,8 +66,16 @@ function cardsMatchingWant(cards: readonly Card[], want: Want): Card[] {
       return cards.filter((c) => isHolo(c.rarity));
     case 'volume':
       return cards.length >= want.minCards ? [...cards] : [];
-    case 'minCardValue':
-      return cards.filter((c) => cardValue(c) >= want.minValue);
+    case 'distinctFranchises': {
+      // One representative per franchise, so the existing per-card arithmetic
+      // ends up counting breadth rather than volume.
+      const seen = new Set<string>();
+      return cards.filter((c) => {
+        if (seen.has(c.franchise)) return false;
+        seen.add(c.franchise);
+        return true;
+      });
+    }
   }
 }
 
@@ -75,8 +84,8 @@ function wantLabel(want: Want, count: number): string {
   switch (want.kind) {
     case 'fromSets':
       return `Wanted set${suffix}`;
-    case 'subject':
-      return `${want.subject}${suffix}`;
+    case 'franchise':
+      return `${getFranchise(want.franchiseId).name}${suffix}`;
     case 'rawMinCondition':
       return `Clean raw${suffix}`;
     case 'minGrade':
@@ -85,8 +94,8 @@ function wantLabel(want: Want, count: number): string {
       return `Holo${suffix}`;
     case 'volume':
       return `Volume${suffix}`;
-    case 'minCardValue':
-      return `$${want.minValue}+ cards${suffix}`;
+    case 'distinctFranchises':
+      return `${count} different franchise${count === 1 ? '' : 's'}`;
   }
 }
 

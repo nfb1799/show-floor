@@ -125,7 +125,7 @@ The doc left these open or self-contradictory. Each is tunable in `constants.ts`
 |---|---|
 | 2-card and 4-card pitches matching no row in the table | `Loose Cards` is valid for any 1–5 cards (labelled "Loose Single" at one), so no selection is ever unscoreable |
 | Interest written as `×N` but summed in the Appeal formula | Two channels: additive bonuses summed and floored at 1, then multiplicative modifiers |
-| Flipper's "value ≥ 2× offer" is unsatisfiable, not just circular | Replaced with a per-card value bar that scales with his budget — see below |
+| Flipper's "value ≥ 2× offer" is unsatisfiable, not just circular | Archetype cut and replaced with the Type Collector — see below |
 | "Bundle: 3 cards sharing any one attribute" | Attributes are subject, franchise, set only — including rarity or slabbed would make almost any 3 cards a Bundle |
 | Graded Run trivially satisfiable at 100/×6 | Also requires one franchise |
 | Display case never refilled in the doc | Refills to 8 after each resolved buyer |
@@ -139,7 +139,7 @@ The doc left these open or self-contradictory. Each is tunable in `constants.ts`
 | Setup shows a rumour before the crowd exists | The buyer queue comes from a per-show RNG fork, so the rumour is a truthful peek rather than a guess |
 | Doc lists 18 upgrades but asks for ~40 | 22 more written in the same three-tier spirit |
 
-## The Flipper was impossible, not just unclear
+## The Flipper was impossible, and is now gone
 
 The doc's Flipper wants "total card value ≥ 2× the offer, or ×0.5 Interest".
 That is unsatisfiable. The offer *contains* the card value, so with the weakest
@@ -155,11 +155,22 @@ with interest above 1 pushes it further away — so building a good pitch made h
 every show, best attainable 70%, flat forever. He sat permanently at ×0.5.
 Gating him to later shows would not have helped.
 
-He now pays **+4 Interest per card clearing a value bar** set at 20% of his
-budget, so the bar climbs with the run on its own. That is the same grammar
-every other buyer uses, and it is countable straight off the card faces — the
-first version ("ignores the pitch type") still read as a penalty with nothing to
-aim at.
+A per-card value bar kept him playable for a while, but he never earned his slot:
+"expensive cards are worth more" is what the value formula already says, so he
+asked for nothing the player was not doing anyway. He is replaced by the **Type
+Collector**, who pays **+4 Interest per *distinct* franchise in the pitch** and
+nothing for repeats.
+
+That gives the archetype an actual decision behind it. Collection depth rewards
+holding many cards of one franchise; the Type Collector is the only buyer who
+wants the opposite, so a box tuned for depth reads badly to them and a spread
+hand reads badly to a Full Case. Both are countable straight off the faces.
+
+The **Personal Collector** moved the same direction: they now collect a
+*franchise* rather than one named subject. A specific subject was a lottery — you
+either happened to hold that one card or you did not, and there was no play in
+between. A franchise is something a box can be built toward, and it shares its
+vocabulary with the Full Case pitch type and collection depth.
 
 ## Playtest fixes, round two
 
@@ -238,9 +249,6 @@ implied a clock the game does not have.
 **Vintage is now readable.** Every card face prints its set year, highlighted in
 gold when it is at or under the cutoff, and the want reads "Anything printed 1990
 or earlier" instead of "Vintage sets".
-
-**The Flipper says what it means.** "Card value worth 2x what they pay" is now
-"A bargain — pitch worth 2x his offer", with a longer explanation under the buyer.
 
 **The board never scrolls.** Every screen is a fixed 100vh; the case row takes
 the leftover height and cards scale to fill it. Long panels (shop stock, end-run

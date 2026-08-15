@@ -6,7 +6,6 @@
 
 import {
   BULK_GUY_MIN_CARDS,
-  FLIPPER_VALUE_FRACTION,
   GRADER_MIN_CONDITION,
   INVESTOR_MIN_GRADE,
   REFUSAL_INTEREST_MULT,
@@ -15,7 +14,6 @@ import {
 import type { Rng } from '../rng';
 import type { BuyerArchetypeId, Turnoff, Want } from '../types';
 import { FRANCHISES, SETS, vintageSetIds } from '../cards/catalog';
-import { budgetForShow } from './budget';
 
 export interface ArchetypeDef {
   readonly id: BuyerArchetypeId;
@@ -24,8 +22,6 @@ export interface ArchetypeDef {
   readonly blurb: string;
   readonly buildWants: (rng: Rng, showIndex: number) => Want[];
   readonly turnoff?: Turnoff;
-  /** Personal Collectors always name the subject they are hunting. */
-  readonly alwaysHasChaseCard?: boolean;
 }
 
 const REFUSES_SLABS: Turnoff = { kind: 'anySlab', interestMult: REFUSAL_INTEREST_MULT };
@@ -51,31 +47,21 @@ export const ARCHETYPES: readonly ArchetypeDef[] = [
   {
     id: 'personalCollector',
     label: 'Personal Collector',
-    blurb: 'Hunting one subject and nothing else.',
+    blurb: 'Collects one franchise and nothing else.',
     buildWants: (rng) => [
       {
-        kind: 'subject',
-        subject: rng.pick(rng.pick(FRANCHISES).subjects),
+        kind: 'franchise',
+        franchiseId: rng.pick(FRANCHISES).id,
         interestPerCard: WANT_INTEREST.personalCollector,
       },
     ],
-    alwaysHasChaseCard: true,
   },
   {
-    id: 'flipper',
-    label: 'Flipper',
-    blurb: 'Buying to resell. Only real money interests him.',
-    // The bar is a fraction of his own budget, so it climbs with the run
-    // without the archetype needing its own escalation curve.
-    buildWants: (_rng, showIndex) => [
-      {
-        kind: 'minCardValue',
-        minValue: Math.max(
-          5,
-          Math.round(budgetForShow('flipper', showIndex) * FLIPPER_VALUE_FRACTION),
-        ),
-        interestPerCard: WANT_INTEREST.flipper,
-      },
+    id: 'typeCollector',
+    label: 'Type Collector',
+    blurb: 'Building one of everything. Breadth pays; repeats do not.',
+    buildWants: () => [
+      { kind: 'distinctFranchises', interestPerCard: WANT_INTEREST.typeCollector },
     ],
   },
   {

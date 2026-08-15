@@ -6,7 +6,7 @@ import {
 import { budgetForShow } from './budget';
 import type { Rng } from '../rng';
 import type { Buyer, BuyerArchetypeId } from '../types';
-import { FRANCHISES } from '../cards/catalog';
+import { FRANCHISES, getFranchise } from '../cards/catalog';
 import { ARCHETYPES, getArchetype } from './archetypes';
 export { budgetForShow } from './budget';
 
@@ -22,15 +22,13 @@ export function generateBuyer(rng: Rng, showIndex: number, id: string): Buyer {
   const jitter = 1 + (rng.next() * 2 - 1) * BUDGET_JITTER;
   const budget = Math.max(1, Math.round(budgetForShow(archetypeId, showIndex) * jitter));
 
-  // A Personal Collector's chase card is the subject they already want, so the
-  // two demands always line up.
-  const wantedSubject = wants.find((w) => w.kind === 'subject')?.subject;
-  const chaseCard =
-    def.alwaysHasChaseCard && wantedSubject !== undefined
-      ? wantedSubject
-      : rng.next() < CHASE_CARD_CHANCE
-        ? rng.pick(rng.pick(FRANCHISES).subjects)
-        : undefined;
+  // A chase card is drawn from the franchise the buyer already collects where
+  // there is one, so their two demands never contradict each other.
+  const wantedFranchise = wants.find((w) => w.kind === 'franchise')?.franchiseId;
+  const chaseFrom = wantedFranchise
+    ? getFranchise(wantedFranchise)
+    : rng.pick(FRANCHISES);
+  const chaseCard = rng.next() < CHASE_CARD_CHANCE ? rng.pick(chaseFrom.subjects) : undefined;
 
   return {
     id,

@@ -8,6 +8,7 @@
 
 import { WANT_INTEREST } from '../constants';
 import { generateCard } from '../cards/generate';
+import { getFranchise } from '../cards/catalog';
 import { budgetForShow } from '../buyers/generate';
 import { gradeCard } from '../shop/grading';
 import { PITCH_TYPES } from '../constants';
@@ -21,10 +22,10 @@ const upgrade = (
   hooks: UpgradeDef['hooks'],
 ): UpgradeDef => ({ id, name, kind: 'upgrade', tier: 3, cost, text, hooks });
 
-/** Most common subject in the inventory, for The Regular. */
-function mostHeldSubject(cards: readonly Card[]): string | null {
+/** Franchise the player holds most of, for The Regular. */
+function mostHeldFranchise(cards: readonly Card[]): string | null {
   const counts = new Map<string, number>();
-  for (const card of cards) counts.set(card.subject, (counts.get(card.subject) ?? 0) + 1);
+  for (const card of cards) counts.set(card.franchise, (counts.get(card.franchise) ?? 0) + 1);
 
   let best: string | null = null;
   let bestCount = 0;
@@ -58,12 +59,13 @@ export const TIER_3: readonly UpgradeDef[] = [
     'theRegular',
     'The Regular',
     550,
-    'Every fourth buyer is a Personal Collector hunting whatever you hold most of.',
+    'Every fourth buyer is a Personal Collector for whichever franchise you hold most of.',
     {
       onBuyerArrive: (ctx, fx) => {
         if ((ctx.buyerIndex + 1) % 4 !== 0) return;
-        const subject = mostHeldSubject([...ctx.inventory, ...ctx.displayCase]);
-        if (!subject) return;
+        const franchiseId = mostHeldFranchise([...ctx.inventory, ...ctx.displayCase]);
+        if (!franchiseId) return;
+        const franchise = getFranchise(franchiseId);
 
         const regular: Buyer = {
           id: `${ctx.buyer.id}-regular`,
@@ -72,14 +74,13 @@ export const TIER_3: readonly UpgradeDef[] = [
           budget: Math.round(budgetForShow('personalCollector', ctx.showIndex) * 1.2),
           wants: [
             {
-              kind: 'subject',
-              subject,
+              kind: 'franchise',
+              franchiseId,
               interestPerCard: WANT_INTEREST.personalCollector,
             },
           ],
-          chaseCard: subject,
         };
-        fx.replaceWith(regular, `The Regular turns up asking about ${subject}`);
+        fx.replaceWith(regular, `The Regular turns up asking about ${franchise.name}`);
       },
     },
   ),

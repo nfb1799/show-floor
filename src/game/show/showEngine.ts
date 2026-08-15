@@ -677,11 +677,17 @@ export function digFromStock(
   const inCard = state.inventory.find((c) => c.id === inCardId);
   if (!outCard || !inCard) return state;
 
+  // The dug card goes to the front of the case and straight into the pitch:
+  // digging is a deliberate search for a card the buyer wants, so making the
+  // player hunt for it again in the case and click it is pure friction.
+  const kept = state.selection.filter((id) => id !== outCardId);
+  const selection = kept.length < MAX_PITCH_CARDS ? [inCard.id, ...kept] : kept;
+
   const next: ShowState = {
     ...state,
-    displayCase: state.displayCase.map((c) => (c.id === outCardId ? inCard : c)),
+    displayCase: [inCard, ...state.displayCase.filter((c) => c.id !== outCardId)],
     inventory: state.inventory.filter((c) => c.id !== inCardId).concat(outCard),
-    selection: state.selection.filter((id) => id !== outCardId),
+    selection,
     goodwill: state.goodwill - GOODWILL_COST_DIG,
   };
 

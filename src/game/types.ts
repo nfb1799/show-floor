@@ -79,7 +79,7 @@ export type PitchTypeId =
 export type BuyerArchetypeId =
   | 'setBuilder'
   | 'personalCollector'
-  | 'flipper'
+  | 'typeCollector'
   | 'grader'
   | 'investor'
   | 'kid'
@@ -93,8 +93,8 @@ export type BuyerArchetypeId =
 export type Want =
   /** Set Builder (one set) and Nostalgia Buyer (every vintage set). */
   | { readonly kind: 'fromSets'; readonly setIds: readonly string[]; readonly interestPerCard: number }
-  /** Personal Collector. */
-  | { readonly kind: 'subject'; readonly subject: string; readonly interestPerCard: number }
+  /** Personal Collector: collects one franchise, not one card. */
+  | { readonly kind: 'franchise'; readonly franchiseId: string; readonly interestPerCard: number }
   /** Grader: raw cards at or above a condition. */
   | { readonly kind: 'rawMinCondition'; readonly minCondition: Condition; readonly interestPerCard: number }
   /** Investor: slabs at or above a grade. */
@@ -104,18 +104,12 @@ export type Want =
   /** Bulk Guy: per-card bonus, but only on pitches of at least minCards. */
   | { readonly kind: 'volume'; readonly minCards: number; readonly interestPerCard: number }
   /**
-   * Flipper: pays for cards worth real money, counted one by one.
-   *
-   * The doc's version ("card value must reach 2x the offer") is unsatisfiable —
-   * the offer contains the card value, so it reduces to V >= 1.4(P + V). A
-   * per-card threshold is countable off the card faces and reads like every
-   * other want. The threshold scales with his budget so it stays meaningful.
+   * Type Collector: wants one of everything, so breadth pays and repeats do
+   * not. Counted per *distinct* franchise in the pitch, which makes them the
+   * one buyer who pulls against collection depth — a mono-franchise box is
+   * exactly what they cannot use.
    */
-  | {
-      readonly kind: 'minCardValue';
-      readonly minValue: number;
-      readonly interestPerCard: number;
-    };
+  | { readonly kind: 'distinctFranchises'; readonly interestPerCard: number };
 
 export type Turnoff =
   | { readonly kind: 'anyRaw'; readonly interestMult: number }

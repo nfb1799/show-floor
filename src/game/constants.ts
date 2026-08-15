@@ -184,7 +184,7 @@ export const BUYER_BASE_BUDGET: Record<BuyerArchetypeId, number> = {
   personalCollector: 120,
   grader: 135,
   nostalgia: 190,
-  flipper: 200,
+  typeCollector: 150,
   investor: 340,
 };
 
@@ -197,14 +197,8 @@ export const WANT_INTEREST: Record<BuyerArchetypeId, number> = {
   kid: 6,
   bulkGuy: 2,
   nostalgia: 5,
-  flipper: 4, // per card that clears his value bar
+  typeCollector: 4, // per *distinct* franchise in the pitch
 };
-
-/**
- * Flipper: cards worth at least this fraction of his budget earn the bonus.
- * Expressed against budget so the bar scales with the run automatically.
- */
-export const FLIPPER_VALUE_FRACTION = 0.2;
 
 export const GRADER_MIN_CONDITION: Condition = 'nearMint';
 export const INVESTOR_MIN_GRADE = 9;
@@ -223,7 +217,7 @@ export const GOODWILL_COST_DIG = 1;
 export const ARCHETYPE_WEIGHTS: Record<BuyerArchetypeId, number> = {
   setBuilder: 18,
   personalCollector: 16,
-  flipper: 13,
+  typeCollector: 13,
   grader: 12,
   investor: 9,
   kid: 11,
@@ -234,7 +228,7 @@ export const ARCHETYPE_WEIGHTS: Record<BuyerArchetypeId, number> = {
 /** Budgets vary by +/- this fraction so two Set Builders are not identical. */
 export const BUDGET_JITTER = 0.15;
 
-/** Chance a buyer other than a Personal Collector names a chase card. */
+/** Chance a buyer names a chase card on top of their want. */
 export const CHASE_CARD_CHANCE = 0.2;
 
 /** Sets released at or before this year count as vintage for Nostalgia buyers. */

@@ -54,12 +54,12 @@ const RULES: readonly RumorRule[] = [
     text: 'A lot of people are chasing set completion this weekend.',
   },
   {
-    test: (c) => (c.flipper ?? 0) >= 2,
-    text: 'Dealers are working the room. Expect to get lowballed.',
+    test: (c) => (c.typeCollector ?? 0) >= 2,
+    text: 'Type set builders are out today. Bring variety.',
   },
   {
     test: (c) => (c.personalCollector ?? 0) >= 2,
-    text: 'Hearing a few people are hunting one card in particular.',
+    text: 'Hearing a few people are hunting one franchise in particular.',
   },
   {
     test: (c) => (c.kid ?? 0) >= 2,

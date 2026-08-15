@@ -96,7 +96,7 @@ describe('tier 2 effects', () => {
     expect(score(one, [u('halfPriceBin')], bare).interest).toBe(score(one, [], bare).interest);
 
     const keen = buyer({
-      wants: [{ kind: 'subject', subject: 'Emberclaw', interestPerCard: 4 }],
+      wants: [{ kind: 'franchise', franchiseId: 'pocketBeasts', interestPerCard: 4 }],
     });
     expect(score(one, [u('halfPriceBin')], keen).interest).toBe(
       score(one, [], keen).interest - 2,

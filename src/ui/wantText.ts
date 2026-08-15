@@ -1,6 +1,6 @@
 /** Player-facing phrasing for buyer demands. Presentation only. */
 
-import { getSet } from '../game/cards/catalog';
+import { getFranchise, getSet } from '../game/cards/catalog';
 import { VINTAGE_YEAR_CUTOFF } from '../game/constants';
 import type { Turnoff, Want } from '../game/types';
 
@@ -19,8 +19,8 @@ export function describeWant(want: Want): string {
       return want.setIds.length === 1 && want.setIds[0] !== undefined
         ? `Cards from ${getSet(want.setIds[0]).name}`
         : `Anything printed ${VINTAGE_YEAR_CUTOFF} or earlier`;
-    case 'subject':
-      return `${want.subject} cards`;
+    case 'franchise':
+      return `${getFranchise(want.franchiseId).name} cards`;
     case 'rawMinCondition':
       return `Raw cards, ${CONDITION_TEXT[want.minCondition] ?? want.minCondition} or better`;
     case 'minGrade':
@@ -29,21 +29,21 @@ export function describeWant(want: Want): string {
       return 'Anything holo';
     case 'volume':
       return `Pitches of ${want.minCards}+ cards`;
-    case 'minCardValue':
-      return `Cards worth $${want.minValue} or more`;
+    case 'distinctFranchises':
+      return 'One card from each different franchise';
   }
 }
 
 export function wantBonus(want: Want): string {
-
+  if (want.kind === 'distinctFranchises') return `+${want.interestPerCard} per franchise`;
   return `+${want.interestPerCard} each`;
 }
 
 /** Long-form explanation, shown under the buyer where there is room. */
 export function explainWant(want: Want): string | null {
   switch (want.kind) {
-    case 'minCardValue':
-      return `He resells everything, so only cards he can actually flip interest him. Every card in the pitch priced at $${want.minValue} or more adds Interest; cheap filler adds nothing. Card prices are printed on the faces.`;
+    case 'distinctFranchises':
+      return 'They are building one of everything, so only the first card of each franchise counts. Five different franchises beats five of the same one.';
     case 'fromSets':
       return want.setIds.length > 1
         ? 'Every card face prints its set year — anything at or under the cutoff counts.'

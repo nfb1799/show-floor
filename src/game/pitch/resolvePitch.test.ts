@@ -3,15 +3,6 @@ import { createRng } from '../rng';
 import { InvalidPitchError, resolvePitch, type PitchInput } from './resolvePitch';
 import { buyer, franchiseSpread, modifier, raw, slab } from '../testing/factories';
 import type { Buyer, Card, Modifier } from '../types';
-import { getArchetype } from '../buyers/archetypes';
-
-/** A Flipper built the way the game builds one, for the scaling check. */
-function generateBuyerAt(showIndex: number): Buyer {
-  return buyer({
-    archetype: 'flipper',
-    wants: getArchetype('flipper').buildWants(createRng('bar'), showIndex),
-  });
-}
 
 function pitch(
   cards: Card[],
@@ -124,7 +115,7 @@ describe('pitch type precedence', () => {
 describe('buyer wants', () => {
   it('adds interest per matching card', () => {
     const collector = buyer({
-      wants: [{ kind: 'subject', subject: 'Emberclaw', interestPerCard: 4 }],
+      wants: [{ kind: 'franchise', franchiseId: 'pocketBeasts', interestPerCard: 4 }],
     });
     const cards = [
       raw({ subject: 'Emberclaw', setNumber: 1 }),
@@ -159,58 +150,56 @@ describe('buyer wants', () => {
   });
 });
 
-describe('Flipper', () => {
-  const flipper = (minValue = 40) =>
+describe('Type Collector', () => {
+  const typeCollector = () =>
     buyer({
-      archetype: 'flipper',
-      wants: [{ kind: 'minCardValue', minValue, interestPerCard: 4 }],
+      archetype: 'typeCollector',
+      wants: [{ kind: 'distinctFranchises', interestPerCard: 4 }],
     });
 
   /**
    * The doc's Flipper ("card value must reach 2x the offer, or x0.5 Interest")
-   * is unsatisfiable: the offer contains the card value, so the test reduces to
-   * V >= 1.4(P + V), which has no solution for any positive pitch value. He sat
-   * permanently at x0.5. He now pays per card that clears a value bar, which is
-   * countable off the card faces.
+   * was unsatisfiable: the offer contains the card value, so the test reduced
+   * to V >= 1.4(P + V), which has no solution for any positive pitch value. He
+   * sat permanently at x0.5 and was replaced by this buyer, who counts breadth
+   * instead — and so pulls directly against collection depth.
    */
-  it('pays per card that clears the bar', () => {
-    const dear = franchiseSpread('grimoire', ['A', 'B', 'C'], { rarity: 'rareHolo' });
-    const result = resolvePitch(pitch(dear, { buyer: flipper(30) }));
+  it('pays once per distinct franchise', () => {
+    const spread = [
+      raw({ franchise: 'grimoire', setId: 'gr-codex', subject: 'A' }),
+      raw({ franchise: 'hardwood', setId: 'hw-89', subject: 'B' }),
+      raw({ franchise: 'pocketBeasts', setId: 'pb-origin', subject: 'C' }),
+    ];
+    const result = resolvePitch(pitch(spread, { buyer: typeCollector() }));
 
-    // 3 rare holo near mint = $35 each, all over the bar.
     expect(result.interestAddLines.map((l) => l.amount)).toEqual([12]);
   });
 
-  it('ignores filler under the bar', () => {
-    const junk = franchiseSpread('grimoire', ['A', 'B', 'C'], {
-      rarity: 'common',
-      condition: 'played',
-    });
-    expect(resolvePitch(pitch(junk, { buyer: flipper(30) })).interestAddLines).toHaveLength(0);
+  it('pays nothing extra for repeats of a franchise it already counted', () => {
+    const stack = franchiseSpread('grimoire', ['A', 'B', 'C'], { rarity: 'rare' });
+    const result = resolvePitch(pitch(stack, { buyer: typeCollector() }));
+
+    // One franchise present, so one card counts however deep the stack goes.
+    expect(result.interestAddLines[0]?.amount).toBe(4);
   });
 
-  it('counts only the cards that clear it, not the whole pitch', () => {
-    const mixed = [
-      raw({ subject: 'A', rarity: 'rareHolo', franchise: 'grimoire' }),
-      raw({ subject: 'B', rarity: 'common', condition: 'played', franchise: 'grimoire' }),
-      raw({ subject: 'C', rarity: 'common', condition: 'played', franchise: 'grimoire' }),
+  it('prefers width over depth at equal card count', () => {
+    const wide = [
+      raw({ franchise: 'grimoire', setId: 'gr-codex', subject: 'A' }),
+      raw({ franchise: 'hardwood', setId: 'hw-89', subject: 'B' }),
     ];
-    expect(resolvePitch(pitch(mixed, { buyer: flipper(30) })).interestAddLines[0]?.amount).toBe(4);
+    const deep = franchiseSpread('grimoire', ['A', 'B'], {});
+
+    expect(resolvePitch(pitch(wide, { buyer: typeCollector() })).interest).toBeGreaterThan(
+      resolvePitch(pitch(deep, { buyer: typeCollector() })).interest,
+    );
   });
 
   it('applies no blanket penalty', () => {
     const junk = [raw({ rarity: 'common', condition: 'played' })];
-    expect(resolvePitch(pitch(junk, { buyer: flipper() })).interestMultLines).toHaveLength(0);
-  });
-
-  it('scales its bar with the run', () => {
-    const early = generateBuyerAt(1);
-    const late = generateBuyerAt(8);
-    const barOf = (b: Buyer) => {
-      const want = b.wants.find((w) => w.kind === 'minCardValue');
-      return want && want.kind === 'minCardValue' ? want.minValue : 0;
-    };
-    expect(barOf(late)).toBeGreaterThan(barOf(early));
+    expect(resolvePitch(pitch(junk, { buyer: typeCollector() })).interestMultLines).toHaveLength(
+      0,
+    );
   });
 });
 

@@ -10,7 +10,7 @@ import type { RunSnapshot } from './runState';
 
 const KEY = 'showFloor.run.v1';
 const BEST_KEY = 'showFloor.best.v1';
-const VERSION = 1;
+const VERSION = 2;
 
 interface Envelope {
   readonly version: number;
