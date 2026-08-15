@@ -40,7 +40,7 @@ export const FRANCHISES: readonly FranchiseDefinition[] = [
   },
   {
     id: 'diamondLeague',
-    name: 'Diamond League',
+    name: 'Bullpen',
     subjects: [
       'Hal Brennan',
       'Sonny Petrosian',
@@ -68,7 +68,7 @@ export const FRANCHISES: readonly FranchiseDefinition[] = [
   },
   {
     id: 'chromeRacers',
-    name: 'Chrome Racers',
+    name: 'Slipstream',
     subjects: [
       'Meridian GT',
       'Falcon Twelve',
@@ -92,15 +92,15 @@ export const SETS: readonly SetDefinition[] = [
   { id: 'hw-89', name: "Hardwood '89", franchise: 'hardwood', year: 1989, size: 132 },
   { id: 'hw-92', name: "Courtside '92", franchise: 'hardwood', year: 1992, size: 110 },
 
-  // Diamond League
-  { id: 'dl-76', name: "Diamond League '76", franchise: 'diamondLeague', year: 1976, size: 120 },
-  { id: 'dl-84', name: "Diamond League '84", franchise: 'diamondLeague', year: 1984, size: 140 },
+  // Bullpen
+  { id: 'dl-76', name: "Bullpen '76", franchise: 'diamondLeague', year: 1976, size: 120 },
+  { id: 'dl-84', name: "Bullpen '84", franchise: 'diamondLeague', year: 1984, size: 140 },
 
   // Grimoire
   { id: 'gr-codex', name: 'First Codex', franchise: 'grimoire', year: 1994, size: 90 },
   { id: 'gr-ledger', name: 'Blood Ledger', franchise: 'grimoire', year: 2001, size: 100 },
 
-  // Chrome Racers
+  // Slipstream
   { id: 'cr-s1', name: 'Series One', franchise: 'chromeRacers', year: 1978, size: 66 },
   { id: 'cr-turbo', name: 'Turbo Series', franchise: 'chromeRacers', year: 1983, size: 55 },
 ];

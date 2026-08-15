@@ -102,9 +102,9 @@ All franchises are fictional with legible analogs. Suggested families:
 
 - **Pocket Beasts** — creature collecting; Emberclaw, Tidefin, Voltmoth
 - **Hardwood '89** — basketball rookies; generated athlete names
-- **Diamond League** — baseball
+- **Bullpen** — baseball
 - **Grimoire** — fantasy TCG, tournament-play flavor
-- **Chrome Racers** — 70s-80s motorsport insert sets
+- **Slipstream** — 70s-80s motorsport insert sets
 
 Card art is procedural: subject name typeset over a generated gradient/pattern keyed to franchise and rarity. No licensed marks, no real athlete or character names, no logo pastiche.
 
@@ -250,7 +250,7 @@ Three weirdness tiers. Ship roughly 40 for a first pass.
 - **Toploader Stack** — raw cards ignore condition penalties on value
 - **Price Guide Binder** — see the next buyer's wants before pitching
 - **Backup Showcase** — Display Case +2 slots
-- **Card Ladder Subscription** — +$15 flat per slab sold
+- **Comp Sheet Subscription** — +$15 flat per slab sold
 - **Folding Chair** — +1 turn-away per show
 
 ### Tier 2 — Booth (odd)

@@ -38,8 +38,7 @@ export interface CardFrameProps {
 
 /**
  * The franchise is printed directly above the set, so repeating it in the set
- * name is wasted width: "Diamond League / Diamond League '76" becomes
- * "Diamond League / '76".
+ * name is wasted width: "Bullpen / Bullpen '76" becomes "Bullpen / '76".
  */
 function setDisplayName(setName: string, franchiseName: string): string {
   return setName.startsWith(`${franchiseName} `)

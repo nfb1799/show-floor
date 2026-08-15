@@ -101,16 +101,14 @@ display type, Barlow Semi Condensed the labels, Barlow the body.
 Tokens live at the top of [styles.css](src/styles.css); the repeated chrome
 (sheets, coloured bands, tracks, pip rows) is in [kit.tsx](src/ui/kit.tsx).
 
-A show is three screens rather than one: **The Table** (pick cards, read the
-tally), **Haggle** (take it or push), and **Sold** (the receipt). That split is
-the design's, and it needed a real engine change — `accept()` now banks the sale
-and stops at a `sold` phase, and `continueAfterSale()` refills the case and
-seats the next buyer.
+A show is one screen with overlays: **The Table** carries the board, and
+haggling is a dismissible panel over it rather than a separate screen. The
+mock's dedicated "Sold" screen is gone — a sale animates the board in place.
 
 Two deliberate departures from the mock:
 
 - The mock stamps slabs `PSA n`. PSA is a real grading company, and the doc
-  requires everything on a card to be invented, so slabs read `AGX n`.
+  requires everything on a card to be invented, so slabs read `GRADED n`.
 - The mock's HUD labels the undrawn-stock counter `CASE` while the card grid is
   also called `THE CASE`. The counter reads `STOCK` here.
 
@@ -127,7 +125,7 @@ The doc left these open or self-contradictory. Each is tunable in `constants.ts`
 |---|---|
 | 2-card and 4-card pitches matching no row in the table | `Loose Cards` is valid for any 1–5 cards (labelled "Loose Single" at one), so no selection is ever unscoreable |
 | Interest written as `×N` but summed in the Appeal formula | Two channels: additive bonuses summed and floored at 1, then multiplicative modifiers |
-| Flipper's "value ≥ 2× offer" is circular | One provisional pass assuming the test passes, then the real test against that offer |
+| Flipper's "value ≥ 2× offer" is unsatisfiable, not just circular | Replaced with a per-card value bar that scales with his budget — see below |
 | "Bundle: 3 cards sharing any one attribute" | Attributes are subject, franchise, set only — including rarity or slabbed would make almost any 3 cards a Bundle |
 | Graded Run trivially satisfiable at 100/×6 | Also requires one franchise |
 | Display case never refilled in the doc | Refills to 8 after each resolved buyer |
@@ -157,11 +155,11 @@ with interest above 1 pushes it further away — so building a good pitch made h
 every show, best attainable 70%, flat forever. He sat permanently at ×0.5.
 Gating him to later shows would not have helped.
 
-He now **prices the cards and ignores the packaging**: the pitch type
-contributes no value for him, while Interest still applies. A clever pitch of
-good cards pays well; a clever pitch of junk does not. No cliff, no threshold,
-and the tally shows it directly — the pitch-value box reads *ignored* and holds
-a zero.
+He now pays **+4 Interest per card clearing a value bar** set at 20% of his
+budget, so the bar climbs with the run on its own. That is the same grammar
+every other buyer uses, and it is countable straight off the card faces — the
+first version ("ignores the pitch type") still read as a penalty with nothing to
+aim at.
 
 ## Playtest fixes, round two
 
@@ -211,7 +209,8 @@ however beaten it actually is" — rather than referring to "condition penalties
 the player has never seen named. The page is off-white newsprint rather than green felt, so
 the quota track (darker bed, 3px rule) and the queue hint (ink on paper, and it
 now says what the binder reveals) both read. Slabs stamp `GRADED n` rather than
-the invented `AGX`. The haggle overlay is centred. The word "gamble" is gone.
+an invented grading house, since it just says what the thing is. The haggle overlay is
+centred. The word "gamble" is gone.
 
 ## Playtest fixes, round one
 
@@ -272,7 +271,7 @@ The face now reads as a price-guide entry, in priority order:
 | Subject | 15px condensed, on the art | Playset, Personal Collector, The Grail |
 
 The set name drops its franchise prefix since the franchise sits directly above
-it — `Diamond League / '76 #1` rather than `Diamond League '76 #1` twice over.
+it — `Bullpen / '76 #1` rather than `Bullpen '76 #1` twice over.
 
 **Haggling is an overlay, not a screen.** It sits over the table and collapses to
 a bar so the case, queue and quota stay readable while deciding. Pitched cards

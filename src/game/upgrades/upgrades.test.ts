@@ -74,7 +74,7 @@ describe('tier 1 effects', () => {
     expect(score(cards, [u('toploaderStack')]).value).toBeCloseTo(score(cards, []).value);
   });
 
-  it('Card Ladder is a sale-time effect, not a scoring one', () => {
+  it('Comp Sheet is a sale-time effect, not a scoring one', () => {
     const cards = [slab({ rarity: 'rare', grade: 9 })];
     expect(score(cards, [u('cardLadder')]).offer).toBe(score(cards, []).offer);
   });
