@@ -108,3 +108,16 @@ a:hover {
   background: var(--ink);
   border: 3px solid var(--paper-3);
 }
+
+/* The walkthrough docks a fixed bar along the bottom. Rather than floating it
+   over the board, the board is made shorter by exactly that much, so the panel
+   can never cover the thing it is pointing at. */
+:root {
+  --tour-dock: 0px;
+  --app-height: 100vh;
+}
+
+html[data-tour-open='true'] {
+  --tour-dock: 136px;
+  --app-height: calc(100vh - var(--tour-dock));
+}

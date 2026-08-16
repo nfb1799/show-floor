@@ -10,7 +10,7 @@
    =========================================================================== */
 
 .shell {
-  height: 100vh;
+  height: var(--app-height, 100vh);
   overflow: hidden;
   padding: 18px 24px 22px;
   display: flex;
@@ -1428,7 +1428,7 @@
 /* --- Centred screens ----------------------------------------------------- */
 
 .center {
-  height: 100vh;
+  height: var(--app-height, 100vh);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1536,7 +1536,7 @@
    =========================================================================== */
 
 .fixed {
-  height: 100vh;
+  height: var(--app-height, 100vh);
   overflow: hidden;
   display: flex;
   flex-direction: column;

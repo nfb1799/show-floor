@@ -2,13 +2,14 @@
  * The spotlight.
  *
  * Four opaque panels are drawn around the highlighted element rather than one
- * scrim with a transparent hole, which means the hole is a genuine gap: the
- * real control underneath takes the click, and everything else is physically
- * unreachable. That is what keeps a scripted walkthrough on script without any
- * of the screens knowing a tour exists.
+ * scrim with a transparent hole, which means the highlighted thing is shown at
+ * full brightness on every step — not just the ones you can click. Steps that
+ * only explain something cover the gap with a transparent catcher, so the item
+ * still reads clearly but the click goes nowhere.
  *
- * Steps that only explain something block the whole screen — the ring is there
- * to point, not to invite a click.
+ * The panel is docked, not floating: it holds the bottom of the screen and the
+ * board is made shorter by exactly its height (see --tour-dock), so it never
+ * moves and never covers what it is pointing at.
  */
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -25,9 +26,6 @@ interface Box {
 }
 
 const PAD = 6;
-const CALLOUT_WIDTH = 340;
-/** Enough for a title, three lines of text and the footer. */
-const CALLOUT_HEIGHT = 190;
 
 function same(a: Box | null, b: Box | null): boolean {
   if (a === null || b === null) return a === b;
@@ -59,6 +57,15 @@ export function TourLayer() {
   const [box, setBox] = useState<Box | null>(null);
   const frame = useRef(0);
 
+  // Shrinks every screen by the dock's height for as long as the tour runs.
+  useEffect(() => {
+    if (!active) return;
+    document.documentElement.dataset.tourOpen = 'true';
+    return () => {
+      delete document.documentElement.dataset.tourOpen;
+    };
+  }, [active]);
+
   // Measured immediately, then tracked: the board animates (sale flash, case
   // refill) and a spotlight that lags its target looks broken. The interval is
   // not redundant with the frame loop — rAF is suspended while the tab is in
@@ -71,8 +78,8 @@ export function TourLayer() {
 
     const measure = (): void => {
       const el = step.anchor ? document.querySelector(`[data-tour="${step.anchor}"]`) : null;
-      const next = el ? boxOf(el) : null;
-      setBox((prev) => (same(prev, next) ? prev : next));
+      const found = el ? boxOf(el) : null;
+      setBox((prev) => (same(prev, found) ? prev : found));
     };
 
     measure();
@@ -128,72 +135,51 @@ export function TourLayer() {
 
   const interactive = step.until !== undefined && box !== null;
   const last = index === TOUR_STEPS.length - 1;
-
-  // Below the target where there is room, above it otherwise; centred when the
-  // step has no anchor at all.
-  const callout = ((): { top: number; left: number } => {
-    if (!box) {
-      return {
-        top: window.innerHeight / 2 - CALLOUT_HEIGHT / 2,
-        left: window.innerWidth / 2 - CALLOUT_WIDTH / 2,
-      };
-    }
-    const below = box.top + box.height + 14;
-    const fitsBelow = below + CALLOUT_HEIGHT < window.innerHeight - 8;
-    const top = fitsBelow ? below : Math.max(8, box.top - CALLOUT_HEIGHT - 14);
-    const left = Math.min(
-      Math.max(12, box.left + box.width / 2 - CALLOUT_WIDTH / 2),
-      window.innerWidth - CALLOUT_WIDTH - 12,
-    );
-    return { top, left };
-  })();
+  const hole: React.CSSProperties | null = box
+    ? { top: box.top, left: box.left, width: box.width, height: box.height }
+    : null;
 
   return (
-    <div className={styles.root}>
-      {interactive && box ? (
-        <>
-          <div className={styles.block} style={{ top: 0, left: 0, right: 0, height: box.top }} />
-          <div
-            className={styles.block}
-            style={{ top: box.top + box.height, left: 0, right: 0, bottom: 0 }}
-          />
-          <div
-            className={styles.block}
-            style={{ top: box.top, left: 0, width: box.left, height: box.height }}
-          />
-          <div
-            className={styles.block}
-            style={{
-              top: box.top,
-              left: box.left + box.width,
-              right: 0,
-              height: box.height,
-            }}
-          />
-        </>
-      ) : (
-        <div className={styles.blockAll} />
-      )}
+    <>
+      <div className={styles.root}>
+        {box ? (
+          <>
+            <div className={styles.block} style={{ top: 0, left: 0, right: 0, height: box.top }} />
+            <div
+              className={styles.block}
+              style={{ top: box.top + box.height, left: 0, right: 0, bottom: 0 }}
+            />
+            <div
+              className={styles.block}
+              style={{ top: box.top, left: 0, width: box.left, height: box.height }}
+            />
+            <div
+              className={styles.block}
+              style={{ top: box.top, left: box.left + box.width, right: 0, height: box.height }}
+            />
+            {/* Explained, not offered: the item stays lit, the click does not
+                land. */}
+            {!interactive && hole && <div className={styles.catcher} style={hole} />}
+          </>
+        ) : (
+          <div className={styles.blockAll} />
+        )}
 
-      {box && (
-        <div
-          className={styles.ring}
-          data-live={interactive}
-          style={{ top: box.top, left: box.left, width: box.width, height: box.height }}
-        />
-      )}
+        {hole && <div className={styles.ring} data-live={interactive} style={hole} />}
+      </div>
 
-      <div className={styles.callout} style={{ top: callout.top, left: callout.left }}>
-        <div className={styles.calloutHead}>
-          <span className={styles.count}>
-            {index + 1}/{TOUR_STEPS.length}
-          </span>
-          <span className={styles.title}>{step.title}</span>
+      <div className={styles.dock}>
+        <div className={styles.dockText}>
+          <div className={styles.head}>
+            <span className={styles.count}>
+              {index + 1}/{TOUR_STEPS.length}
+            </span>
+            <span className={styles.title}>{step.title}</span>
+          </div>
+          <p className={styles.text}>{step.text}</p>
         </div>
 
-        <p className={styles.text}>{step.text}</p>
-
-        <div className={styles.foot}>
+        <div className={styles.dockActions}>
           <button className={styles.skip} onClick={quit}>
             {last ? 'CLOSE' : 'SKIP'}
           </button>
@@ -206,6 +192,6 @@ export function TourLayer() {
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 }

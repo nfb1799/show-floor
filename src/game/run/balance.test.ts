@@ -13,7 +13,6 @@ import { generateCards } from '../cards/generate';
 import { resolvePitch } from '../pitch/resolvePitch';
 import { MAX_PITCH_CARDS } from '../constants';
 import {
-  accept,
   createShow,
   pitch,
   quotaForShow,
@@ -79,7 +78,7 @@ function playPerfectly(state: ShowState, deps: ShowDeps): ShowState {
 
     let next = show;
     for (const card of best) next = toggleSelection(next, card.id);
-    show = accept(pitch(next, deps), deps);
+    show = pitch(next, deps);
   }
   return show;
 }

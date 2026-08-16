@@ -7,7 +7,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { createRng } from '../rng';
-import { accept, pitch, toggleSelection, type ShowDeps } from '../show/showEngine';
+import { pitch, toggleSelection, type ShowDeps } from '../show/showEngine';
 import { previewPitch } from '../show/showEngine';
 import {
   W,
@@ -71,7 +71,7 @@ describe('the grader beat', () => {
     let state = walkthroughShow(d);
     state = toggleSelection(state, W.lich);
     state = toggleSelection(state, W.golem);
-    state = accept(pitch(state, d), d);
+    state = pitch(state, d);
     return { state, deps: d };
   }
 
@@ -108,8 +108,8 @@ describe('the show as a whole', () => {
     const d = deps();
     let state = walkthroughShow(d);
 
-    state = accept(pitch(toggleSelection(toggleSelection(state, W.lich), W.golem), d), d);
-    state = accept(pitch(toggleSelection(toggleSelection(state, W.dell), W.vance), d), d);
+    state = pitch(toggleSelection(toggleSelection(state, W.lich), W.golem), d);
+    state = pitch(toggleSelection(toggleSelection(state, W.dell), W.vance), d);
 
     expect(state.phase).toBe('over');
     expect(state.outcome).toBe('cleared');

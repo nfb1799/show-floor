@@ -36,7 +36,7 @@ export interface PitchInput {
   readonly buyer: Buyer;
   readonly upgrades: readonly Modifier[];
   readonly conditions: readonly Modifier[];
-  /** Rises by HAGGLE_RATIO_STEP each time the player pushes. */
+  /** Defaults to OFFER_RATIO_START; upgrades and conditions can move it. */
   readonly offerRatio?: number;
   readonly showIndex?: number;
   /**

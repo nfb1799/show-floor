@@ -75,8 +75,8 @@ Every hook runner forks the RNG per modifier id, so equipping an unrelated
 upgrade never shifts another one's luck.
 
 `resolvePitch` takes an options object rather than the doc's four positional
-arguments, because it also needs the live `offerRatio` (haggling mutates it),
-the show index, and an injected RNG (some upgrades roll dice at score time).
+arguments, because it also needs the show's `offerRatio` (upgrades and house
+rules move it), the show index, and an injected RNG (some upgrades roll dice at score time).
 It only ever *forks* from that RNG, so the caller's stream is never advanced and
 the same input always produces the same result.
 
@@ -101,9 +101,9 @@ display type, Barlow Semi Condensed the labels, Barlow the body.
 Tokens live at the top of [styles.css](src/styles.css); the repeated chrome
 (sheets, coloured bands, tracks, pip rows) is in [kit.tsx](src/ui/kit.tsx).
 
-A show is one screen with overlays: **The Table** carries the board, and
-haggling is a dismissible panel over it rather than a separate screen. The
-mock's dedicated "Sold" screen is gone — a sale animates the board in place.
+A show is one screen: **The Table** carries the board, and digging is the only
+thing that opens over it. The mock's dedicated "Sold" screen is gone — a sale
+animates the board in place.
 
 Two deliberate departures from the mock:
 
@@ -224,20 +224,22 @@ and cases.
 six pages of annotated screenshots, which is a wall of text wearing a costume.
 This one plays: a real show with a hand-picked case and two hand-picked buyers,
 where each step spotlights one thing on the real screen and the player performs
-the action themselves.
+the action themselves. Every card is one or two short sentences — the spotlight
+is doing the pointing, so the words only carry what the player cannot see.
 
 The spotlight is four opaque panels drawn *around* the target rather than one
-scrim with a transparent hole, so the gap is a genuine gap — the real control
-underneath takes the click and everything else is physically unreachable. Steps
-that only explain something block the whole screen; steps that ask for an action
-open exactly one control and end themselves when the game reaches the state they
-asked for. The screens know nothing about any of it beyond a `data-tour`
+scrim with a hole, so the highlighted thing is at full brightness on every step,
+not just the clickable ones. Steps that only explain cover the gap with a
+transparent catcher: the item still reads clearly, the click goes nowhere. The
+panel is docked to the bottom edge and never moves — the screens shrink by its
+height (`--tour-dock`) so it is reserved space rather than something floating
+over the board. The screens know nothing about any of it beyond a `data-tour`
 attribute on the things worth pointing at.
 
-The script is built around three beats the arithmetic produces on its own:
-one Grimoire card pays $59, a second makes it a Pair worth $210, and the
-collector's wallet caps it there. Then a grader pays $302 for two clean raws,
-$169 the moment a Played card joins them, and $302 again when it leaves.
+The script rides beats the arithmetic produces on its own: one Grimoire card
+pays $59, a second makes a Pair worth $210, and the collector's wallet caps it
+there. Then a grader pays $302 for two clean raws, $169 the moment a Played card
+joins them, and $302 again when it leaves.
 [walkthrough.test.ts](src/game/run/walkthrough.test.ts) asserts each of those
 beats still lands, so a change to the value constants fails a test rather than
 making the walkthrough lie. The sandbox never persists — a real save on disk
@@ -262,8 +264,8 @@ however beaten it actually is" — rather than referring to "condition penalties
 the player has never seen named. The page is off-white newsprint rather than green felt, so
 the quota track (darker bed, 3px rule) and the queue hint (ink on paper, and it
 now says what the binder reveals) both read. Slabs stamp `GRADED n` rather than
-an invented grading house, since it just says what the thing is. The haggle overlay is
-centred. The word "gamble" is gone.
+an invented grading house, since it just says what the thing is. The word
+"gamble" is gone.
 
 ## Playtest fixes, round one
 
@@ -280,13 +282,16 @@ above — and base budgets rose so a good pitch has room to beat a mediocre one.
 Shows 1–3 clear reliably at every skill level; the pressure comes from inventory
 drain, which is what the doc actually asks for.
 
-**Patience was a dominated choice, and is now Goodwill.** Pushing cost a pip and
-raised the ratio, with the walk only at zero — so the optimal line was always
-"push to zero, then accept". No decision. Pushing now also shrinks the buyer's
-wallet by 15%, which means it pays against an uncapped buyer and *costs* you
-against a capped one. The overlay prints the projected offer on the button, so
-the read is visible rather than guessed. Renamed to Goodwill because "patience"
-implied a clock the game does not have.
+**Patience became Goodwill, and then haggling was cut entirely.** The doc's
+patience mechanic was a dominated choice: pushing cost a pip and raised the
+ratio, with the walk only at zero, so the optimal line was always "push to zero,
+then accept". Shrinking the buyer's wallet on each push fixed the dominance —
+it now paid against an uncapped buyer and cost you against a capped one — but
+not the underlying problem. The offer is already visible before you commit, so
+the push asked the player to decide twice on the same information, and since
+most buyers cap, the answer was nearly always "take it". SEND IT now sells at
+the price on the board. Goodwill survives as the currency for digging, which is
+a real decision: you spend it to go and fetch a card the buyer actually wants.
 
 **Vintage is now readable.** Every card face prints its set year, highlighted in
 gold when it is at or under the cutoff, and the want reads "Anything printed 1990
@@ -322,10 +327,6 @@ The face now reads as a price-guide entry, in priority order:
 
 The set name drops its franchise prefix since the franchise sits directly above
 it — `Bullpen / '76 #1` rather than `Bullpen '76 #1` twice over.
-
-**Haggling is an overlay, not a screen.** It sits over the table and collapses to
-a bar so the case, queue and quota stay readable while deciding. Pitched cards
-render at full case fidelity.
 
 **The sold screen is gone.** A sale updates the board in place: the quota bar
 slides, the earned figure bumps, and a stamp rises and fades.

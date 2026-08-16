@@ -7,7 +7,6 @@ import { useRun } from '../state/runStore';
 import { BuyerPanel } from './BuyerPanel';
 import { BuyerQueue } from './BuyerQueue';
 import { DigOverlay } from './DigOverlay';
-import { HaggleOverlay } from './HaggleOverlay';
 import { Tally } from './Tally';
 import { CardView } from './card/CardView';
 import { Pips, Track } from './kit';
@@ -46,8 +45,7 @@ export function ShowScreen() {
 
   if (!show || !show.buyer) return null;
 
-  const haggling = show.phase === 'haggling';
-  const result = haggling ? show.pending : preview();
+  const result = preview();
   const quotaPct = (show.earned / show.config.quota) * 100;
   const quotaMet = show.earned >= show.config.quota;
   const conditions = getConditions(show.config.conditionIds);
@@ -151,11 +149,7 @@ export function ShowScreen() {
                     selected={selected}
                     {...(selected ? { selectIndex: index + 1 } : {})}
                     locked={locked}
-                    disabled={
-                      haggling ||
-                      locked ||
-                      (!selected && show.selection.length >= MAX_PITCH_CARDS)
-                    }
+                    disabled={locked || (!selected && show.selection.length >= MAX_PITCH_CARDS)}
                     onClick={() => toggleCard(card.id)}
                   />
                 </div>
@@ -167,17 +161,16 @@ export function ShowScreen() {
         {/* The tally -------------------------------------------------- */}
         <Tally
           onDig={() => setDigging(true)}
-          canDig={!haggling && show.goodwill >= GOODWILL_COST_DIG && show.inventory.length > 0}
+          canDig={show.goodwill >= GOODWILL_COST_DIG && show.inventory.length > 0}
           result={result}
           turnAwaysLeft={show.turnAwaysLeft}
-          canPitch={show.selection.length > 0 && !haggling}
-          canTurnAway={show.turnAwaysLeft > 0 && !haggling}
+          canPitch={show.selection.length > 0}
+          canTurnAway={show.turnAwaysLeft > 0}
           onPitch={pitch}
           onTurnAway={turnAway}
         />
       </div>
 
-      {haggling && <HaggleOverlay />}
       {digging && <DigOverlay onClose={() => setDigging(false)} />}
 
       {flash && (

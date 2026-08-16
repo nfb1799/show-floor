@@ -10,9 +10,6 @@ import {
   BUYERS_PER_SHOW,
   DISPLAY_CASE_SIZE,
   GOODWILL_COST_DIG,
-  GOODWILL_COST_PUSH,
-  HAGGLE_BUDGET_PENALTY,
-  HAGGLE_RATIO_STEP,
   MAX_PITCH_CARDS,
   OFFER_RATIO_START,
   QUOTA_BASE,
@@ -39,7 +36,7 @@ import {
 import type { Rng } from '../rng';
 import type { Buyer, Card, Modifier, PitchResult } from '../types';
 
-export type ShowPhase = 'pitching' | 'haggling' | 'over';
+export type ShowPhase = 'pitching' | 'over';
 export type ShowOutcome = 'inProgress' | 'cleared' | 'failed';
 
 /**
@@ -97,12 +94,10 @@ export interface ShowState {
   readonly queueIndex: number;
   readonly buyer: Buyer | null;
   readonly turnAwaysLeft: number;
-  /** Shared across the whole show: spent pushing a price or digging stock. */
+  /** Shared across the whole show: spent making a buyer wait while you dig. */
   readonly goodwill: number;
   readonly offerRatio: number;
   readonly phase: ShowPhase;
-  /** The offer on the table during haggling. */
-  readonly pending: PitchResult | null;
   /** The sale being shown on the resolve screen. */
   readonly lastSale: SaleRecord | null;
   readonly log: readonly LogEntry[];
@@ -267,7 +262,6 @@ function seatBuyer(state: ShowState, deps: ShowDeps): ShowState {
       buyer: arrival.buyer,
       offerRatio: next.config.startingOfferRatio,
       phase: 'pitching',
-      pending: null,
       selection: [],
     };
   }
@@ -290,7 +284,6 @@ function finishShow(state: ShowState, deps: ShowDeps): ShowState {
     ...state,
     displayCase,
     buyer: null,
-    pending: null,
     selection: [],
     phase: 'over',
     outcome: cleared ? 'cleared' : 'failed',
@@ -403,7 +396,6 @@ export function createShow(
     goodwill: config.goodwill,
     offerRatio: config.startingOfferRatio,
     phase: 'pitching',
-    pending: null,
     lastSale: null,
     log: [],
     outcome: 'inProgress',
@@ -473,39 +465,35 @@ export function previewPitch(state: ShowState, deps: ShowDeps): PitchResult | nu
   });
 }
 
+/**
+ * Sells the selection outright, banks it, refills the case and seats the next
+ * buyer in one step.
+ *
+ * There used to be a haggling phase between the pitch and the sale — an offer
+ * you could push on for a goodwill pip. It was cut: the offer is already
+ * visible before you commit, so the push was a second decision made on the
+ * same information as the first, and against a capped buyer (which is most of
+ * them) the only correct answer was always to take the money.
+ *
+ * `lastSale` carries what just happened so the table can animate the change in
+ * place, rather than interrupting the player with a receipt screen.
+ */
 export function pitch(state: ShowState, deps: ShowDeps): ShowState {
   if (state.phase !== 'pitching' || !state.buyer) return state;
   const result = previewPitch(state, deps);
   if (!result) return state;
-
-  return log(
-    { ...state, phase: 'haggling', pending: result },
-    `${state.buyer.label} looks over your ${result.pitchTypeLabel}.`,
-    'info',
-  );
-}
-
-/**
- * Banks the sale, refills the case and seats the next buyer in one step.
- *
- * `lastSale` carries what just happened so the table can animate the change
- * in place — the numbers move on the board the player is already looking at,
- * rather than interrupting them with a receipt screen.
- */
-export function accept(state: ShowState, deps: ShowDeps): ShowState {
-  if (state.phase !== 'haggling' || !state.pending || !state.buyer) return state;
 
   const mods = allModifiers(deps.upgrades, deps.conditions);
   const soldCards = selectedCards(state);
   const sale = runSaleHooks(mods, {
     cards: soldCards,
     buyer: state.buyer,
-    result: state.pending,
+    result,
     showIndex: state.config.showIndex,
     rng: deps.rng,
   });
 
-  const money = state.pending.offer + sale.extraMoney;
+  const money = result.offer + sale.extraMoney;
 
   let next: ShowState = {
     ...state,
@@ -516,11 +504,10 @@ export function accept(state: ShowState, deps: ShowDeps): ShowState {
     inventory: [...state.inventory, ...sale.returnedCards],
     sold: [...state.sold, ...soldCards],
     selection: [],
-    pending: null,
     lastSale: {
       id: state.logSeq,
       buyerLabel: state.buyer.label,
-      pitchTypeLabel: state.pending.pitchTypeLabel,
+      pitchTypeLabel: result.pitchTypeLabel,
       cards: soldCards,
       amount: money,
       bonus: sale.extraMoney,
@@ -535,7 +522,7 @@ export function accept(state: ShowState, deps: ShowDeps): ShowState {
 
   next = log(
     next,
-    `${state.buyer.label} takes the ${state.pending.pitchTypeLabel} for $${Math.round(money)}.`,
+    `${state.buyer.label} takes the ${result.pitchTypeLabel} for $${Math.round(money)}.`,
     'sale',
   );
   for (const line of sale.lines) next = log(next, line.label, 'info');
@@ -546,80 +533,6 @@ export function accept(state: ShowState, deps: ShowDeps): ShowState {
   return seatBuyer(next, deps);
 }
 
-export function push(state: ShowState, deps: ShowDeps): ShowState {
-  if (state.phase !== 'haggling' || !state.pending || !state.buyer) return state;
-
-  // An empty pool means the next push is the one that loses them.
-  if (state.goodwill < GOODWILL_COST_PUSH) {
-    const walked = log(
-      {
-        ...state,
-        selection: [],
-        pending: null,
-        queueIndex: state.queueIndex + 1,
-        stats: { ...state.stats, buyersWalked: state.stats.buyersWalked + 1 },
-      },
-      `${state.buyer.label} has had enough and walks away.`,
-      'walk',
-    );
-    return seatBuyer(drawUp(walked, deps), deps);
-  }
-
-  // Pushing raises the ask and shrinks the wallet at the same time, so it pays
-  // off against an uncapped buyer and costs you against a capped one.
-  const buyer: Buyer = {
-    ...state.buyer,
-    budget: Math.max(1, Math.round(state.buyer.budget * HAGGLE_BUDGET_PENALTY)),
-  };
-  const offerRatio = state.offerRatio + HAGGLE_RATIO_STEP;
-  const haggled: ShowState = {
-    ...state,
-    buyer,
-    offerRatio,
-    goodwill: state.goodwill - GOODWILL_COST_PUSH,
-    phase: 'pitching',
-  };
-  const result = previewPitch(haggled, deps);
-
-  const before = state.pending.offer;
-  const after = result?.offer ?? before;
-
-  return log(
-    { ...haggled, phase: 'haggling', pending: result },
-    after > before
-      ? `${buyer.label} comes up to $${after}.`
-      : after < before
-        ? `${buyer.label} takes offence and drops to $${after}.`
-        : `${buyer.label} will not go any higher.`,
-    after < before ? 'walk' : 'info',
-  );
-}
-
-/**
- * What the offer would become if the player pushed. Lets the table show the
- * consequence on the button rather than making it a guess.
- */
-export function previewPush(state: ShowState, deps: ShowDeps): number | null {
-  if (state.phase !== 'haggling' || !state.buyer || !state.pending) return null;
-  if (state.goodwill < GOODWILL_COST_PUSH) return null;
-
-  const probe: ShowState = {
-    ...state,
-    phase: 'pitching',
-    offerRatio: state.offerRatio + HAGGLE_RATIO_STEP,
-    buyer: {
-      ...state.buyer,
-      budget: Math.max(1, Math.round(state.buyer.budget * HAGGLE_BUDGET_PENALTY)),
-    },
-  };
-  return previewPitch(probe, deps)?.offer ?? null;
-}
-
-/**
- * Dismisses the current buyer and swaps the selected cards back into the
- * inventory. This does NOT consume a buyer slot by default: making it do so
- * (4 buyers minus 3 turn-aways) leaves one scoring chance against a hard quota.
- */
 export function turnAway(state: ShowState, deps: ShowDeps): ShowState {
   if (state.phase !== 'pitching' || !state.buyer) return state;
   if (state.turnAwaysLeft <= 0) return state;

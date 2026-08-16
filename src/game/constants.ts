@@ -130,19 +130,12 @@ export const RAINBOW_MIN_CARDS = 3;
 export const MIN_PITCH_CARDS = 1;
 export const MAX_PITCH_CARDS = 5;
 
-export const OFFER_RATIO_START = 0.7;
-export const HAGGLE_RATIO_STEP = 0.15;
-
 /**
- * Pushing also makes the buyer put money back in their pocket.
- *
- * Without this the push is a dominated choice: goodwill only gates *how many*
- * free raises you get, so the optimal line is always "push until goodwill is 0,
- * then accept" — no decision at all. Shrinking the budget each push means a
- * capped buyer pays strictly less for being pushed, so the read becomes
- * "am I capped?", which the table already shows.
+ * Buyers pay this fraction of Appeal. It used to be the opening bid in a
+ * haggle the player could push on; the haggle is gone, so this is simply the
+ * house rate, still movable by upgrades and show conditions.
  */
-export const HAGGLE_BUDGET_PENALTY = 0.85;
+export const OFFER_RATIO_START = 0.7;
 
 /**
  * Floor applied to (baseInterest + additive bonuses) before multiplicative
@@ -212,11 +205,10 @@ export const BULK_GUY_MIN_CARDS = 4;
 
 /**
  * Goodwill is a single pool for the whole show, not a per-buyer allowance.
- * Spent to push a price up, or to make a buyer wait while you dig through
- * stock — so the two compete for the same budget.
+ * Spent making a buyer wait while you dig through stock for something they
+ * actually want.
  */
 export const SHOW_GOODWILL = 6;
-export const GOODWILL_COST_PUSH = 1;
 export const GOODWILL_COST_DIG = 1;
 
 /** Relative frequency of each archetype in the buyer queue. */

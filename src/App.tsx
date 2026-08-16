@@ -24,7 +24,6 @@ function screenFor(phase: ReturnType<typeof useRun.getState>['phase']) {
     case 'setup':
       return <SetupScreen />;
     case 'inShow':
-      // Haggling is an overlay the table renders over itself, not a screen.
       return <ShowScreen />;
     case 'showResult':
       return <ShowResultScreen />;

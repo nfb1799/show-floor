@@ -9,7 +9,6 @@ import { generateCards } from '../cards/generate';
 import { getUpgrades } from '../upgrades/registry';
 import { getConditions, rollConditions } from '../conditions/registry';
 import {
-  accept,
   createShow,
   pitch,
   remainingInventory,
@@ -42,7 +41,7 @@ function playShow(state: ShowState, deps: ShowDeps): ShowState {
     for (const card of sellable.slice(0, 5)) next = toggleSelection(next, card.id);
     if (next.selection.length === 0) break;
 
-    show = accept(pitch(next, deps), deps);
+    show = pitch(next, deps);
   }
   return show;
 }

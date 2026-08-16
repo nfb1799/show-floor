@@ -1,17 +1,15 @@
 /**
  * The walkthrough script.
  *
- * Each step points at one real thing on screen and says one thing about it.
- * Steps with an `until` predicate wait for the player to actually do it —
- * those are the ones where the tour hands control back and only the
- * highlighted control is clickable. The rest advance on NEXT.
+ * One or two short sentences per step. The spotlight is doing the pointing, so
+ * the words only have to say the thing the player cannot see for themselves —
+ * anything longer and it stops being a walkthrough and starts being a manual.
  *
- * Anchors are `data-tour` values on the real components. A step whose anchor
- * is missing from the DOM falls back to a centred card, so a step can never
- * strand the player.
+ * Steps with an `until` predicate hand control back: only the highlighted
+ * control is clickable, and the step ends when the game reaches the state it
+ * asked for. Anchors are `data-tour` values on the real components.
  */
 
-import { MAX_PITCH_CARDS, SHOW_GOODWILL } from '../../game/constants';
 import { W } from '../../game/run/walkthrough';
 import type { RunState } from '../../state/runStore';
 
@@ -35,57 +33,43 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'welcome',
     title: 'Your table, mid-show',
-    text:
-      'This is one show at a card fair. A short one — two buyers instead of the usual four — so you can see the whole loop before you start a real run. Everything here is the live game; nothing is faked.',
+    text: 'A short show — two buyers instead of four. Everything here is the real game.',
   },
   {
     id: 'quota',
     anchor: 'quota',
     title: 'The number that ends runs',
-    text:
-      'You owe the show a quota by closing time. Come up short and the run is over — there is no second chance and no partial credit. Everything you do at the table is aimed at this bar.',
-  },
-  {
-    id: 'buyers',
-    anchor: 'buyers',
-    title: 'Two buyers, then the doors close',
-    text:
-      'Buyers come one at a time and there are only ever a handful. That is what makes a wasted buyer expensive: you cannot make it up in volume later.',
+    text: 'Clear the quota by closing time or the run is over.',
   },
   {
     id: 'buyer',
     anchor: 'buyer',
     title: 'Who is at your table',
-    text:
-      'A Personal Collector. Every buyer is an archetype with a wallet and a taste, and reading them is most of the game.',
+    text: 'Buyers come one at a time, and there are only ever a handful.',
   },
   {
     id: 'budget',
     anchor: 'budget',
     title: 'What they brought',
-    text:
-      'A hard ceiling. No pitch, however good, gets a dollar more than this — so building something enormous for a small wallet just burns the cards.',
+    text: 'A hard ceiling. No pitch gets a dollar more than this.',
   },
   {
     id: 'wants',
     anchor: 'wants',
     title: 'What wins them',
-    text:
-      'This one collects Grimoire, and every Grimoire card in the pitch adds +4 Interest. Interest multiplies the whole pitch, so matching a want is worth far more than it sounds.',
+    text: 'This one collects Grimoire. Every Grimoire card in the pitch adds Interest.',
   },
   {
     id: 'case',
     anchor: 'case',
     title: 'Your display case',
-    text:
-      `Eight cards out of your stock. You pitch up to ${MAX_PITCH_CARDS} of them at a time, and you can see what each one is worth printed on its face.`,
+    text: 'Eight cards. You can pitch up to five of them at once.',
   },
   {
     id: 'pickOne',
     anchor: `card:${W.lich}`,
     title: 'Start with one card',
-    text:
-      'Ashen Lich — a Grimoire card, so it matches what the collector wants. Click it to put it in the pitch.',
+    text: 'Ashen Lich is Grimoire — exactly what they collect.',
     action: 'Click Ashen Lich',
     until: (s) => has(s, W.lich),
   },
@@ -93,76 +77,55 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'math',
     anchor: 'math',
     title: 'How the offer is built',
-    text:
-      'Pitch value plus card value, multiplied by Interest, cut to their opening offer. One card is a Loose Single: the weakest thing you can pitch, worth almost nothing on its own.',
+    text: 'Pitch value plus card value, times Interest. One card is the weakest pitch there is.',
   },
   {
     id: 'pickTwo',
     anchor: `card:${W.golem}`,
-    title: 'Now watch what pairing does',
-    text:
-      'Rune Golem is Grimoire too, and two cards sharing a franchise make a Pair — a real pitch type with its own bonus. Add it and watch the offer.',
+    title: 'Now add a second',
+    text: 'Two cards sharing a franchise make a Pair. Watch the offer.',
     action: 'Click Rune Golem',
     until: (s) => has(s, W.golem),
   },
   {
     id: 'jumped',
-    anchor: 'math',
-    title: 'That is the whole game',
-    text:
-      'One extra card multiplied the offer several times over: the Pair added flat value, and a second matching card added Interest on top. Cards that go together are worth far more than the same cards sold loose.',
+    anchor: 'pay',
+    title: '$59 to $210',
+    text: 'Cards that go together are worth far more than the same cards sold loose.',
   },
   {
     id: 'capped',
-    anchor: 'pay',
-    title: 'And then the wallet bites',
-    text:
-      'The pitch is worth more than the collector can pay, so the offer stops at their budget and the rest is wasted. Overbuilding is the most common way to lose money here — this is when you stop adding cards and sell.',
+    anchor: 'budget',
+    title: 'And the wallet bites',
+    text: 'The pitch is worth more than they can pay, so the rest is wasted. Stop here and sell.',
   },
   {
     id: 'send',
     anchor: 'send',
-    title: 'Send it',
-    text: 'Locks the pitch in and puts the offer on the table.',
+    title: 'Sell it',
+    text: 'No haggling — the price you see is the price you get.',
     action: 'Click SEND IT',
-    until: (s) => s.show?.phase === 'haggling',
-  },
-  {
-    id: 'haggle',
-    anchor: 'haggle',
-    title: 'Take it or lean on them',
-    text:
-      `Push raises the offer, but it costs a goodwill pip and shrinks their wallet — and goodwill is ${SHOW_GOODWILL} for the entire show, shared with digging. Pushing a buyer who is already capped pays you less, not more.`,
-  },
-  {
-    id: 'take',
-    anchor: 'take',
-    title: 'Take the money',
-    text: 'This buyer is capped, so there is nothing to gain by pushing. Bank it.',
-    action: 'Click TAKE',
-    until: (s) => s.show?.queueIndex === 1 && s.show.phase !== 'haggling',
+    until: (s) => s.show?.queueIndex === 1,
   },
 
   // -- Buyer two: the refusal ----------------------------------------------
   {
     id: 'sold',
     anchor: 'quota',
-    title: 'Banked, and the case refilled',
-    text:
-      'The quota bar moved, the cards you sold are gone from the run for good, and fresh stock slid into the empty slots. Next buyer is already standing there.',
+    title: 'Banked',
+    text: 'Sold cards leave the run for good, and the case refilled from your stock.',
   },
   {
     id: 'grader',
     anchor: 'wants',
     title: 'A grader, and a warning',
-    text:
-      'The green chip is what they want: clean raw cards, Near Mint or better. The red one is a refusal — a single beaten card cuts the whole pitch to a quarter. Red chips are penalties, not preferences.',
+    text: 'Green is what they want. Red is a refusal — one beaten card quarters the whole pitch.',
   },
   {
     id: 'pickClean',
     anchor: `card:${W.dell}`,
     title: 'Give them a clean one',
-    text: 'Marcus Dell is raw and Near Mint — exactly what they came for.',
+    text: 'Marcus Dell is raw and Near Mint.',
     action: 'Click Marcus Dell',
     until: (s) => has(s, W.dell),
   },
@@ -170,7 +133,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'pickClean2',
     anchor: `card:${W.vance}`,
     title: 'And a second',
-    text: 'Tyrone Vance, also Near Mint. Same set as Dell, so this is a Pair again.',
+    text: 'Tyrone Vance, also Near Mint.',
     action: 'Click Tyrone Vance',
     until: (s) => has(s, W.vance),
   },
@@ -178,47 +141,36 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'trap',
     anchor: `card:${W.ruiz}`,
     title: 'Now break it on purpose',
-    text:
-      'Bobby Ruiz is the same franchise and worth real money — but he is Played. Add him and watch the offer, then we will take him back out.',
+    text: 'Bobby Ruiz is worth real money, but he is Played.',
     action: 'Click Bobby Ruiz',
     until: (s) => has(s, W.ruiz),
   },
   {
     id: 'collapse',
-    anchor: 'math',
-    title: 'One bad card did that',
-    text:
-      'A third card should have raised the offer. Instead the refusal multiplied the entire pitch by 0.25 and cost you more than the card was ever worth. This is why you read the red chip before you build.',
+    anchor: 'pay',
+    title: '$302 to $169',
+    text: 'One beaten card cost more than it was worth. Read the red chip before you build.',
   },
   {
     id: 'untrap',
     anchor: `card:${W.ruiz}`,
     title: 'Take him back out',
-    text: 'Clicking a selected card removes it. Nothing is committed until you send.',
+    text: 'Clicking a selected card removes it. Nothing commits until you send.',
     action: 'Click Bobby Ruiz again',
     until: (s) => !has(s, W.ruiz),
   },
   {
     id: 'dig',
     anchor: 'dig',
-    title: 'The other use for goodwill',
-    text:
-      'Dig swaps a card between the case and your stock without losing the buyer — for a goodwill pip. It is how you go and fetch the card someone is asking for, and every dig is a push you are not making.',
+    title: 'Digging',
+    text: 'Swaps a card with your stock without losing the buyer, for a goodwill pip.',
   },
   {
     id: 'sendTwo',
     anchor: 'send',
     title: 'Sell it',
-    text: 'Two clean cards, no refusal, well under their wallet. This one is not capped.',
+    text: 'Two clean cards, no refusal, under their wallet.',
     action: 'Click SEND IT',
-    until: (s) => s.show?.phase === 'haggling',
-  },
-  {
-    id: 'takeTwo',
-    anchor: 'take',
-    title: 'Bank the second sale',
-    text: 'That is both buyers. The doors close after this one.',
-    action: 'Click TAKE',
     until: (s) => s.phase === 'showResult',
   },
 
@@ -227,57 +179,49 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'result',
     anchor: 'collect',
     title: 'Doors closed',
-    text:
-      'Over the quota, so the run continues. Miss it and this screen is where the run ends instead.',
+    text: 'Over the quota, so the run continues.',
     action: 'Click through to the shop',
     until: (s) => s.phase === 'shop',
   },
   {
     id: 'money',
     anchor: 'money',
-    title: 'What you can actually spend',
-    text:
-      'The show money is banked, minus a reserve held back for the next table fee. That reserve is why some prices grey out — it exists so you cannot spend yourself out of a run.',
+    title: 'What you can spend',
+    text: 'Some of it is held back for the next table fee. That is why prices grey out.',
   },
   {
     id: 'singles',
     anchor: 'singles',
     title: 'Restocking',
-    text:
-      'Cards you sold are gone, so the shop is where the case gets refilled. Singles are priced honestly and you can see exactly what you are buying.',
+    text: 'You sold your best cards. This is where they get replaced.',
   },
   {
     id: 'packs',
     anchor: 'packs',
     title: 'Or gamble on sealed',
-    text:
-      'Packs are cheaper per card and you open them here, keeping what is worth carrying and listing the rest online at 70% of face.',
+    text: 'Cheaper per card. You open them here and keep what is worth carrying.',
   },
   {
     id: 'gear',
     anchor: 'gear',
-    title: 'Booth gear changes the rules',
-    text:
-      'Upgrades are permanent scoring modifiers — more Interest on holos, a bigger case, a buyer who turns up asking for what you already hold. Hover any of them to see what it does.',
+    title: 'Gear changes the rules',
+    text: 'Permanent scoring upgrades. Hover one to see what it does.',
   },
   {
     id: 'stock',
     anchor: 'stockBtn',
-    title: 'And your box',
-    text:
-      'Everything you own lives here. Grade a card into a slab, sleeve one up a condition step, or list anything online for 70% of face — and it is where you see how deep you are in each franchise.',
+    title: 'Your box',
+    text: 'Grade a card, sleeve one up a condition step, or sell anything online.',
   },
   {
     id: 'next',
     anchor: 'next',
-    title: 'Then back to the floor',
-    text:
-      'The next show wants more money than this one did, and starts adding house rules that bend the arithmetic. That is the run: sell, restock, and stay ahead of the number.',
+    title: 'Back to the floor',
+    text: 'The next show wants more money, and starts adding house rules.',
   },
   {
     id: 'done',
-    title: "That is all of it",
-    text:
-      'Read the buyer, build the best pitch the case allows, stop when the wallet caps, and spend the difference on being ready for the next one. Your real run starts with a fresh box and four buyers a show.',
+    title: 'That is the loop',
+    text: 'Read the buyer, build the best pitch you can, stop when the wallet caps.',
   },
 ];

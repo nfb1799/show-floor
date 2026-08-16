@@ -50,13 +50,11 @@ import {
 } from '../game/run/walkthrough';
 import type { Card, PitchResult, RawCard } from '../game/types';
 import {
-  accept as engineAccept,
   createShow,
   digFromStock,
   planShow,
   previewPitch,
   pitch as enginePitch,
-  push as enginePush,
   remainingInventory,
   toggleSelection,
   turnAway as engineTurnAway,
@@ -85,9 +83,8 @@ export interface RunState extends Omit<RunSnapshot, 'rngState'> {
   startShow: () => void;
 
   toggleCard: (cardId: string) => void;
+  /** Sells the current selection to the buyer at the table. */
   pitch: () => void;
-  accept: () => void;
-  push: () => void;
   turnAway: () => void;
   /** Swap a case card for a named card from stock, for a goodwill pip. */
   dig: (outCardId: string, inCardId: string) => void;
@@ -397,8 +394,6 @@ export const useRun = create<RunState>((set, get) => {
 
     toggleCard: (cardId) => applyShow((s) => toggleSelection(s, cardId)),
     pitch: () => applyShow(enginePitch),
-    accept: () => applyShow(engineAccept),
-    push: () => applyShow(enginePush),
     turnAway: () => applyShow(engineTurnAway),
     dig: (outCardId, inCardId) => applyShow((st) => digFromStock(st, outCardId, inCardId)),
 

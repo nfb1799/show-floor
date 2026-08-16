@@ -2,13 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { createRng } from '../rng';
 import { generateCards } from '../cards/generate';
 import {
-  accept,
   createShow,
   digFromStock,
   previewPitch,
-  previewPush,
   pitch,
-  push,
   quotaForShow,
   remainingInventory,
   tableFeeForShow,
@@ -93,15 +90,12 @@ describe('resolving a buyer', () => {
   it('pays out, refills the case and seats the next buyer in one step', () => {
     const { state, deps: d } = newShow();
     const selected = selectFirst(state, 3);
-    const offered = pitch(selected, d);
+    const expected = previewPitch(selected, d)!.offer;
 
-    expect(offered.phase).toBe('haggling');
-    expect(offered.pending).not.toBeNull();
-
-    const after = accept(offered, d);
+    const after = pitch(selected, d);
 
     expect(after.phase).toBe('pitching');
-    expect(after.earned).toBe(offered.pending!.offer);
+    expect(after.earned).toBe(expected);
     expect(after.queueIndex).toBe(1);
     expect(after.selection).toEqual([]);
     expect(after.displayCase).toHaveLength(DISPLAY_CASE_SIZE);
@@ -111,7 +105,7 @@ describe('resolving a buyer', () => {
   it('records the sale so the table can animate the change', () => {
     const { state, deps: d } = newShow();
     const selected = selectFirst(state, 3);
-    const after = accept(pitch(selected, d), d);
+    const after = pitch(selected, d);
 
     expect(after.lastSale).not.toBeNull();
     expect(after.lastSale!.cards).toHaveLength(3);
@@ -123,7 +117,7 @@ describe('resolving a buyer', () => {
     const { state, deps: d } = newShow();
     const selected = selectFirst(state, 3);
     const soldIds = selected.selection;
-    const after = accept(pitch(selected, d), d);
+    const after = pitch(selected, d);
 
     const surviving = remainingInventory(after).map((c) => c.id);
     for (const id of soldIds) expect(surviving).not.toContain(id);
@@ -131,87 +125,27 @@ describe('resolving a buyer', () => {
   });
 });
 
-describe('haggling', () => {
-  it('spends from the show-wide goodwill pool to raise the offer ratio', () => {
+describe('selling outright', () => {
+  it('takes the previewed offer, with no second decision in between', () => {
+    // Haggling used to sit here: an offer you could push on for a goodwill
+    // pip. It was cut because the offer is visible before you commit, so the
+    // push asked the player to decide twice on the same information — and
+    // against a capped buyer the only right answer was always to take it.
     const { state, deps: d } = newShow();
-    const offered = pitch(selectFirst(state, 3), d);
-    const pushed = push(offered, d);
+    const selected = selectFirst(state, 3);
 
-    expect(pushed.offerRatio).toBeCloseTo(offered.offerRatio + 0.15);
-    expect(pushed.goodwill).toBe(offered.goodwill - 1);
-    expect(pushed.phase).toBe('haggling');
+    expect(pitch(selected, d).earned).toBe(previewPitch(selected, d)!.offer);
   });
 
-  it('carries the pool across buyers rather than resetting it', () => {
-    // Goodwill is the crowd's patience with you, not one buyer's, so spending
-    // it early leaves less for the rest of the show.
+  it('leaves the goodwill pool for digging', () => {
     const { state, deps: d } = newShow();
-    const spent = push(pitch(selectFirst(state, 3), d), d);
-    const nextBuyer = accept(spent, d);
-
-    expect(nextBuyer.queueIndex).toBe(1);
-    expect(nextBuyer.goodwill).toBe(spent.goodwill);
-    expect(nextBuyer.goodwill).toBeLessThan(state.config.goodwill);
+    const after = pitch(selectFirst(state, 3), d);
+    expect(after.goodwill).toBe(state.goodwill);
   });
 
-  it('shrinks the wallet on every push, so pushing is a real decision', () => {
-    // Without this the optimal line is always "push to zero goodwill, then
-    // accept" — goodwill would only gate how many free raises you get.
+  it('does nothing without a selection', () => {
     const { state, deps: d } = newShow();
-    const offered = pitch(selectFirst(state, 3), d);
-    const pushed = push(offered, d);
-
-    expect(pushed.buyer!.budget).toBeLessThan(offered.buyer!.budget);
-    expect(pushed.goodwill).toBe(offered.goodwill - 1);
-  });
-
-  it('pays a capped buyer strictly less for being pushed', () => {
-    const { state, deps: d } = newShow();
-    // A tiny budget guarantees the cap binds before and after the push.
-    const capped: ShowState = { ...state, buyer: { ...state.buyer!, budget: 8 }, goodwill: 3 };
-    const offered = pitch(selectFirst(capped, 3), d);
-    const pushed = push(offered, d);
-
-    expect(offered.pending!.cappedByBudget).toBe(true);
-    expect(pushed.pending!.offer).toBeLessThan(offered.pending!.offer);
-  });
-
-  it('previews what a push would pay before the player commits', () => {
-    const { state, deps: d } = newShow();
-    const offered = pitch(selectFirst(state, 3), d);
-
-    const projected = previewPush(offered, d);
-    expect(projected).not.toBeNull();
-    expect(push(offered, d).pending!.offer).toBe(projected);
-  });
-
-  it('offers no push preview once goodwill is gone', () => {
-    const { state, deps: d } = newShow();
-    const seeded: ShowState = { ...state, goodwill: 0 };
-    expect(previewPush(pitch(selectFirst(seeded, 2), d), d)).toBeNull();
-  });
-
-  it('loses the buyer when pushed at zero goodwill', () => {
-    const { state, deps: d } = newShow();
-    const seeded: ShowState = { ...state, goodwill: 0 };
-    const offered = pitch(selectFirst(seeded, 2), d);
-    const walked = push(offered, d);
-
-    expect(walked.earned).toBe(0);
-    expect(walked.queueIndex).toBe(1);
-    expect(walked.log.some((l) => l.tone === 'walk')).toBe(true);
-  });
-
-  it('does not sell the cards when a buyer walks', () => {
-    const { state, deps: d } = newShow();
-    const seeded: ShowState = { ...state, goodwill: 0 };
-    const selected = selectFirst(seeded, 2);
-    const pitchedIds = selected.selection;
-    const walked = push(pitch(selected, d), d);
-
-    const surviving = remainingInventory(walked).map((c) => c.id);
-    for (const id of pitchedIds) expect(surviving).toContain(id);
-    expect(walked.sold).toHaveLength(0);
+    expect(pitch(state, d)).toBe(state);
   });
 });
 
@@ -254,7 +188,7 @@ describe('show completion', () => {
     let next = state;
 
     while (next.phase !== 'over') {
-      next = accept(pitch(selectFirst(next, 5), d), d);
+      next = pitch(selectFirst(next, 5), d);
     }
 
     expect(next.queueIndex).toBe(BUYERS_PER_SHOW);
@@ -269,7 +203,7 @@ describe('show completion', () => {
     const state = createShow(1, inventory, d);
     expect(state.displayCase).toHaveLength(2);
 
-    const after = accept(pitch(selectFirst(state, 2), d), d);
+    const after = pitch(selectFirst(state, 2), d);
 
     expect(after.phase).toBe('over');
     expect(after.queueIndex).toBeLessThan(after.config.buyerCount);
@@ -280,7 +214,7 @@ describe('show completion', () => {
     const { state, deps: d } = newShow();
     let next = state;
     while (next.phase !== 'over') {
-      next = accept(pitch(selectFirst(next, 5), d), d);
+      next = pitch(selectFirst(next, 5), d);
     }
 
     expect(pitch(next, d)).toBe(next);
@@ -295,7 +229,7 @@ describe('determinism', () => {
       const { state, deps: d } = newShow('replay');
       let next = state;
       while (next.phase !== 'over') {
-        next = accept(pitch(selectFirst(next, 4), d), d);
+        next = pitch(selectFirst(next, 4), d);
       }
       return next;
     };
