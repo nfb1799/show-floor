@@ -8,6 +8,7 @@ import { BuyerPanel } from './BuyerPanel';
 import { BuyerQueue } from './BuyerQueue';
 import { DigOverlay } from './DigOverlay';
 import { Tally } from './Tally';
+import { TradeOverlay } from './TradeOverlay';
 import { CardView } from './card/CardView';
 import { Pips, Track } from './kit';
 import styles from './app.module.css';
@@ -170,6 +171,10 @@ export function ShowScreen() {
           onTurnAway={turnAway}
         />
       </div>
+
+      {/* Above the dig overlay in the DOM order that matters: a trade can only
+          arrive from a sale, and a sale closes the dig. */}
+      <TradeOverlay />
 
       {digging && <DigOverlay onClose={() => setDigging(false)} />}
 

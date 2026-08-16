@@ -180,11 +180,37 @@ export const REFUSAL_INTEREST_MULT = 0.25;
  *
  * Cash is still the cap: a buyer with $200 on them never hands over $260. What
  * they do at a card show is make up the difference out of their own binder, and
- * you sell that on — so the extra arrives as trade rather than as money they
- * did not bring. Only a quarter of it, because their spares are worth less to
- * you than they are to them.
+ * you decide what to do with it — so the extra arrives as cards, not money.
+ *
+ * Higher than the 0.25 it was while this paid cash, because cards are not cash.
+ * Listing the lot online immediately returns 0.4 x SELL_ONLINE_RATE, or about
+ * the 0.25 that used to arrive as money; keeping them is worth the full 0.4,
+ * but only to a player who can find the buyer. That gap is the whole point.
  */
-export const BUDGET_TRADE_RATE = 0.25;
+export const BUDGET_TRADE_RATE = 0.4;
+
+/**
+ * The trade arrives as cards, not as money.
+ *
+ * The buyer opens their own binder and offers what it holds up to the value
+ * they cannot cover in cash; you keep what you want and list the rest at
+ * SELL_ONLINE_RATE. So the trade is worth its full face value only if the cards
+ * are ones you can actually move — which is the decision.
+ *
+ * Capped at five so the choice fits on one screen and stays a choice rather
+ * than an inventory chore.
+ */
+export const TRADE_MAX_CARDS = 5;
+
+/** Candidate rolls per slot while filling a trade; the best fit is taken. */
+export const TRADE_OFFER_ATTEMPTS = 12;
+
+/**
+ * Roughly what a slab multiplies its base value by, used only to aim a trade
+ * at the right rarity when the buyer deals in graded cards. Not a real rate —
+ * GRADE_MULT is the truth, and the offer is checked against the real value.
+ */
+export const SLAB_VALUE_ALLOWANCE = 2.5;
 
 /**
  * What an unwanted card fetches if you list it rather than pitch it.

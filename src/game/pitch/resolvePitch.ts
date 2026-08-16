@@ -206,6 +206,13 @@ function scoreAs(pitchType: PitchTypeId, input: PitchInput, rng: Rng): PitchResu
     cappedByBudget,
   });
 
+  const offer = Math.max(0, Math.round(finalized.offer));
+  // Never more than the buyer is paying in total: a hook that cuts the offer to
+  // nothing (No Bulk Bins) must not leave a trade pile standing on its own.
+  const tradeValue = cappedByBudget
+    ? Math.min(offer, Math.round((uncappedOffer - buyer.budget) * BUDGET_TRADE_RATE))
+    : 0;
+
   return {
     pitchType,
     pitchTypeLabel: pitchTypeLabel(pitchType, cards.length),
@@ -225,7 +232,8 @@ function scoreAs(pitchType: PitchTypeId, input: PitchInput, rng: Rng): PitchResu
     budget: buyer.budget,
     cappedByBudget,
     offerLines: finalized.offerLines,
-    offer: Math.max(0, Math.round(finalized.offer)),
+    offer,
+    tradeValue,
   };
 }
 
