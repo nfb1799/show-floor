@@ -242,7 +242,10 @@ mutation.
 The script rides beats the arithmetic produces on its own: one Grimoire card
 pays $59, a second makes a Pair worth $210, and the collector's wallet caps it
 there. Then a grader pays $302 for two clean raws, $87 the moment a slab joins
-them, and $302 again when it leaves.
+them, and $302 again when it leaves. In the shop the player grades the best card
+they still own and gets a 10 back — $35 to $210. That one is dealt, not rolled:
+the tutorial promises the outcome it describes, and a real run rolls it, which
+is the entire point of grading.
 [walkthrough.test.ts](src/game/run/walkthrough.test.ts) asserts each beat still
 lands — including that the card the third buyer wants is never dealt into the
 case by a refill, which would leave the dig step with nothing to teach. The

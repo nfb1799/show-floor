@@ -47,6 +47,16 @@ function boxOf(el: Element): Box {
   };
 }
 
+/** Smallest box containing all of them, for steps that point at two things. */
+function union(boxes: readonly Box[]): Box | null {
+  if (boxes.length === 0) return null;
+  const top = Math.min(...boxes.map((b) => b.top));
+  const left = Math.min(...boxes.map((b) => b.left));
+  const right = Math.max(...boxes.map((b) => b.left + b.width));
+  const bottom = Math.max(...boxes.map((b) => b.top + b.height));
+  return { top, left, width: right - left, height: bottom - top };
+}
+
 export function TourLayer() {
   const active = useTour((s) => s.active);
   const index = useTour((s) => s.index);
@@ -54,8 +64,10 @@ export function TourLayer() {
   const quit = useTour((s) => s.quit);
 
   const step = TOUR_STEPS[index];
-  const [box, setBox] = useState<Box | null>(null);
+  /** One per anchor. The cutout is their union; each gets its own ring. */
+  const [boxes, setBoxes] = useState<readonly Box[]>([]);
   const frame = useRef(0);
+  const box = union(boxes);
 
   // Shrinks every screen by the dock's height for as long as the tour runs.
   useEffect(() => {
@@ -72,14 +84,23 @@ export function TourLayer() {
   // the background, and the step can change while it is.
   useLayoutEffect(() => {
     if (!active || !step) {
-      setBox(null);
+      setBoxes([]);
       return;
     }
 
+    const anchors = step.anchor === undefined ? [] : [step.anchor].flat();
+
     const measure = (): void => {
-      const el = step.anchor ? document.querySelector(`[data-tour="${step.anchor}"]`) : null;
-      const found = el ? boxOf(el) : null;
-      setBox((prev) => (same(prev, found) ? prev : found));
+      const found = anchors
+        .map((a) => document.querySelector(`[data-tour="${a}"]`))
+        .filter((el): el is Element => el !== null)
+        .map(boxOf);
+
+      setBoxes((prev) =>
+        prev.length === found.length && prev.every((b, i) => same(b, found[i] ?? null))
+          ? prev
+          : found,
+      );
     };
 
     measure();
@@ -99,9 +120,12 @@ export function TourLayer() {
 
   // Anchors in the shop live inside a scrolling pane and can start off-screen.
   useEffect(() => {
-    if (!active || !step?.anchor) return;
-    const el = document.querySelector(`[data-tour="${step.anchor}"]`);
-    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (!active || step?.anchor === undefined) return;
+    const first = [step.anchor].flat()[0];
+    if (first === undefined) return;
+    document
+      .querySelector(`[data-tour="${first}"]`)
+      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [active, step]);
 
   // Action steps end themselves when the game reaches the state they asked
@@ -199,7 +223,14 @@ export function TourLayer() {
           <div className={styles.blockAll} />
         )}
 
-        {hole && <div className={styles.ring} data-live={interactive} style={hole} />}
+        {boxes.map((b, i) => (
+          <div
+            key={i}
+            className={styles.ring}
+            data-live={interactive}
+            style={{ top: b.top, left: b.left, width: b.width, height: b.height }}
+          />
+        ))}
       </div>
 
       <div className={styles.dock}>

@@ -37,6 +37,9 @@ export function DigOverlay({ onClose }: { onClose: () => void }) {
   return (
     <div className={styles.scrim} onClick={onClose}>
       <div className={styles.digPanel} onClick={(e) => e.stopPropagation()} data-tour="digPanel">
+        {/* Which card is going back is local state, so this is how the tutorial
+            sees step one of the swap happen. */}
+        {outId !== null && <span data-tour="digPicked" hidden />}
         <Band
           title="Dig through the box"
           note={
@@ -58,22 +61,23 @@ export function DigOverlay({ onClose }: { onClose: () => void }) {
           </div>
         ) : (
           <div className={styles.digCols}>
-            <div className={styles.digSide}>
+            <div className={styles.digSide} data-tour="digOutCol">
               <div className={styles.lbl}>1 · Card to put back</div>
               <div className={styles.digGrid}>
                 {sendable.map((card) => (
-                  <CardView
-                    key={card.id}
-                    card={card}
-                    size="small"
-                    selected={outId === card.id}
-                    onClick={() => setOutId(outId === card.id ? null : card.id)}
-                  />
+                  <div key={card.id} data-tour={`digOut:${card.id}`}>
+                    <CardView
+                      card={card}
+                      size="small"
+                      selected={outId === card.id}
+                      onClick={() => setOutId(outId === card.id ? null : card.id)}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
 
-            <div className={styles.digSide}>
+            <div className={styles.digSide} data-tour="digInCol">
               <div className={styles.digHead}>
                 <span className={styles.lbl}>2 · Card to bring out</span>
                 <input
@@ -90,20 +94,21 @@ export function DigOverlay({ onClose }: { onClose: () => void }) {
               ) : (
                 <div className={styles.digGrid}>
                   {matches.map((card) => (
-                    <CardView
-                      key={card.id}
-                      card={card}
-                      size="small"
-                      disabled={outId === null}
-                      {...(outId !== null
-                        ? {
-                            onClick: () => {
-                              dig(outId, card.id);
-                              onClose();
-                            },
-                          }
-                        : {})}
-                    />
+                    <div key={card.id} data-tour={`digIn:${card.id}`}>
+                      <CardView
+                        card={card}
+                        size="small"
+                        disabled={outId === null}
+                        {...(outId !== null
+                          ? {
+                              onClick: () => {
+                                dig(outId, card.id);
+                                onClose();
+                              },
+                            }
+                          : {})}
+                      />
+                    </div>
                   ))}
                   {matches.length === 0 && (
                     <p className={styles.dim}>Nothing in the box matches “{query}”.</p>

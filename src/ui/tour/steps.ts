@@ -16,8 +16,11 @@ import type { RunState } from '../../state/runStore';
 
 export interface TourStep {
   readonly id: string;
-  /** `data-tour` value to spotlight. Omitted for centred, screen-wide beats. */
-  readonly anchor?: string;
+  /**
+   * `data-tour` value to spotlight, or two of them when a step is about the
+   * relationship between two things. Omitted for centred, screen-wide beats.
+   */
+  readonly anchor?: string | readonly string[];
   readonly title: string;
   readonly text: string;
   /** Shown as the prompt when the player has to act. */
@@ -160,15 +163,15 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     id: 'collapse',
-    anchor: 'pay',
+    anchor: ['mult', 'pay'],
     title: '$302 to $87',
-    text: 'Grading it is the one thing they wanted to do. Read the red chip before you build.',
+    text: 'Grading it is the one thing they wanted to do. The red line is the whole pitch, quartered.',
   },
   {
     id: 'untrap',
     anchor: `card:${W.slab}`,
     title: 'Take it back out',
-    text: 'Clicking a selected card removes it. Nothing commits until you send.',
+    text: 'Clicking a selected card removes it. Nothing commits until you SELL.',
     action: 'Click Ramon Cruz again',
     until: (s) => !has(s, W.slab),
   },
@@ -176,7 +179,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'sendTwo',
     anchor: 'send',
     title: 'Sell it',
-    text: 'Two clean cards, no refusal, under their wallet.',
+    text: 'Two clean cards, no refusal, under their cap.',
     action: 'Click SELL',
     until: (s) => s.show?.queueIndex === 2,
   },
@@ -203,12 +206,32 @@ export const TOUR_STEPS: readonly TourStep[] = [
     untilAnchor: 'digPanel',
   },
   {
-    id: 'digPanel',
-    anchor: 'digPanel',
-    title: 'Put one back, bring one out',
-    text: 'Hand back the Bramblepup, then fetch Emberclaw — the one card from their set.',
-    action: 'Swap in Emberclaw',
+    id: 'digCols',
+    anchor: ['digOutCol', 'digInCol'],
+    title: 'Your case, and your box',
+    text: 'Left is what is on the table right now. Right is everything else you own.',
+  },
+  {
+    id: 'digOut',
+    anchor: `digOut:${W.pup}`,
+    title: 'Something has to go back',
+    text: 'The case only holds eight. Send the Bramblepup back to the box.',
+    action: 'Click Bramblepup',
+    untilAnchor: 'digPicked',
+  },
+  {
+    id: 'digIn',
+    anchor: `digIn:${W.origin}`,
+    title: 'And fetch what they asked for',
+    text: 'Emberclaw is the one card you own from their set.',
+    action: 'Click Emberclaw',
     until: (s) => inCase(s, W.origin),
+  },
+  {
+    id: 'digSelected',
+    anchor: `card:${W.origin}`,
+    title: 'Already in the pitch',
+    text: 'A card you dug for lands in the first slot and selects itself. You went to get it.',
   },
   {
     id: 'digCost',
@@ -235,10 +258,22 @@ export const TOUR_STEPS: readonly TourStep[] = [
     until: (s) => s.phase === 'shop',
   },
   {
-    id: 'money',
-    anchor: 'money',
-    title: 'What you can spend',
-    text: 'Some is held back for the next table fee. That is why prices grey out.',
+    id: 'bankroll',
+    anchor: 'bankroll',
+    title: 'Bankroll',
+    text: 'Everything you made today, plus what you walked in with.',
+  },
+  {
+    id: 'reserve',
+    anchor: 'reserve',
+    title: 'Held for the next table',
+    text: 'The next show charges a fee. This much is untouchable so you can always pay it.',
+  },
+  {
+    id: 'spendable',
+    anchor: 'spendable',
+    title: 'Spendable',
+    text: 'What the shop may actually take. It is why some prices grey out.',
   },
   {
     id: 'singles',
@@ -274,18 +309,12 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     id: 'pickStockCard',
-    // The card handed back during the dig: raw, so it has every action on it.
-    anchor: `stockCard:${W.pup}`,
+    // Rare Holo and Near Mint: the kind of card grading is actually for.
+    anchor: `stockCard:${W.bloom}`,
     title: 'Cards act one at a time',
-    text: 'The Bramblepup you handed back is in here. Click it.',
-    action: 'Click Bramblepup',
+    text: 'Gravebloom went unsold. Rare Holo, Near Mint — the best card in the box.',
+    action: 'Click Gravebloom',
     untilAnchor: 'cardActions',
-  },
-  {
-    id: 'grade',
-    anchor: 'grade',
-    title: 'Grading',
-    text: 'Seals it and scores it. A high grade multiplies the price; a low one wastes the fee.',
   },
   {
     id: 'sleeve',
@@ -298,6 +327,22 @@ export const TOUR_STEPS: readonly TourStep[] = [
     anchor: 'sellOnline',
     title: 'Selling online',
     text: 'Always available, never the best price: 70% of face, no buyer needed.',
+  },
+  {
+    id: 'grade',
+    anchor: 'grade',
+    title: 'Or send it to be graded',
+    text: 'A fee now, a sealed and scored card back. The range on the button is the bet.',
+    action: 'Click GRADE',
+    untilAnchor: 'gradedPanel',
+  },
+  {
+    id: 'gradedResult',
+    anchor: 'gradedPanel',
+    title: 'A 10',
+    text: 'Six times the base price, for a card that was already your best. Rarely this kind.',
+    action: 'Take the slab',
+    untilGone: 'gradedPanel',
   },
   {
     id: 'closeStock',

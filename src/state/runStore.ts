@@ -18,7 +18,7 @@ import { generateCards } from '../game/cards/generate';
 import { createRng, type Rng } from '../game/rng';
 import { conditionsForShow, getConditions } from '../game/conditions/registry';
 import { getUpgrade, getUpgrades } from '../game/upgrades/registry';
-import { gradeCard, gradingFee } from '../game/shop/grading';
+import { asSlab, gradeCard, gradingFee } from '../game/shop/grading';
 import {
   getPackTier,
   markSingleSold,
@@ -538,7 +538,9 @@ export const useRun = create<RunState>((set, get) => {
       if (!card || card.slabbed) return;
       if (!spend(gradingFee(card))) return;
 
-      const slab = gradeCard(card, rng);
+      // The tutorial says "watch a 10 come back", so it hands one over. A
+      // real run rolls it, and the odds are the whole point of grading.
+      const slab = get().walkthrough ? asSlab(card, 10) : gradeCard(card, rng);
       set({
         inventory: inventory.map((c) => (c.id === cardId ? slab : c)),
         lastGraded: { before: card, after: slab },

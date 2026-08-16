@@ -36,7 +36,7 @@ export function GradedOverlay() {
 
   return (
     <div className={styles.scrim} onClick={dismiss}>
-      <div className={styles.gradePanel} onClick={(e) => e.stopPropagation()}>
+      <div className={styles.gradePanel} onClick={(e) => e.stopPropagation()} data-tour="gradedPanel">
         <Band title="Back from grading" ink={revealed ? 'green' : 'ink'} />
 
         <div className={styles.gradeBody}>

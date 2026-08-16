@@ -65,18 +65,18 @@ export function ShopScreen() {
             <span className={styles.hallWhen}>AFTER SHOW {String(showIndex).padStart(2, '0')}</span>
           </div>
           <div style={{ display: 'flex', gap: 26, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <div>
+            <div data-tour="bankroll">
               <div className={styles.hallStatLabel}>BANKROLL</div>
               <div className={styles.hallStatValue}>{formatMoney(bankroll)}</div>
             </div>
             {/* The reserve is why some prices are greyed out; say so plainly. */}
-            <div>
+            <div data-tour="reserve">
               <div className={styles.hallStatLabel}>HELD FOR NEXT TABLE</div>
               <div className={styles.hallStatValue} style={{ color: 'var(--gold)' }}>
                 −{formatMoney(reserved)}
               </div>
             </div>
-            <div style={{ textAlign: 'right' }}>
+            <div style={{ textAlign: 'right' }} data-tour="spendable">
               <div className={styles.hallStatLabel}>SPENDABLE</div>
               <div className={styles.hallStatValue} style={{ color: '#8ee0a8' }}>
                 {formatMoney(spendable)}

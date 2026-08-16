@@ -137,7 +137,7 @@ export function Tally({
           </div>
 
           {mults.length > 0 && (
-            <div className={styles.mathRow}>
+            <div className={styles.mathRow} data-tour="mult">
               {mults.map((line, i) => (
                 <span key={i} className={styles.mathLoss}>
                   ×{round(line.amount, 2)} {line.label}

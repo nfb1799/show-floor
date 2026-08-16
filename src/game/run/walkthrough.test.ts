@@ -181,3 +181,35 @@ describe('the show as a whole', () => {
     expect(state.earned).toBeGreaterThanOrEqual(WALKTHROUGH_QUOTA);
   });
 });
+
+describe('the cards the shop leg points at', () => {
+  it('leaves the graded-in-the-tutorial card unsold and raw', () => {
+    // The script tells the player to grade Gravebloom by name, so it has to
+    // still be theirs, and still raw, when the shop opens.
+    const d = deps();
+    let state = walkthroughShow(d);
+    state = pitch(toggleSelection(toggleSelection(state, W.lich), W.golem), d);
+    state = pitch(toggleSelection(toggleSelection(state, W.dell), W.vance), d);
+
+    const spare = state.displayCase.find((c) => c.id !== W.origin)!;
+    state = pitch(digFromStock(state, spare.id, W.origin), d);
+
+    const owned = [...state.inventory, ...state.displayCase];
+    const bloom = owned.find((c) => c.id === W.bloom);
+
+    expect(bloom, 'Gravebloom was sold or lost').toBeDefined();
+    expect(bloom!.slabbed).toBe(false);
+  });
+
+  it('sends the Bramblepup back to stock, where the dig step says it went', () => {
+    const d = deps();
+    let state = walkthroughShow(d);
+    state = pitch(toggleSelection(toggleSelection(state, W.lich), W.golem), d);
+    state = pitch(toggleSelection(toggleSelection(state, W.dell), W.vance), d);
+    state = digFromStock(state, W.pup, W.origin);
+
+    expect(state.inventory.map((c) => c.id)).toContain(W.pup);
+    expect(state.displayCase[0]!.id).toBe(W.origin);
+    expect(state.selection).toContain(W.origin);
+  });
+});
