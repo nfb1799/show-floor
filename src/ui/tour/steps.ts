@@ -107,7 +107,17 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'guide',
     anchor: 'guideBtn',
     title: 'Every combination that pays',
-    text: 'Ten of them, from a Pair up. This list is here whenever you need it.',
+    text: 'Ten of them, from a Pair up. Open it.',
+    action: 'Click WHAT PAYS?',
+    untilAnchor: 'guide',
+  },
+  {
+    id: 'guideList',
+    anchor: 'guide',
+    title: 'You are on the second rung',
+    text: 'Your Pair is lit. The rows below it are what the same five slots could be worth.',
+    action: 'Close the list',
+    untilGone: 'guide',
   },
   {
     id: 'capped',
