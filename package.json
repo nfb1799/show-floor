@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "sim": "vitest run --mode sim src/game/sim/report.test.ts",
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
