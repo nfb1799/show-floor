@@ -65,8 +65,13 @@ describe('the scripted case', () => {
 
   it('caps the collector, which is the lesson of the second beat', () => {
     const { result } = showWith(W.lich, W.golem);
+    const budget = WALKTHROUGH_BUYERS[0]!.budget;
+
     expect(result.cappedByBudget).toBe(true);
-    expect(result.offer).toBe(WALKTHROUGH_BUYERS[0]!.budget);
+    // The step says they stretch past their wallet, but only a little. Both
+    // halves of that have to stay true or the beat teaches the wrong rule.
+    expect(result.offer).toBeGreaterThan(budget);
+    expect(result.offer).toBeLessThan(result.uncappedOffer);
   });
 });
 

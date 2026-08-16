@@ -52,6 +52,16 @@ export const ALL_CONDITIONS: readonly ConditionDef[] = [
     onShowStart: (_ctx, fx) => fx.setGoodwill(2, 'Impatient Floor'),
   }),
 
+  // The four harshest rules used to unlock in a heap on show 9, on the same
+  // show condition stacking switched on, and 17 runs in 40 died there on the
+  // spot.
+  //
+  // What matters is the show a rule can first *land* on, not its minShow:
+  // conditions only appear every third show, so a minShow of 10 and one of 12
+  // are the same unlock. Two arrive at show 9 and two at show 12, with stacking
+  // kept clear of both. They also have to stay reachable — the sim's median run
+  // is nine shows deep, so a rule that cannot land before show 15 is a rule
+  // almost nobody will ever see.
   condition('cashOnly', 'Cash Only', 'All budgets are halved.', 9, {
     onBuyerArrive: (_ctx, fx) => fx.multiplyBudget(0.5, 'Cash Only'),
   }),
@@ -73,7 +83,7 @@ export const ALL_CONDITIONS: readonly ConditionDef[] = [
     },
   ),
 
-  condition('caseInspection', 'Case Inspection', 'The Display Case is cut to 5 slots.', 9, {
+  condition('caseInspection', 'Case Inspection', 'The Display Case is cut to 5 slots.', 10, {
     onShowStart: (_ctx, fx) => fx.addDisplayCaseSlots(-3, 'Case Inspection'),
   }),
 

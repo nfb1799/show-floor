@@ -42,8 +42,8 @@ function selectFirst(state: ShowState, n: number): ShowState {
 
 describe('escalation', () => {
   it('grows the quota and the table fee from show 1', () => {
-    expect(quotaForShow(1)).toBe(180);
-    expect(quotaForShow(2)).toBe(248);
+    expect(quotaForShow(1)).toBe(300);
+    expect(quotaForShow(2)).toBe(414);
     expect(tableFeeForShow(1)).toBe(50);
     expect(tableFeeForShow(2)).toBe(70);
   });

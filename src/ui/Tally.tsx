@@ -185,9 +185,14 @@ export function Tally({
               <>
                 <span className={styles.struck}>{formatMoney(result.uncappedOffer)}</span>
                 <span className={styles.cappedFlag}>
-                  <span className={styles.cappedFlagTitle}>CAPPED AT THEIR BUDGET</span>
+                  <span className={styles.cappedFlagTitle}>OVER THEIR BUDGET</span>
+                  {/* They stretch past what they brought, but only for a
+                      slice of the excess — spell out both halves, or paying
+                      more than the stated budget reads as a bug. */}
                   <span className={styles.cappedFlagNote}>
-                    {formatMoney(result.uncappedOffer - result.budget)} left on the table
+                    {formatMoney(result.budget)} on them, plus{' '}
+                    {formatMoney(result.offer - result.budget)} of the extra{' '}
+                    {formatMoney(result.uncappedOffer - result.budget)}
                   </span>
                 </span>
               </>

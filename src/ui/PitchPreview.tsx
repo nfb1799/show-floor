@@ -103,11 +103,22 @@ export function PitchPreview({
           <div className={styles.offerAmount}>{formatMoney(result.offer)}</div>
         </div>
 
-        {result.cappedByBudget && (
-          <div className={styles.cappedNote}>
-            Capped by budget. Appeal was worth {formatMoney(result.uncappedOffer)}.
-          </div>
-        )}
+        {result.cappedByBudget &&
+          (result.offer > result.budget ? (
+            // Spelled out, because a buyer paying over their stated budget
+            // reads as a bug otherwise. They go to the cash machine for a
+            // slice of the excess, never all of it.
+            <div className={styles.cappedNote}>
+              Past their {formatMoney(result.budget)} budget: they find{' '}
+              {formatMoney(result.offer - result.budget)} of the extra{' '}
+              {formatMoney(result.uncappedOffer - result.budget)}.
+            </div>
+          ) : (
+            <div className={styles.cappedNote}>
+              Their budget is {formatMoney(result.budget)}. Appeal was worth{' '}
+              {formatMoney(result.uncappedOffer)}.
+            </div>
+          ))}
 
         <div className={styles.buttons}>
           {haggling ? (

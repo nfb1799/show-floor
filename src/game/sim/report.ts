@@ -136,6 +136,37 @@ function deathTable(runs: readonly RunSample[]): string {
   return lines.join('\n');
 }
 
+/**
+ * How each house rule actually performs, against the same show with no rule at
+ * all. A condition that halves clearance is a wall, not a wrinkle.
+ */
+function conditionTable(runs: readonly RunSample[]): string {
+  const shows = runs.flatMap((r) => r.shows);
+  const byCondition = new Map<string, { ratios: number[]; failed: number }>();
+
+  for (const show of shows) {
+    for (const id of show.conditionIds) {
+      const row = byCondition.get(id) ?? { ratios: [], failed: 0 };
+      row.ratios.push(show.earned / show.quota);
+      if (!show.cleared) row.failed++;
+      byCondition.set(id, row);
+    }
+  }
+
+  const plain = shows.filter((s) => s.conditionIds.length === 0);
+  const baseline = median(plain.map((s) => s.earned / s.quota));
+
+  const rows = [...byCondition.entries()]
+    .map(([id, row]) => ({ id, m: median(row.ratios), n: row.ratios.length, failed: row.failed }))
+    .sort((a, b) => a.m - b.m)
+    .map(
+      (row) =>
+        `  ${pad(row.id, 18)} ${padStart(`${row.m.toFixed(2)}x`, 6)}  n=${padStart(String(row.n), 3)}  failed ${padStart(pct(row.n > 0 ? row.failed / row.n : 0), 6)}`,
+    );
+
+  return [`  ${pad('(no condition)', 18)} ${padStart(`${baseline.toFixed(2)}x`, 6)}  n=${padStart(String(plain.length), 3)}`, ...rows].join('\n');
+}
+
 function clearanceTable(runs: readonly RunSample[]): string {
   const byShow = new Map<number, number[]>();
   for (const run of runs) {
@@ -146,11 +177,26 @@ function clearanceTable(runs: readonly RunSample[]): string {
     }
   }
 
+  const stockByShow = new Map<number, number[]>();
+  const cashByShow = new Map<number, number[]>();
+  for (const run of runs) {
+    for (const show of run.shows) {
+      const list = stockByShow.get(show.showIndex) ?? [];
+      list.push(show.stockAtStart);
+      stockByShow.set(show.showIndex, list);
+      const cash = cashByShow.get(show.showIndex) ?? [];
+      cash.push(show.bankrollAtStart);
+      cashByShow.set(show.showIndex, cash);
+    }
+  }
+
   return [...byShow.entries()]
     .sort((a, b) => a[0] - b[0])
     .map(([showIndex, ratios]) => {
       const m = median(ratios);
-      return `  show ${padStart(String(showIndex), 2)}  ${padStart(`${m.toFixed(2)}x`, 6)}  n=${padStart(String(ratios.length), 3)}  ${'#'.repeat(Math.min(40, Math.round(m * 10)))}`;
+      const stock = median(stockByShow.get(showIndex) ?? []);
+      const cash = median(cashByShow.get(showIndex) ?? []);
+      return `  show ${padStart(String(showIndex), 2)}  ${padStart(`${m.toFixed(2)}x`, 6)}  n=${padStart(String(ratios.length), 3)}  stock ${padStart(String(Math.round(stock)), 3)}  cash ${padStart(`$${Math.round(cash)}`, 7)}  ${'#'.repeat(Math.min(30, Math.round(m * 10)))}`;
     })
     .join('\n');
 }
@@ -181,6 +227,9 @@ export function renderReport(runs: readonly RunSample[]): string {
     '',
     '-- Quota clearance --',
     clearanceTable(runs),
+    '',
+    '-- House rules --',
+    conditionTable(runs),
     '',
     '-- Deaths --',
     `  median run depth  ${s.medianDepth}`,

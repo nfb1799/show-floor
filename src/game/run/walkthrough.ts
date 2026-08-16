@@ -133,9 +133,14 @@ export const WALKTHROUGH_CASE: readonly Card[] = [
 
 /**
  * Refills after each sale come from here, so the case never runs short. The
- * Origin Set card is the point of the third buyer: it is the only thing in the
- * run that satisfies them, and it is never in the case, so the only way to sell
- * it is to dig.
+ * Origin Set cards are the point of the third buyer: they are the only things
+ * in the run that satisfy them, and they are never in the case, so the only way
+ * to sell one is to dig.
+ *
+ * "Never in the case" is enforced rather than hoped for — see
+ * WALKTHROUGH_HELD_STOCK. It used to rest on the refill draw happening not to
+ * turn them up, which stopped being true the moment the draw started favouring
+ * cards that share a franchise with what is already on the table.
  */
 export const WALKTHROUGH_RESERVE: readonly Card[] = [
   {
@@ -211,6 +216,13 @@ export const WALKTHROUGH_RESERVE: readonly Card[] = [
 ];
 
 /**
+ * Held out of every refill draw. Both are Origin Set cards, and the third
+ * buyer's whole lesson is that the case cannot satisfy them: if either wanders
+ * onto the table by itself, the dig has nothing left to teach.
+ */
+export const WALKTHROUGH_HELD_STOCK: readonly string[] = [W.origin, 'w-res-4'];
+
+/**
  * Three buyers, each teaching one thing: a collector who pays for a franchise
  * you are deep in, a grader who refuses slabs outright, and a set builder who
  * wants a card that is not in the case at all — the only way to sell to them is
@@ -265,6 +277,7 @@ export function walkthroughShow(deps: ShowDeps): ShowState {
     displayCase: [...WALKTHROUGH_CASE],
     inventory: [...WALKTHROUGH_RESERVE],
     lockedCardIds: [],
+    heldStockIds: [...WALKTHROUGH_HELD_STOCK],
     selection: [],
     queue: [...WALKTHROUGH_BUYERS],
     queueIndex: 0,

@@ -45,14 +45,38 @@ describe('Appeal arithmetic', () => {
     expect(result.offer).toBe(4); // rounded once, at the end
   });
 
-  it('caps the offer at the buyer budget', () => {
+  it('holds the offer near the buyer budget', () => {
     const result = resolvePitch(
       pitch([raw({ rarity: 'common', condition: 'played' })], { buyer: buyer({ budget: 3 }) }),
     );
 
     expect(result.uncappedOffer).toBeCloseTo(4.06);
     expect(result.cappedByBudget).toBe(true);
-    expect(result.offer).toBe(3);
+    expect(result.offer).toBe(3); // 3 + 1.06 x 0.25, rounded
+  });
+
+  it('still pays for appeal above the budget, at the overflow rate', () => {
+    // The cap used to be hard, and two thirds of pitches hit it — past that
+    // point a better pitch paid exactly the same as a worse one, which is what
+    // collapsed the decision. A buyer over budget goes to the ATM instead.
+    const cards = holoWallCards();
+    const tight = resolvePitch(pitch(cards, { buyer: buyer({ budget: 400 }) }));
+    const tighter = resolvePitch(pitch(cards.slice(0, 4), { buyer: buyer({ budget: 400 }) }));
+
+    expect(tight.cappedByBudget).toBe(true);
+    expect(tighter.cappedByBudget).toBe(true);
+    // Both are over budget, and the better pitch is still worth more.
+    expect(tight.offer).toBeGreaterThan(tighter.offer);
+    // 400 + (1708 - 400) x 0.25
+    expect(tight.offer).toBe(727);
+  });
+
+  it('leaves budget the dominant term rather than a formality', () => {
+    const cards = holoWallCards();
+    const poor = resolvePitch(pitch(cards, { buyer: buyer({ budget: 100 }) }));
+    const rich = resolvePitch(pitch(cards, { buyer: buyer({ budget: 800 }) }));
+
+    expect(rich.offer).toBeGreaterThan(poor.offer * 1.5);
   });
 
   it('pays more when the player pushes the offer ratio up', () => {
@@ -76,10 +100,15 @@ describe('pitch type precedence', () => {
   });
 
   it('breaks a tie toward the stronger type in table order', () => {
-    // A tight budget caps every candidate at the same number.
-    const result = resolvePitch(pitch(holoWallCards(), { buyer: buyer({ budget: 50 }) }));
+    // A tight budget used to produce the tie here, back when the cap was hard.
+    // Budget overflow is specifically designed to stop that happening, so the
+    // tie has to be forced by a hook that flattens every candidate instead.
+    const flatten = modifier('flatten', 'condition', {
+      onOfferFinalize: (_c, fx) => fx.multiplyOffer(0, 'Nobody is buying'),
+    });
+    const result = resolvePitch(pitch(holoWallCards(), { conditions: [flatten] }));
 
-    expect(result.offer).toBe(50);
+    expect(result.offer).toBe(0);
     expect(result.pitchType).toBe('holoWall');
   });
 
@@ -239,7 +268,8 @@ describe('modifier hooks', () => {
   });
 
   it('can pay past the budget cap through onOfferFinalize', () => {
-    // This channel is the only escape from budgets scaling slower than quota.
+    // Overflow softened the cap but did not replace this channel: it is still
+    // how an upgrade pays a multiple of a budget rather than a slice past it.
     const loudNeighbor = modifier('loud', 'upgrade', {
       onOfferFinalize: (_c, fx) => fx.multiplyOffer(2, 'Loud Neighbor'),
     });
@@ -251,7 +281,7 @@ describe('modifier hooks', () => {
     );
 
     expect(result.cappedByBudget).toBe(true);
-    expect(result.offer).toBe(6);
+    expect(result.offer).toBe(7); // (3 + 1.06 x 0.25) x 2
     expect(result.offer).toBeGreaterThan(result.budget);
   });
 
@@ -271,9 +301,12 @@ describe('modifier hooks', () => {
       pitch(holoWallCards(), { buyer: buyer({ budget: 400 }), upgrades: [recover] }),
     );
 
-    // Uncapped was 1708; the cap took 1308, half of which comes back.
-    expect(seenGap).toBeCloseTo(1308);
-    expect(result.offer).toBe(1054);
+    // Uncapped was 1708 against a $400 budget. Overflow already paid 327 of
+    // that excess, so the gap still on the table is 981 — and half of it comes
+    // back. A cap-recovery upgrade reads what the cap actually ate, not the
+    // whole distance to uncapped.
+    expect(seenGap).toBeCloseTo(981);
+    expect(result.offer).toBe(1218);
     expect(result.offer).toBeGreaterThan(result.budget);
   });
 

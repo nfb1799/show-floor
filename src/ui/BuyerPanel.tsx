@@ -40,7 +40,8 @@ export function BuyerPanel({
             <Band title="Pays up to" ink="blue" />
             <div className={styles.figureValue}>
               <span className={styles.num}>{formatMoney(buyer.budget)}</span>
-              <span className={styles.figureHint}>hard cap</span>
+              {/* Not "hard cap" any more: they will stretch a little past it. */}
+              <span className={styles.figureHint}>what they brought</span>
             </div>
           </div>
         </div>

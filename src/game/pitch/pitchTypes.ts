@@ -14,6 +14,7 @@ import {
   MIN_PITCH_CARDS,
   PITCH_TYPES,
   RAINBOW_MIN_CARDS,
+  RAINBOW_MIN_RARITY,
   SET_RUN_MIN_CARDS,
   SHARED_ATTRIBUTES,
   type PitchTypeDef,
@@ -82,7 +83,8 @@ const isBundle = (cards: readonly Card[]): boolean =>
 const isRainbow = (cards: readonly Card[]): boolean =>
   cards.length >= RAINBOW_MIN_CARDS &&
   allDistinct(cards.map((c) => c.subject)) &&
-  allSame(cards.map((c) => c.rarity));
+  allSame(cards.map((c) => c.rarity)) &&
+  rarityRank(cards[0]!.rarity) >= rarityRank(RAINBOW_MIN_RARITY);
 
 const isPlayset = (cards: readonly Card[]): boolean =>
   cards.length === 4 && allSame(cards.map((c) => c.subject));

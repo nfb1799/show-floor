@@ -16,7 +16,7 @@
 
 import { MAX_PITCH_CARDS, PACK_TIERS, STARTING_BANKROLL, STARTING_INVENTORY_SIZE } from '../constants';
 import { generateCards } from '../cards/generate';
-import { openPack } from '../shop/shop';
+import { nextCaseCost, openPack } from '../shop/shop';
 import { collectionModifiers } from '../run/collection';
 import { conditionsForShow } from '../conditions/registry';
 import { createRng, type Rng } from '../rng';
@@ -54,6 +54,11 @@ export interface ShowSample {
   readonly earned: number;
   readonly quota: number;
   readonly cleared: boolean;
+  /** Which house rules were in force, so a killer condition can be named. */
+  readonly conditionIds: readonly string[];
+  /** Cards in hand when the show opened. The design doc's intended pressure. */
+  readonly stockAtStart: number;
+  readonly bankrollAtStart: number;
 }
 
 export type DeathCause = 'quota' | 'tableFee' | 'soldOut' | 'survived';
@@ -191,14 +196,20 @@ export function playShow(
 // Restocking
 // ---------------------------------------------------------------------------
 
-/** Packs the bot may buy at one shop visit, before it walks away with the rest. */
-const MAX_PACKS_PER_VISIT = 3;
+/** A stop, not a policy: enough headroom that the cap never binds in practice. */
+const MAX_PACKS_PER_VISIT = 12;
 
 /**
- * Buys the biggest pack it can afford while keeping the next table fee in
- * reserve, up to three packs. No singles, no upgrades, no grading — those are
- * player decisions the bot has no policy for, and modelling them badly would
- * put noise where the measurement is supposed to be.
+ * Spends the takings: permanent case slots first, then the biggest pack it can
+ * afford, always keeping the next table fee in reserve.
+ *
+ * Spending down matters more than it sounds. An earlier version of this bot
+ * bought at most three packs and was sitting on $7,392 while it died to a
+ * $2,000 quota — the death curve it drew was a portrait of a bot that would not
+ * shop, and tuning the quota against it would have been tuning against noise.
+ *
+ * Still no singles, upgrades or grading: those need a policy the bot has no
+ * basis for, and guessing badly would put noise back where the measurement is.
  *
  * `reserve` is the *planned* fee, conditions included, mirroring the store's
  * `reservedForFee`. Reserving the unconditioned fee instead makes the bot
@@ -211,11 +222,22 @@ function restock(
   rng: Rng,
   showIndex: number,
   reserve: number,
-): { bankroll: number; inventory: Card[] } {
+  casesBought: number,
+): { bankroll: number; inventory: Card[]; casesBought: number } {
   const tiers = [...PACK_TIERS].sort((a, b) => b.cost - a.cost);
 
   let money = bankroll;
+  let cases = casesBought;
   const cards = [...inventory];
+
+  // A permanent slot is a bigger case at every future show, so it outranks any
+  // one pack a player could buy with the same money.
+  for (;;) {
+    const cost = nextCaseCost(cases);
+    if (cost === null || money - cost < reserve) break;
+    money -= cost;
+    cases++;
+  }
 
   for (let i = 0; i < MAX_PACKS_PER_VISIT; i++) {
     const tier = tiers.find((t) => money - t.cost >= reserve);
@@ -224,7 +246,7 @@ function restock(
     cards.push(...openPack(tier, rng, `sim-p${showIndex}-${i}`));
   }
 
-  return { bankroll: money, inventory: cards };
+  return { bankroll: money, inventory: cards, casesBought: cases };
 }
 
 // ---------------------------------------------------------------------------
@@ -242,6 +264,7 @@ export function simulateRun(seed: string, options: RunOptions = {}): RunSample {
 
   let inventory: Card[] = generateCards(rng, options.startingInventory ?? STARTING_INVENTORY_SIZE, `${seed}-start`);
   let bankroll = STARTING_BANKROLL;
+  let casesBought = 0;
 
   const shows: ShowSample[] = [];
   const pitches: PitchSample[] = [];
@@ -254,6 +277,7 @@ export function simulateRun(seed: string, options: RunOptions = {}): RunSample {
     rng,
     upgrades: collectionModifiers(inventory),
     conditions: conditionsForShow(seed, showIndex),
+    extraCaseSlots: casesBought,
   });
 
   for (let showIndex = 1; showIndex <= maxShows; showIndex++) {
@@ -267,6 +291,8 @@ export function simulateRun(seed: string, options: RunOptions = {}): RunSample {
     if (bankroll < fee) {
       return { seed, depth: showIndex - 1, deathShow: showIndex, death: 'tableFee', shows, pitches };
     }
+    const stockAtStart = inventory.length;
+    const bankrollAtStart = bankroll;
     bankroll -= fee;
 
     const played = playShow(createShow(showIndex, inventory, deps), deps, pitches);
@@ -276,6 +302,9 @@ export function simulateRun(seed: string, options: RunOptions = {}): RunSample {
       earned: played.earned,
       quota: played.config.quota,
       cleared: played.outcome === 'cleared',
+      conditionIds: played.config.conditionIds,
+      stockAtStart,
+      bankrollAtStart,
     });
 
     bankroll += played.earned;
@@ -291,9 +320,11 @@ export function simulateRun(seed: string, options: RunOptions = {}): RunSample {
       rng,
       showIndex,
       feeFor(showIndex + 1, depsFor(showIndex + 1)),
+      casesBought,
     );
     bankroll = restocked.bankroll;
     inventory = restocked.inventory;
+    casesBought = restocked.casesBought;
   }
 
   return { seed, depth: maxShows, deathShow: 0, death: 'survived', shows, pitches };

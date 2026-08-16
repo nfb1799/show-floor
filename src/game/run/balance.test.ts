@@ -22,6 +22,8 @@ import {
   type ShowDeps,
   type ShowState,
 } from '../show/showEngine';
+import { simulateRuns } from '../sim/harness';
+import { summarize } from '../sim/report';
 import type { Card } from '../types';
 
 /** Every subset of `cards` with 1..MAX_PITCH_CARDS members. */
@@ -149,6 +151,51 @@ describe('the table fee never outruns the bankroll on its own', () => {
     for (let showIndex = 1; showIndex <= 10; showIndex++) {
       expect(tableFeeForShow(showIndex) / quotaForShow(showIndex)).toBeLessThan(0.45);
     }
+  });
+});
+
+/**
+ * Guards on the shape of the decision itself, rather than on whether a show is
+ * winnable. These are the numbers that were quietly wrong for a long time: the
+ * game was winnable throughout, it just was not asking anything.
+ *
+ * Twelve runs rather than forty, to keep `npm test` quick — `npm run sim` plays
+ * more and prints the detail behind every one of these.
+ */
+describe('pitches are decisions', () => {
+  const runs = simulateRuns(12);
+  const summary = summarize(runs);
+
+  it('usually has exactly one best answer', () => {
+    // 27 different card sets used to pay the winning number, because a hard
+    // budget cap flattened everything above it into a tie.
+    expect(summary.medianTies).toBe(1);
+    expect(summary.tiedShare).toBeLessThan(0.35);
+  });
+
+  it('keeps the pitch ladder reachable', () => {
+    // Playset, Set Run, Graded Run, Holo Wall and The Grail fired zero times in
+    // 1,176 pitches under a uniform draw — half the ladder was decoration. The
+    // three below stay rare enough that a twelve-run sample can miss them, so
+    // this guards the ceiling of the ladder, which is what was unreachable.
+    const stillRare = ['Playset', 'Set Run', 'Graded Run'];
+    expect(summary.deadPitchTypes.filter((t) => !stillRare.includes(t))).toEqual([]);
+  });
+
+  it('sells combinations rather than singles', () => {
+    expect(summary.cardsPerSale).toBeGreaterThan(3.5);
+  });
+});
+
+describe('the difficulty curve is a curve', () => {
+  it('does not put a wall on one show', () => {
+    // 17 runs in 40 used to end on show 9, where condition stacking switched on
+    // at the same moment three of the harshest house rules became legal.
+    const summary = summarize(simulateRuns(12));
+    expect(
+      summary.worstShowShare,
+      `show ${summary.worstShowIndex} takes ${Math.round(summary.worstShowShare * 100)}% of all runs`,
+    ).toBeLessThan(0.35);
   });
 });
 

@@ -115,12 +115,20 @@ describe('tier 2 effects', () => {
   it('Consignment Deal recovery is bounded at one more budget', () => {
     // Appeal here is enormous relative to a $20 budget; without the bound this
     // single upgrade would cover the entire late-game shortfall by itself.
+    //
+    // The bound is on what the upgrade *adds*, which is why this measures the
+    // difference it makes rather than the total. Budget overflow now pays a
+    // slice of the excess to everyone, so the total offer is legitimately well
+    // above two budgets before Consignment Deal contributes anything.
     const cards = franchiseSpread('grimoire', ['A', 'B', 'C', 'D', 'E'], {
       rarity: 'ultra',
       condition: 'mint',
     });
-    const result = score(cards, [u('consignmentDeal')], buyer({ budget: 20 }));
-    expect(result.offer).toBeLessThanOrEqual(40);
+    const withDeal = score(cards, [u('consignmentDeal')], buyer({ budget: 20 }));
+    const without = score(cards, [], buyer({ budget: 20 }));
+
+    expect(withDeal.offer - without.offer).toBeLessThanOrEqual(20);
+    expect(withDeal.offer).toBeGreaterThan(without.offer);
   });
 });
 

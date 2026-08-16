@@ -105,13 +105,33 @@ describe('Bundle', () => {
 });
 
 describe('Rainbow', () => {
-  it('matches 3+ different subjects at one rarity', () => {
+  it('matches 4+ different subjects at one rarity', () => {
+    const cards = [
+      raw({ subject: 'Tidefin', rarity: 'rare', franchise: 'pocketBeasts' }),
+      raw({ subject: 'Hal Brennan', rarity: 'rare', franchise: 'diamondLeague', setId: 'dl-76' }),
+      raw({ subject: 'Ashen Lich', rarity: 'rare', franchise: 'grimoire', setId: 'gr-codex' }),
+      raw({ subject: 'Voltmoth', rarity: 'rare', franchise: 'pocketBeasts' }),
+    ];
+    expect(typesFor(cards)).toContain('rainbow');
+  });
+
+  it('rejects three cards, which used to be the whole requirement', () => {
+    // Three commons with different names is the default state of any random
+    // hand, which is how Rainbow ended up firing on 45% of all pitches and
+    // crowding out the pitch types that are about actually collecting things.
     const cards = [
       raw({ subject: 'Tidefin', rarity: 'rare', franchise: 'pocketBeasts' }),
       raw({ subject: 'Hal Brennan', rarity: 'rare', franchise: 'diamondLeague', setId: 'dl-76' }),
       raw({ subject: 'Ashen Lich', rarity: 'rare', franchise: 'grimoire', setId: 'gr-codex' }),
     ];
-    expect(typesFor(cards)).toContain('rainbow');
+    expect(typesFor(cards)).not.toContain('rainbow');
+  });
+
+  it('rejects four commons, below the rarity floor', () => {
+    const cards = Array.from({ length: 4 }, (_, i) =>
+      raw({ subject: `S${i}`, rarity: 'common' }),
+    );
+    expect(typesFor(cards)).not.toContain('rainbow');
   });
 
   it('rejects a repeated subject', () => {
@@ -119,6 +139,7 @@ describe('Rainbow', () => {
       raw({ subject: 'Tidefin', rarity: 'rare' }),
       raw({ subject: 'Tidefin', rarity: 'rare' }),
       raw({ subject: 'Voltmoth', rarity: 'rare' }),
+      raw({ subject: 'Mossling', rarity: 'rare' }),
     ];
     expect(typesFor(cards)).not.toContain('rainbow');
   });
@@ -128,6 +149,7 @@ describe('Rainbow', () => {
       raw({ subject: 'Tidefin', rarity: 'rare' }),
       raw({ subject: 'Voltmoth', rarity: 'common' }),
       raw({ subject: 'Mossling', rarity: 'rare' }),
+      raw({ subject: 'Ashen Lich', rarity: 'rare' }),
     ];
     expect(typesFor(cards)).not.toContain('rainbow');
   });

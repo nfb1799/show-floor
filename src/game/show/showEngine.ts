@@ -9,6 +9,9 @@
 import {
   BUYERS_PER_SHOW,
   DISPLAY_CASE_SIZE,
+  DRAW_AFFINITY_FRANCHISE,
+  DRAW_AFFINITY_SET,
+  DRAW_AFFINITY_SUBJECT,
   GOODWILL_COST_DIG,
   MAX_PITCH_CARDS,
   OFFER_RATIO_START,
@@ -89,6 +92,13 @@ export interface ShowState {
   readonly displayCase: readonly Card[];
   /** Cards in the case that an upgrade is holding hostage. */
   readonly lockedCardIds: readonly string[];
+  /**
+   * Cards in stock the draw will never reach for. They can still be dug out by
+   * hand, which is the point: the walkthrough's third buyer wants something the
+   * case cannot supply, and that lesson only survives if the card stays in the
+   * box. Empty in a real run.
+   */
+  readonly heldStockIds: readonly string[];
   readonly selection: readonly string[];
   readonly queue: readonly Buyer[];
   readonly queueIndex: number;
@@ -181,19 +191,51 @@ function drawUp(state: ShowState, deps: ShowDeps): ShowState {
   });
 
   const target = wanted + drawHooks.extraCards;
-  const inventory = [...state.inventory];
-  const drawn: Card[] = [];
+  const pool = state.inventory.filter((c) => !state.heldStockIds.includes(c.id));
 
-  for (let i = 0; i < target && inventory.length > 0; i++) {
-    const index = deps.rng.int(0, inventory.length - 1);
-    const [card] = inventory.splice(index, 1);
-    if (card) drawn.push(card);
+  // Weighted rather than uniform: see DRAW_AFFINITY_*. Cards already in the
+  // case seed the affinity, and each card drawn feeds the next weighting, so a
+  // box organised around one set actually produces a set on the table.
+  const context: Card[] = [...state.displayCase];
+  const fresh: Card[] = [];
+
+  const affinity = (card: Card): number => {
+    let weight = 1;
+    for (const held of context) {
+      if (held.setId === card.setId) weight += DRAW_AFFINITY_SET;
+      else if (held.franchise === card.franchise) weight += DRAW_AFFINITY_FRANCHISE;
+      if (held.subject === card.subject) weight += DRAW_AFFINITY_SUBJECT;
+    }
+    return weight;
+  };
+
+  for (let i = 0; i < target && pool.length > 0; i++) {
+    const weights = pool.map(affinity);
+    const total = weights.reduce((sum, w) => sum + w, 0);
+    let roll = deps.rng.next() * total;
+    let index = weights.length - 1;
+    for (let j = 0; j < weights.length; j++) {
+      roll -= weights[j]!;
+      if (roll <= 0) {
+        index = j;
+        break;
+      }
+    }
+    const [card] = pool.splice(index, 1);
+    if (card) {
+      context.push(card);
+      fresh.push(card);
+    }
   }
+
+  const taken = new Set(fresh.map((c) => c.id));
 
   return applyLocks({
     ...state,
-    inventory,
-    displayCase: [...state.displayCase, ...drawn],
+    // Filtered rather than rebuilt, so stock keeps its order and held cards
+    // stay exactly where they were.
+    inventory: state.inventory.filter((c) => !taken.has(c.id)),
+    displayCase: [...state.displayCase, ...fresh],
   });
 }
 
@@ -388,6 +430,7 @@ export function createShow(
     inventory: [...inventory, ...start.addedCards],
     displayCase: [],
     lockedCardIds: [],
+    heldStockIds: [],
     selection: [],
     queue: [],
     queueIndex: 0,

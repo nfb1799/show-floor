@@ -100,7 +100,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'jumped',
     anchor: 'pay',
-    title: '$59 to $210',
+    title: '$59 to $221',
     text: 'Cards that go together are worth far more than the same cards sold loose.',
   },
   {
@@ -123,7 +123,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'capped',
     anchor: 'budget',
     title: 'And the wallet bites',
-    text: 'The pitch is worth more than they can pay, so the rest is wasted. Sell now.',
+    text: 'Worth more than they came with. They stretch a little past it, but only a little.',
   },
   {
     id: 'send',
@@ -385,6 +385,6 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'done',
     title: 'That is the loop',
-    text: 'Read the buyer, build the best pitch you can, stop when the wallet caps.',
+    text: 'Read the buyer, build the best pitch you can, and keep the good stuff together.',
   },
 ];

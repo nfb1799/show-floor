@@ -12,7 +12,11 @@ import { createShow, planShow } from '../show/showEngine';
 import { generateCards } from '../cards/generate';
 import { createRng } from '../rng';
 import { buyer, franchiseSpread, raw, slab } from '../testing/factories';
-import { DISPLAY_CASE_SIZE } from '../constants';
+import {
+  CONDITION_EVERY_N_SHOWS,
+  CONDITION_STACK_FROM_SHOW,
+  DISPLAY_CASE_SIZE,
+} from '../constants';
 import type { Buyer, Card, Modifier, RawCard } from '../types';
 
 function score(cards: Card[], conditions: Modifier[], b: Buyer = buyer()) {
@@ -52,9 +56,34 @@ describe('scheduling', () => {
   it('stacks two conditions in the late run', () => {
     expect(conditionCountForShow(3)).toBe(1);
     expect(conditionCountForShow(6)).toBe(1);
-    expect(conditionCountForShow(9)).toBe(2);
-    expect(conditionCountForShow(12)).toBe(2);
+    expect(conditionCountForShow(9)).toBe(1);
+    expect(conditionCountForShow(12)).toBe(1);
+    expect(conditionCountForShow(15)).toBe(2);
     expect(conditionCountForShow(10)).toBe(0); // not a condition show
+  });
+
+  it('does not switch stacking on where new conditions unlock', () => {
+    // Two independent difficulty jumps on one show is what made show 9 a wall
+    // rather than a step: stacking arrived on the same show as Cash Only, Damp
+    // Hall and Case Inspection, and 17 runs in 40 ended there.
+    //
+    // Compared against the show a rule can first *land* on, not its minShow —
+    // conditions only appear every third show, so minShow 10 and minShow 12
+    // both mean "show 12".
+    const landsOn = (minShow: number): number =>
+      Math.ceil(minShow / CONDITION_EVERY_N_SHOWS) * CONDITION_EVERY_N_SHOWS;
+
+    const unlockShows = new Set(ALL_CONDITIONS.map((c) => landsOn(c.minShow)));
+    expect(unlockShows.has(CONDITION_STACK_FROM_SHOW)).toBe(false);
+  });
+
+  it('keeps every condition reachable by the show a median run dies on', () => {
+    // Half the pitch ladder was unreachable before the draw was clustered; the
+    // same trap catches house rules. A rule that cannot land by show 12 is
+    // content almost nobody will ever see.
+    for (const rule of ALL_CONDITIONS) {
+      expect(rule.minShow, rule.id).toBeLessThanOrEqual(12);
+    }
   });
 
   it('never draws a condition before its minimum show', () => {
@@ -66,7 +95,7 @@ describe('scheduling', () => {
   });
 
   it('does not draw the same condition twice in one show', () => {
-    const rolled = rollConditions(createRng('stack'), 12);
+    const rolled = rollConditions(createRng('stack'), CONDITION_STACK_FROM_SHOW);
     expect(rolled).toHaveLength(2);
     expect(rolled[0]!.id).not.toBe(rolled[1]!.id);
   });

@@ -94,7 +94,7 @@ export const PITCH_TYPES: readonly PitchTypeDef[] = [
   { id: 'looseCards', label: 'Loose Cards', value: 5, interest: 1, requires: 'Any 1-5 cards, always available. One on its own is a Loose Single.' },
   { id: 'pair', label: 'Pair', value: 12, interest: 2, requires: 'Two cards sharing a subject, a franchise or a set.' },
   { id: 'bundle', label: 'Bundle', value: 25, interest: 3, requires: 'Three cards sharing a subject, a franchise or a set.' },
-  { id: 'rainbow', label: 'Rainbow', value: 40, interest: 4, requires: 'Three or more of one rarity, every subject different.' },
+  { id: 'rainbow', label: 'Rainbow', value: 40, interest: 4, requires: 'Four or more of one rarity, Uncommon or better, every subject different.' },
   { id: 'playset', label: 'Playset', value: 55, interest: 4, requires: 'Four cards of the same subject.' },
   { id: 'setRun', label: 'Set Run', value: 70, interest: 5, requires: 'Three or more from one set with consecutive numbers.' },
   { id: 'fullCase', label: 'Full Case', value: 85, interest: 5, requires: 'Five cards from one franchise.' },
@@ -121,7 +121,15 @@ export const SHARED_ATTRIBUTES = ['subject', 'franchise', 'setId'] as const;
 export const GRADED_RUN_REQUIRE_SAME_FRANCHISE = true;
 export const GRADED_RUN_MIN_CARDS = 3;
 export const SET_RUN_MIN_CARDS = 3;
-export const RAINBOW_MIN_CARDS = 3;
+
+/**
+ * Rainbow at three commons was the default state of any random hand: it fired
+ * on 45% of pitches, asked nothing, and paid more than the Bundle and Pair it
+ * was crowding out. Four cards at uncommon or better makes it the fallback it
+ * was meant to be rather than the answer to everything.
+ */
+export const RAINBOW_MIN_CARDS = 4;
+export const RAINBOW_MIN_RARITY: Rarity = 'uncommon';
 
 // ---------------------------------------------------------------------------
 // Appeal / offer
@@ -145,6 +153,17 @@ export const MIN_INTEREST = 1;
 
 /** Applied once per pitch if the buyer refuses any card in it. */
 export const REFUSAL_INTEREST_MULT = 0.25;
+
+/**
+ * Fraction of Appeal above a buyer's budget that still gets paid.
+ *
+ * The cap used to be hard, and two thirds of all pitches hit it. Past that
+ * point another point of Interest bought exactly nothing, so dozens of
+ * different card sets paid the same and the pitch stopped being a decision.
+ * Overflow keeps every extra point worth something while leaving budget the
+ * dominant term — the buyer goes to the ATM rather than walking into a wall.
+ */
+export const BUDGET_OVERFLOW_RATE = 0.25;
 
 /**
  * What an unwanted card fetches if you list it rather than pitch it.
@@ -236,6 +255,23 @@ export const VINTAGE_YEAR_CUTOFF = 1990;
 // Show structure
 // ---------------------------------------------------------------------------
 
+/**
+ * Draw affinity: stock is a sorted binder, not a shuffled bag.
+ *
+ * A card is this much more likely to be drawn when it shares an attribute with
+ * something already in the case. Under a uniform draw, half the pitch ladder was
+ * statistically unreachable — Playset, Set Run, Graded Run, Holo Wall and The
+ * Grail fired zero times across a thousand pitches, because ~45 subjects across
+ * five franchises never cluster by accident in eight slots.
+ *
+ * It also makes concentrating your inventory pay off, which is what
+ * COLLECTION_DEPTH_TIERS was already reaching for. Set to 0 to restore a
+ * uniform draw.
+ */
+export const DRAW_AFFINITY_FRANCHISE = 0.6;
+export const DRAW_AFFINITY_SET = 1.6;
+export const DRAW_AFFINITY_SUBJECT = 2.5;
+
 export const DISPLAY_CASE_SIZE = 8;
 export const BUYERS_PER_SHOW = 4;
 export const TURN_AWAYS_PER_SHOW = 3;
@@ -257,7 +293,7 @@ export const TURN_AWAY_CONSUMES_BUYER_SLOT = false;
  * quota climbing" — comes from cards being gone forever, not from a number the
  * player cannot reach.
  */
-export const QUOTA_BASE = 180;
+export const QUOTA_BASE = 300;
 export const QUOTA_GROWTH = 1.38;
 export const QUOTA_SOFT_GROWTH = 1.3;
 export const QUOTA_SOFTEN_AFTER_SHOW = 12;
@@ -449,5 +485,13 @@ export const CASE_UPGRADE_COSTS: readonly number[] = [300, 650, 1100];
 // ---------------------------------------------------------------------------
 
 export const CONDITION_EVERY_N_SHOWS = 3;
-/** From this show on, a condition show draws two instead of one. */
-export const CONDITION_STACK_FROM_SHOW = 9;
+/**
+ * From this show on, a condition show draws two instead of one.
+ *
+ * Held clear of every show a new condition can first land on. At 9 it shared a
+ * show with the Cash Only / Damp Hall / Case Inspection unlock, and two
+ * independent difficulty jumps at once turned the curve into a wall that killed
+ * 17 runs in 40 on the spot. Conditions land on shows 3, 6, 9, 12 and 15, and
+ * the first four of those are spoken for.
+ */
+export const CONDITION_STACK_FROM_SHOW = 15;

@@ -11,6 +11,7 @@
  */
 
 import {
+  BUDGET_OVERFLOW_RATE,
   MAX_PITCH_CARDS,
   MIN_INTEREST,
   MIN_PITCH_CARDS,
@@ -184,7 +185,11 @@ function scoreAs(pitchType: PitchTypeId, input: PitchInput, rng: Rng): PitchResu
 
   const uncappedOffer = appeal * offerRatio;
   const cappedByBudget = uncappedOffer > buyer.budget;
-  const cappedOffer = Math.min(uncappedOffer, buyer.budget);
+  // Not a wall: past their budget a buyer still finds BUDGET_OVERFLOW_RATE of
+  // the excess, so a better pitch is always worth more than a worse one.
+  const cappedOffer = cappedByBudget
+    ? buyer.budget + (uncappedOffer - buyer.budget) * BUDGET_OVERFLOW_RATE
+    : uncappedOffer;
 
   const finalized = runOfferHooks(mods, {
     cards,
