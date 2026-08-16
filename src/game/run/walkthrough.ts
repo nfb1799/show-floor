@@ -12,6 +12,8 @@
  */
 
 import { GRADER_MIN_CONDITION, REFUSAL_INTEREST_MULT } from '../constants';
+import { resolvePitch } from '../pitch/resolvePitch';
+import { createRng } from '../rng';
 import { createShow, type ShowDeps, type ShowState } from '../show/showEngine';
 import type { Buyer, Card } from '../types';
 
@@ -257,6 +259,42 @@ export const WALKTHROUGH_BUYERS: readonly Buyer[] = [
     wants: [{ kind: 'fromSets', setIds: ['pb-origin'], interestPerCard: 6 }],
   },
 ];
+
+/**
+ * What the scripted beats actually pay, scored through the real engine.
+ *
+ * The script used to write these out by hand — "$59 to $210" — which quietly
+ * made every balance change a rewrite of the tutorial, and a silent one: the
+ * words stayed put while the game moved under them. Nine of thirteen test
+ * failures in the last rebalance were this. Read them from `resolvePitch` and
+ * the lesson cannot drift from the arithmetic.
+ */
+function offerFor(cardIds: readonly string[], buyerIndex: number): number {
+  const cards = cardIds.map((id) => {
+    const found = WALKTHROUGH_CASE.find((c) => c.id === id);
+    if (!found) throw new Error(`Walkthrough card not in the case: ${id}`);
+    return found;
+  });
+
+  return resolvePitch({
+    cards,
+    buyer: WALKTHROUGH_BUYERS[buyerIndex]!,
+    upgrades: [],
+    conditions: [],
+    // Fixed label rather than the run's stream: these are quoted in the script
+    // before the show exists, and no hook in the walkthrough rolls anything.
+    rng: createRng(`${WALKTHROUGH_SEED}:quote`),
+  }).offer;
+}
+
+export const WALKTHROUGH_OFFERS = {
+  /** Beat one: one Grimoire card, then two. */
+  single: offerFor([W.lich], 0),
+  pair: offerFor([W.lich, W.golem], 0),
+  /** Beat two: two clean raws, then the same pitch with a slab dropped in. */
+  clean: offerFor([W.dell, W.vance], 1),
+  refused: offerFor([W.dell, W.vance, W.slab], 1),
+} as const;
 
 /**
  * A real show with the scripted contents dropped in. createShow does the

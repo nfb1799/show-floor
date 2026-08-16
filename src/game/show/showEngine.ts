@@ -23,6 +23,7 @@ import {
   TABLE_FEE_BASE,
   TABLE_FEE_GROWTH,
   TURN_AWAYS_PER_SHOW,
+  TURN_AWAY_BUDGET_DECAY,
   TURN_AWAY_CONSUMES_BUYER_SLOT,
 } from '../constants';
 import { generateBuyer } from '../buyers/generate';
@@ -596,9 +597,15 @@ export function turnAway(state: ShowState, deps: ShowDeps): ShowState {
     next = { ...next, queueIndex: next.queueIndex + 1 };
   } else {
     // The slot survives, but the buyer does not: a fresh one takes their place.
+    // Thinner in the wallet each time, so waving people off is a real choice
+    // rather than a free reroll — word gets round a hall this size.
     const made = makeBuyer(next, deps);
+    const spent = next.config.turnAways - next.turnAwaysLeft;
     const queue = [...next.queue];
-    queue[next.queueIndex] = made.buyer;
+    queue[next.queueIndex] = {
+      ...made.buyer,
+      budget: Math.max(1, Math.round(made.buyer.budget * Math.pow(TURN_AWAY_BUDGET_DECAY, spent))),
+    };
     next = { ...next, queue, buyerSeq: made.seq };
   }
 
@@ -609,6 +616,10 @@ export function turnAway(state: ShowState, deps: ShowDeps): ShowState {
       : `You wave off the ${state.buyer.label}.`,
     'turnAway',
   );
+
+  if (!TURN_AWAY_CONSUMES_BUYER_SLOT && TURN_AWAY_BUDGET_DECAY < 1) {
+    next = log(next, 'Word gets round the hall. The next wallet is thinner.', 'turnAway');
+  }
 
   return seatBuyer(drawUp(next, deps), deps);
 }

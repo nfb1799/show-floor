@@ -15,6 +15,7 @@ import {
   PITCH_TYPES,
   RAINBOW_MIN_CARDS,
   RAINBOW_MIN_RARITY,
+  SET_RUN_MAX_GAPS,
   SET_RUN_MIN_CARDS,
   SHARED_ATTRIBUTES,
   type PitchTypeDef,
@@ -62,16 +63,22 @@ function sharesAnyAttribute(cards: readonly Card[]): boolean {
   return SHARED_ATTRIBUTES.some((attr) => allSame(cards.map((c) => c[attr])));
 }
 
+/**
+ * A run of set numbers, allowing SET_RUN_MAX_GAPS missing ones. Measured as the
+ * span rather than step by step: three cards spanning four numbers have exactly
+ * one hole in them, wherever it falls.
+ */
 function isConsecutiveRun(numbers: readonly number[]): boolean {
   if (numbers.length < 2) return false;
+  if (!allDistinct(numbers)) return false;
+
   const sorted = [...numbers].sort((a, b) => a - b);
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = sorted[i - 1];
-    const curr = sorted[i];
-    if (prev === undefined || curr === undefined) return false;
-    if (curr !== prev + 1) return false;
-  }
-  return true;
+  const lowest = sorted[0];
+  const highest = sorted[sorted.length - 1];
+  if (lowest === undefined || highest === undefined) return false;
+
+  const span = highest - lowest + 1;
+  return span - numbers.length <= SET_RUN_MAX_GAPS;
 }
 
 const isPair = (cards: readonly Card[]): boolean =>

@@ -96,7 +96,7 @@ export const PITCH_TYPES: readonly PitchTypeDef[] = [
   { id: 'bundle', label: 'Bundle', value: 25, interest: 3, requires: 'Three cards sharing a subject, a franchise or a set.' },
   { id: 'rainbow', label: 'Rainbow', value: 40, interest: 4, requires: 'Four or more of one rarity, Uncommon or better, every subject different.' },
   { id: 'playset', label: 'Playset', value: 55, interest: 4, requires: 'Four cards of the same subject.' },
-  { id: 'setRun', label: 'Set Run', value: 70, interest: 5, requires: 'Three or more from one set with consecutive numbers.' },
+  { id: 'setRun', label: 'Set Run', value: 60, interest: 5, requires: 'Three or more from one set, running in order. One number may be missing.' },
   { id: 'fullCase', label: 'Full Case', value: 85, interest: 5, requires: 'Five cards from one franchise.' },
   { id: 'gradedRun', label: 'Graded Run', value: 100, interest: 6, requires: 'Three or more slabs from one franchise, every grade different.' },
   { id: 'holoWall', label: 'Holo Wall', value: 130, interest: 8, requires: 'Five cards, every one Rare Holo or Ultra.' },
@@ -121,6 +121,24 @@ export const SHARED_ATTRIBUTES = ['subject', 'franchise', 'setId'] as const;
 export const GRADED_RUN_REQUIRE_SAME_FRANCHISE = true;
 export const GRADED_RUN_MIN_CARDS = 3;
 export const SET_RUN_MIN_CARDS = 3;
+
+/**
+ * Missing numbers tolerated in a Set Run, so 12-13-15 still counts.
+ *
+ * Strictly consecutive was unreachable: sets run 55 to 140 cards, so three of
+ * them landing adjacent is a one-in-five-hundred event and the type fired 0.0%
+ * of the time. One gap is the cheapest way to make the rung real, and its
+ * value drops from 70 to 60 to pay for it.
+ *
+ * Detection was only half the problem, and this fixes only that half. Set Run
+ * still almost never *wins*: it is worth less than Full Case (60 against 85),
+ * and any five-card run from one set is necessarily also five cards from one
+ * franchise, so a Full Case is always available and always pays more. Set Run
+ * can only come out ahead on three or four cards where no Full Case exists.
+ * Making it live properly means deciding it is harder than a Full Case and
+ * ranking it above one — a change to the ladder, not to a predicate.
+ */
+export const SET_RUN_MAX_GAPS = 1;
 
 /**
  * Rainbow at three commons was the default state of any random hand: it fired
@@ -219,7 +237,12 @@ export const WANT_INTEREST: Record<BuyerArchetypeId, number> = {
 };
 
 export const GRADER_MIN_CONDITION: Condition = 'nearMint';
-export const INVESTOR_MIN_GRADE = 9;
+/**
+ * 9 made the highest-budget buyer in the game the second-worst outcome in it:
+ * they arrived with $340, almost nothing in stock qualified, and they consumed
+ * one of four buyer slots to realize $130. A hard buyer, not an impossible one.
+ */
+export const INVESTOR_MIN_GRADE = 8;
 export const BULK_GUY_MIN_CARDS = 4;
 
 /**
@@ -272,6 +295,11 @@ export const DRAW_AFFINITY_FRANCHISE = 0.6;
 export const DRAW_AFFINITY_SET = 1.6;
 export const DRAW_AFFINITY_SUBJECT = 2.5;
 
+// A run-aware draw term was tried here and removed: weighting cards by nearby
+// set numbers moved Set Run from 0.0% to 0.1% of pitches at best, while
+// distorting the whole draw enough to cost early-show revenue. Set Run's
+// problem is not that it fails to appear — see SET_RUN_MAX_GAPS.
+
 export const DISPLAY_CASE_SIZE = 8;
 export const BUYERS_PER_SHOW = 4;
 export const TURN_AWAYS_PER_SHOW = 3;
@@ -282,6 +310,16 @@ export const TURN_AWAYS_PER_SHOW = 3;
  * makes the button a trap against a hard quota.
  */
 export const TURN_AWAY_CONSUMES_BUYER_SLOT = false;
+
+/**
+ * What each turn-away already spent this show does to the next replacement's
+ * budget. Compounding, so three passes bring a wallet down to about 61%.
+ *
+ * Without it nothing in a show could be lost by being greedy: every action was
+ * monotonically good or neutral, and the mulligan cost only a counter. This is
+ * the price on it. Set to 1 to make turning away free again.
+ */
+export const TURN_AWAY_BUDGET_DECAY = 0.85;
 
 /**
  * Quota growth sits just above budget growth, not far above it.

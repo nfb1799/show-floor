@@ -11,7 +11,7 @@
  * advance on NEXT, and block the screen while they explain.
  */
 
-import { W } from '../../game/run/walkthrough';
+import { W, WALKTHROUGH_OFFERS } from '../../game/run/walkthrough';
 import type { RunState } from '../../state/runStore';
 
 export interface TourStep {
@@ -32,6 +32,12 @@ export interface TourStep {
   /** Done when this anchor disappears — an overlay closing. */
   readonly untilGone?: string;
 }
+
+/**
+ * Scripted beats quote real money, so the figures come from the engine rather
+ * than from the author's memory of what the engine used to do.
+ */
+const money = (amount: number): string => `$${Math.round(amount).toLocaleString('en-US')}`;
 
 const sel = (s: RunState): readonly string[] => s.show?.selection ?? [];
 const has = (s: RunState, id: string): boolean => sel(s).includes(id);
@@ -61,7 +67,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'budget',
     anchor: 'budget',
     title: 'What they brought',
-    text: 'A hard ceiling. No pitch gets a dollar more than this.',
+    text: 'Near enough a ceiling. Pitch past it and most of the extra is lost.',
   },
   {
     id: 'wants',
@@ -100,7 +106,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'jumped',
     anchor: 'pay',
-    title: '$59 to $221',
+    title: `${money(WALKTHROUGH_OFFERS.single)} to ${money(WALKTHROUGH_OFFERS.pair)}`,
     text: 'Cards that go together are worth far more than the same cards sold loose.',
   },
   {
@@ -181,7 +187,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'collapse',
     anchor: ['refusal', 'pay'],
-    title: '$302 to $87',
+    title: `${money(WALKTHROUGH_OFFERS.clean)} to ${money(WALKTHROUGH_OFFERS.refused)}`,
     text:
       'Grading it is the one thing they wanted to do. That red line is the whole pitch, quartered.',
   },
@@ -197,7 +203,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'sendTwo',
     anchor: 'send',
     title: 'Sell it',
-    text: 'Two clean cards, no refusal, under their cap.',
+    text: 'Two clean cards, no refusal, inside their budget.',
     action: 'Click SELL',
     until: (s) => s.show?.queueIndex === 2,
   },

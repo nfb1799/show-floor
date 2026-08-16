@@ -18,9 +18,11 @@ import {
 import {
   W,
   WALKTHROUGH_BUYERS,
+  WALKTHROUGH_OFFERS,
   WALKTHROUGH_QUOTA,
   walkthroughShow,
 } from './walkthrough';
+import { TOUR_STEPS } from '../../ui/tour/steps';
 
 const deps = (): ShowDeps => ({
   rng: createRng('walkthrough'),
@@ -34,6 +36,46 @@ function showWith(...cardIds: string[]) {
   for (const id of cardIds) state = toggleSelection(state, id);
   return { state, result: previewPitch(state, d)!, deps: d };
 }
+
+describe('the quoted figures', () => {
+  // The script used to hand-author these ("$59 to $210"), so every rebalance
+  // silently rewrote the tutorial: the words held still while the game moved.
+  // They are read off resolvePitch now, and these check the reading matches
+  // what the player will actually be looking at when the step appears.
+  it('quotes what the first beat really pays', () => {
+    expect(WALKTHROUGH_OFFERS.single).toBe(showWith(W.lich).result.offer);
+    expect(WALKTHROUGH_OFFERS.pair).toBe(showWith(W.lich, W.golem).result.offer);
+  });
+
+  it('quotes what the refusal really costs', () => {
+    const clean = showWith(W.dell, W.vance);
+    const refused = showWith(W.dell, W.vance, W.slab);
+
+    // The grader is buyer two, so the quotes have to be scored against them
+    // rather than against whoever happens to be at the table.
+    expect(WALKTHROUGH_OFFERS.clean).toBe(
+      previewPitch({ ...clean.state, buyer: WALKTHROUGH_BUYERS[1]! }, clean.deps)!.offer,
+    );
+    expect(WALKTHROUGH_OFFERS.refused).toBe(
+      previewPitch({ ...refused.state, buyer: WALKTHROUGH_BUYERS[1]! }, refused.deps)!.offer,
+    );
+  });
+
+  it('renders every scripted step as readable text', () => {
+    // The figures are interpolated now, so a broken import or a renamed key
+    // would reach the player as "$NaN to $NaN" rather than as a type error.
+    for (const step of TOUR_STEPS) {
+      expect(step.title, step.id).not.toMatch(/NaN|undefined|\[object/);
+      expect(step.text, step.id).not.toMatch(/NaN|undefined|\[object/);
+      expect(step.title.length, step.id).toBeGreaterThan(0);
+    }
+  });
+
+  it('still shows a fall worth writing a step about', () => {
+    expect(WALKTHROUGH_OFFERS.refused).toBeLessThan(WALKTHROUGH_OFFERS.clean / 2);
+    expect(WALKTHROUGH_OFFERS.pair).toBeGreaterThan(WALKTHROUGH_OFFERS.single * 2);
+  });
+});
 
 describe('the scripted case', () => {
   it('seats the collector first, ahead of the grader and the set builder', () => {

@@ -179,11 +179,22 @@ describe('Set Run', () => {
     expect(typesFor(cards)).toContain('setRun');
   });
 
-  it('rejects a gap in the run', () => {
+  it('allows one missing number', () => {
+    // Strictly consecutive was unreachable: nothing in the draw or the shop is
+    // trying to hand you adjacent set numbers, so the type never fired at all.
     const cards = [
       raw({ setId: 'pb-origin', setNumber: 12, subject: 'A' }),
       raw({ setId: 'pb-origin', setNumber: 13, subject: 'B' }),
       raw({ setId: 'pb-origin', setNumber: 15, subject: 'C' }),
+    ];
+    expect(typesFor(cards)).toContain('setRun');
+  });
+
+  it('rejects two missing numbers', () => {
+    const cards = [
+      raw({ setId: 'pb-origin', setNumber: 12, subject: 'A' }),
+      raw({ setId: 'pb-origin', setNumber: 14, subject: 'B' }),
+      raw({ setId: 'pb-origin', setNumber: 16, subject: 'C' }),
     ];
     expect(typesFor(cards)).not.toContain('setRun');
   });

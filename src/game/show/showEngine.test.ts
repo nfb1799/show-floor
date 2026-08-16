@@ -14,11 +14,13 @@ import {
   type ShowDeps,
   type ShowState,
 } from './showEngine';
+import { generateBuyer } from '../buyers/generate';
 import {
   DISPLAY_CASE_SIZE,
   BUYERS_PER_SHOW,
   MAX_PITCH_CARDS,
   TURN_AWAYS_PER_SHOW,
+  TURN_AWAY_BUDGET_DECAY,
 } from '../constants';
 
 function deps(seed = 'show-test'): ShowDeps {
@@ -170,6 +172,33 @@ describe('turning a buyer away', () => {
       expect(after.inventory.map((c) => c.id)).toContain(id);
     }
     expect(after.selection).toEqual([]);
+  });
+
+  it('thins the replacement wallet, and again on every further pass', () => {
+    // The mulligan used to be free: nothing in a show could be lost by being
+    // greedy, so waving people off until the queue looked good was strictly
+    // correct. Each pass now compounds against the next wallet.
+    //
+    // Budgets run from $20 to $340, so comparing one replacement against
+    // another says nothing about a 15% effect. This replays the exact roll the
+    // replacement came from instead: makeBuyer is the first thing in turnAway
+    // to touch the stream, so forking the state here reproduces that buyer
+    // undecayed, and the two can be compared directly.
+    const { state, deps: d } = newShow();
+
+    const rollAt = (s: ShowState, rngState: number): number =>
+      generateBuyer(createRng(rngState), s.config.showIndex, `s${s.config.showIndex}-b${s.buyerSeq}`)
+        .budget;
+
+    const firstRoll = rollAt(state, d.rng.state);
+    const once = turnAway(state, d);
+    expect(once.buyer!.budget).toBe(Math.round(firstRoll * TURN_AWAY_BUDGET_DECAY));
+
+    const secondRoll = rollAt(once, d.rng.state);
+    const twice = turnAway(once, d);
+    expect(twice.buyer!.budget).toBe(
+      Math.round(secondRoll * Math.pow(TURN_AWAY_BUDGET_DECAY, 2)),
+    );
   });
 
   it('is refused once the allowance is gone', () => {
