@@ -199,7 +199,7 @@ export function playShow(
     // sitting on 368 cards.
     if (show.pendingTrade) {
       const short = show.earned < show.config.quota;
-      show = resolveTrade(show, short ? [] : show.pendingTrade.cards.map((c) => c.id));
+      show = resolveTrade(show, short ? [] : show.pendingTrade.cards.map((c) => c.id), deps);
     }
   }
   return show;

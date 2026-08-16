@@ -203,7 +203,7 @@ describe('trading against a buyer who is out of cash', () => {
     const sold = pitch(show, d);
     const offered = sold.pendingTrade!.cards;
 
-    const after = resolveTrade(sold, offered.map((c) => c.id));
+    const after = resolveTrade(sold, offered.map((c) => c.id), d);
 
     expect(after.pendingTrade).toBeNull();
     for (const card of offered) {
@@ -219,7 +219,7 @@ describe('trading against a buyer who is out of cash', () => {
     const sold = pitch(show, d);
     const offered = sold.pendingTrade!.cards;
 
-    const after = resolveTrade(sold, []);
+    const after = resolveTrade(sold, [], d);
     const expected = offered.reduce((sum, c) => sum + onlineValue(c), 0);
 
     expect(after.earned).toBe(sold.earned + expected);
@@ -238,10 +238,40 @@ describe('trading against a buyer who is out of cash', () => {
     expect(after.earned).toBe(result.offer);
   });
 
+  it('holds the show open until the binder is sorted', () => {
+    // The bug this replaces: selling to the *last* buyer seated no one, so the
+    // show ended and was judged on the spot — before the player had seen the
+    // binder, and before anything they listed had been banked against quota.
+    const { show, deps: d } = overBudget();
+    const lastBuyer = { ...show, queueIndex: show.config.buyerCount - 1 };
+
+    const sold = pitch(lastBuyer, d);
+    expect(sold.pendingTrade).not.toBeNull();
+    expect(sold.phase).toBe('pitching');
+    expect(sold.outcome).toBe('inProgress');
+
+    const after = resolveTrade(sold, [], d);
+    expect(after.phase).toBe('over');
+    // The listing money is in the total the show is judged on.
+    expect(after.earned).toBeGreaterThan(sold.earned);
+  });
+
+  it('counts a last-buyer listing toward clearing the quota', () => {
+    const { show, deps: d } = overBudget();
+    const sold = pitch(
+      { ...show, queueIndex: show.config.buyerCount - 1, config: { ...show.config, quota: 1 } },
+      d,
+    );
+
+    const listed = resolveTrade(sold, [], d);
+    expect(listed.outcome).toBe('cleared');
+    expect(listed.earned).toBeGreaterThanOrEqual(listed.config.quota);
+  });
+
   it('does nothing when there is no binder open', () => {
     const { show, deps: d } = overBudget();
-    const sold = resolveTrade(pitch(show, d), []);
-    expect(resolveTrade(sold, [])).toBe(sold);
+    const sold = resolveTrade(pitch(show, d), [], d);
+    expect(resolveTrade(sold, [], d)).toBe(sold);
   });
 });
 
@@ -311,6 +341,9 @@ describe('show completion', () => {
 
     while (next.phase !== 'over') {
       next = pitch(selectFirst(next, 5), d);
+      // A sale with a binder open does not seat the next buyer, so anything
+      // playing a show through has to sort it before the show can move on.
+      if (next.pendingTrade) next = resolveTrade(next, [], d);
     }
 
     expect(next.queueIndex).toBe(BUYERS_PER_SHOW);

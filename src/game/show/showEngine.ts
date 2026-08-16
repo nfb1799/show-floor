@@ -628,6 +628,12 @@ export function pitch(state: ShowState, deps: ShowDeps): ShowState {
   next = drawUp(next, deps);
   next = swapCaseCards(next, sale.caseSwaps, deps);
 
+  // A sale with a binder still open is not finished. Seating the next buyer
+  // here would end the show on the last one before the player had sorted it —
+  // and the show is judged the moment it ends, so anything they listed would
+  // have been banked after the quota was already counted.
+  if (next.pendingTrade) return next;
+
   return seatBuyer(next, deps);
 }
 
@@ -635,11 +641,19 @@ export function pitch(state: ShowState, deps: ShowDeps): ShowState {
  * Sorts the buyer's binder: `keepIds` go into stock, the rest are listed online
  * at SELL_ONLINE_RATE and banked against this show's quota.
  *
+ * This is also where the sale finishes — `pitch` stops short of seating the
+ * next buyer while a binder is open, so the money from a listing lands before
+ * the show can end and be judged.
+ *
  * Kept cards land in stock rather than in the case, so a trade cannot rescue
  * the pitch you are standing in front of — it is next show's problem, which is
  * what makes keeping one a real bet on your own inventory.
  */
-export function resolveTrade(state: ShowState, keepIds: readonly string[]): ShowState {
+export function resolveTrade(
+  state: ShowState,
+  keepIds: readonly string[],
+  deps: ShowDeps,
+): ShowState {
   const trade = state.pendingTrade;
   if (!trade) return state;
 
@@ -669,7 +683,9 @@ export function resolveTrade(state: ShowState, keepIds: readonly string[]): Show
     );
   }
 
-  return next;
+  // The sale was held open for this, so finish it: seat whoever is next, or
+  // end the show now that everything owed has actually been banked.
+  return seatBuyer(next, deps);
 }
 
 /** Whether the player can afford to wave the current buyer off. */

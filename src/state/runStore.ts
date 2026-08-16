@@ -397,7 +397,7 @@ export const useRun = create<RunState>((set, get) => {
 
     toggleCard: (cardId) => applyShow((s) => toggleSelection(s, cardId)),
     pitch: () => applyShow(enginePitch),
-    resolveTrade: (keepIds) => applyShow((s) => engineResolveTrade(s, keepIds)),
+    resolveTrade: (keepIds) => applyShow((s, d) => engineResolveTrade(s, keepIds, d)),
     turnAway: () => applyShow(engineTurnAway),
     dig: (outCardId, inCardId) => applyShow((st) => digFromStock(st, outCardId, inCardId)),
 
