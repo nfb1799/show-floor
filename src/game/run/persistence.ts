@@ -10,6 +10,7 @@ import type { RunSnapshot } from './runState';
 
 const KEY = 'showFloor.run.v1';
 const BEST_KEY = 'showFloor.best.v1';
+const TUTORIAL_KEY = 'showFloor.tutorialSeen.v1';
 const VERSION = 2;
 
 interface Envelope {
@@ -86,4 +87,21 @@ export function recordBest(candidate: BestRun): BestRun {
     // Non-fatal.
   }
   return best;
+}
+
+/**
+ * Whether the player has ever opened the tutorial. Kept out of the run
+ * envelope on purpose: starting a new run should not re-prompt someone who has
+ * already read it, and wiping a stuck save should not lose the fact either.
+ */
+export function hasSeenTutorial(): boolean {
+  return storage()?.getItem(TUTORIAL_KEY) === '1';
+}
+
+export function markTutorialSeen(): void {
+  try {
+    storage()?.setItem(TUTORIAL_KEY, '1');
+  } catch {
+    // Non-fatal: the worst case is the prompt showing again next visit.
+  }
 }

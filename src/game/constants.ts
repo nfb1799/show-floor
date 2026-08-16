@@ -78,6 +78,12 @@ export interface PitchTypeDef {
    * Multiplicative effects are a separate channel (see INTEREST_* below).
    */
   readonly interest: number;
+  /**
+   * What the cards have to be for this to detect. Player-facing, and the only
+   * place the rule is written down in words - the predicates in pitchTypes.ts
+   * are the truth, so keep the two in step.
+   */
+  readonly requires: string;
 }
 
 /**
@@ -85,16 +91,16 @@ export interface PitchTypeDef {
  * it is the tiebreak when two valid types produce an identical offer.
  */
 export const PITCH_TYPES: readonly PitchTypeDef[] = [
-  { id: 'looseCards', label: 'Loose Cards', value: 5, interest: 1 },
-  { id: 'pair', label: 'Pair', value: 12, interest: 2 },
-  { id: 'bundle', label: 'Bundle', value: 25, interest: 3 },
-  { id: 'rainbow', label: 'Rainbow', value: 40, interest: 4 },
-  { id: 'playset', label: 'Playset', value: 55, interest: 4 },
-  { id: 'setRun', label: 'Set Run', value: 70, interest: 5 },
-  { id: 'fullCase', label: 'Full Case', value: 85, interest: 5 },
-  { id: 'gradedRun', label: 'Graded Run', value: 100, interest: 6 },
-  { id: 'holoWall', label: 'Holo Wall', value: 130, interest: 8 },
-  { id: 'grail', label: 'The Grail', value: 160, interest: 10 },
+  { id: 'looseCards', label: 'Loose Cards', value: 5, interest: 1, requires: 'Any 1-5 cards. Always available, so no pitch is ever unscoreable.' },
+  { id: 'pair', label: 'Pair', value: 12, interest: 2, requires: 'Two cards sharing a subject, a franchise or a set.' },
+  { id: 'bundle', label: 'Bundle', value: 25, interest: 3, requires: 'Three cards sharing a subject, a franchise or a set.' },
+  { id: 'rainbow', label: 'Rainbow', value: 40, interest: 4, requires: 'Three or more of one rarity, every subject different.' },
+  { id: 'playset', label: 'Playset', value: 55, interest: 4, requires: 'Four cards of the same subject.' },
+  { id: 'setRun', label: 'Set Run', value: 70, interest: 5, requires: 'Three or more from one set with consecutive numbers.' },
+  { id: 'fullCase', label: 'Full Case', value: 85, interest: 5, requires: 'Five cards from one franchise.' },
+  { id: 'gradedRun', label: 'Graded Run', value: 100, interest: 6, requires: 'Three or more slabs from one franchise, every grade different.' },
+  { id: 'holoWall', label: 'Holo Wall', value: 130, interest: 8, requires: 'Five cards, every one Rare Holo or Ultra.' },
+  { id: 'grail', label: 'The Grail', value: 160, interest: 10, requires: "Five from one franchise, including the buyer's chase card." },
 ];
 
 /** Shown instead of "Loose Cards" when the pitch is exactly one card. */

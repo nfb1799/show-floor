@@ -220,6 +220,20 @@ was one show condition, and paying up front against a maybe was never a real
 decision. The Price Guide, the one remaining consumable, sits with the tables
 and cases.
 
+**There is an optional tutorial.** Six pages, opened automatically for anyone
+with no save and no history, and reachable from the title screen afterwards. It
+teaches with the real widgets — a real `CardView`, a real `BuyerPanel`, and a
+real `Tally` fed by an actual `resolvePitch` call — so a scoring change updates
+the worked example rather than silently invalidating it. The pitch-type table is
+printed straight out of `PITCH_TYPES`, which is the one thing the game never
+showed anywhere: ten types the player was expected to discover by accident.
+
+The worked example is deliberately a Pair. Anything stronger multiplies several
+times past a plausible buyer's wallet, and a first example ending in "$1,282
+left on the table" teaches that the numbers are broken rather than that the cap
+is real. A Pair overshoots by $42, which is the actual lesson — build to the
+wallet, not past it.
+
 **Gear explains itself on hover, and a full booth swaps.** Everywhere a piece of
 gear appears it carries its rules text as a tooltip, including on the bench where
 only the name fits. Clicking a benched piece with no free slot used to do

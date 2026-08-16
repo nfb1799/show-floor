@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react';
 import { formatMoney } from '../game/cards/value';
-import { loadBest, loadRun, type BestRun } from '../game/run/persistence';
+import {
+  hasSeenTutorial,
+  loadBest,
+  loadRun,
+  markTutorialSeen,
+  type BestRun,
+} from '../game/run/persistence';
 import { useRun } from '../state/runStore';
 import { Band, Track } from './kit';
+import { TutorialOverlay } from './TutorialOverlay';
 import styles from './app.module.css';
 
 function Masthead() {
@@ -128,8 +135,20 @@ export function TitleScreen() {
   const resume = useRun((s) => s.resume);
   const [hasSave, setHasSave] = useState(false);
   const [seedInput, setSeedInput] = useState('');
+  const [tutorial, setTutorial] = useState(false);
 
-  useEffect(() => setHasSave(loadRun() !== null), []);
+  useEffect(() => {
+    const save = loadRun();
+    setHasSave(save !== null);
+    // Someone with no save and no history here has never seen any of this, so
+    // open it for them rather than hoping they find the button.
+    if (save === null && !hasSeenTutorial()) setTutorial(true);
+  }, []);
+
+  const closeTutorial = (): void => {
+    markTutorialSeen();
+    setTutorial(false);
+  };
 
   return (
     <div className={styles.center}>
@@ -159,7 +178,17 @@ export function TitleScreen() {
           placeholder="OPTIONAL SEED"
           aria-label="Run seed"
         />
+
+        <button
+          className={styles.btnSm}
+          style={{ marginTop: 10 }}
+          onClick={() => setTutorial(true)}
+        >
+          HOW TO PLAY
+        </button>
       </div>
+
+      {tutorial && <TutorialOverlay onClose={closeTutorial} />}
     </div>
   );
 }

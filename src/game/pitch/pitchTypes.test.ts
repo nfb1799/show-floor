@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { detectPitchTypes, pitchTypeLabel } from './pitchTypes';
 import { buyer, raw, slab } from '../testing/factories';
 import type { PitchTypeId } from '../types';
+import { PITCH_TYPES } from '../constants';
 
 /** Every type the cards qualify as, minus the always-present floor type. */
 function typesFor(cards: Parameters<typeof detectPitchTypes>[0], b = buyer()): PitchTypeId[] {
@@ -297,5 +298,16 @@ describe('The Grail', () => {
     cards[4] = raw({ franchise: 'pocketBeasts', subject: 'Tidefin' });
     const b = buyer({ chaseCard: 'Ashen Lich' });
     expect(typesFor(cards, b)).not.toContain('grail');
+  });
+});
+
+describe('the table as player-facing data', () => {
+  it('spells out what every type needs', () => {
+    // The tutorial prints this straight out of PITCH_TYPES. A type added
+    // without its requirement line would render a blank row rather than fail.
+    for (const type of PITCH_TYPES) {
+      expect(type.requires.length, type.id).toBeGreaterThan(10);
+      expect(type.requires.endsWith('.'), type.id).toBe(true);
+    }
   });
 });
