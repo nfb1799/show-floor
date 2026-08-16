@@ -1,9 +1,32 @@
 /** Player-facing phrasing for buyer demands. Presentation only. */
 
 import { getFranchise, getSet } from '../game/cards/catalog';
-import { CONDITION_NAME } from './card/artSpec';
+import {
+  CONDITION_NAME,
+  FRANCHISE_MARK,
+  FRANCHISE_MARK_LABEL,
+  SET_MARK,
+  SET_MARK_LABEL,
+} from './card/artSpec';
 import { VINTAGE_YEAR_CUTOFF } from '../game/constants';
 import type { Turnoff, Want } from '../game/types';
+
+/**
+ * The mark to print in front of a want, matching the one on the card line it
+ * refers to. "Cards from Storm Cycle" gave no clue whether Storm Cycle was a
+ * set or a franchise, so digging meant reading both fields on every card.
+ */
+export function wantMark(want: Want): { mark: string; label: string } | null {
+  switch (want.kind) {
+    case 'fromSets':
+      // The vintage want spans many sets, so there is no single set to point at.
+      return want.setIds.length === 1 ? { mark: SET_MARK, label: SET_MARK_LABEL } : null;
+    case 'franchise':
+      return { mark: FRANCHISE_MARK, label: FRANCHISE_MARK_LABEL };
+    default:
+      return null;
+  }
+}
 
 export function describeWant(want: Want): string {
   switch (want.kind) {

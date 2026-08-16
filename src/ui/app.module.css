@@ -742,6 +742,15 @@
   color: var(--paper);
 }
 
+/* Same glyph the card prints against its franchise or set line, so the two can
+   be matched on shape rather than by reading both fields on every card. */
+.wantMark {
+  display: inline-block;
+  margin-right: 5px;
+  opacity: 0.75;
+  cursor: help;
+}
+
 .wantChipBonus {
   font-family: 'Bungee', system-ui, sans-serif;
   font-size: 13px;
@@ -2461,9 +2470,12 @@ html[data-tour-open='true'] .topBar {
 
 /* --- Dig overlay ---------------------------------------------------------- */
 
+/* Nearly the whole window. The cards in here are the thing being chosen
+   between, so they get the room rather than the margins. */
 .digPanel {
-  width: min(1180px, 100%);
-  max-height: calc(100vh - 48px);
+  width: min(1640px, calc(100vw - 32px));
+  height: calc(100vh - 32px);
+  max-height: calc(100vh - 32px);
   background: var(--paper);
   border: 3px solid var(--ink);
   box-shadow: 10px 10px 0 rgb(28 24 19 / 40%);
@@ -2475,8 +2487,10 @@ html[data-tour-open='true'] .topBar {
 
 .digCols {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
   min-height: 0;
+  /* Takes the panel's leftover height so the grids inside can own it. */
+  flex: 1;
 }
 
 @media (max-width: 900px) {
@@ -2488,6 +2502,9 @@ html[data-tour-open='true'] .topBar {
 .digSide {
   padding: 14px 16px;
   min-width: 0;
+  /* Without this the grid inside cannot shrink, and its overflow becomes the
+     panel's overflow instead of its own. */
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -2517,13 +2534,27 @@ html[data-tour-open='true'] .topBar {
   width: 170px;
 }
 
+/* Cards big enough to read a set number off without leaning in.
+
+   Vertical scrolling only, and only when the box genuinely holds more than
+   fits: the grid takes all the height the panel has left rather than a fixed
+   slice of the viewport. Horizontal scrolling is off outright — a sideways bar
+   here only ever appeared because auto-fill columns rounded a pixel over, and
+   it never had anything to reveal. */
 .digGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  gap: 10px;
+  /* 140 rather than 150 so the narrower case column fits three across instead
+     of two: at two, eight cards need four rows and the side scrolls for no
+     reason while each card sits at an absurd 227px. */
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  align-content: start;
+  gap: 12px;
+  overflow-x: hidden;
   overflow-y: auto;
   min-height: 0;
-  max-height: 46vh;
+  flex: 1;
+  /* Room for the scrollbar when it does appear, so its arrival shifts nothing. */
+  scrollbar-gutter: stable;
 }
 
 .digEmpty {

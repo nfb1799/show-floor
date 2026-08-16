@@ -15,7 +15,16 @@ import { CONDITION_MULT, GRADE_MULT, GRADE_MULT_FLOOR, GRADE_MULT_FLOOR_AT } fro
 import { getFranchise, getSet } from '../../game/cards/catalog';
 import { VINTAGE_YEAR_CUTOFF } from '../../game/constants';
 import type { Card } from '../../game/types';
-import { cardArtSpec, CONDITION_LABEL, CONDITION_NAME, GRADER_MARK } from './artSpec';
+import {
+  cardArtSpec,
+  CONDITION_LABEL,
+  CONDITION_NAME,
+  FRANCHISE_MARK,
+  FRANCHISE_MARK_LABEL,
+  GRADER_MARK,
+  SET_MARK,
+  SET_MARK_LABEL,
+} from './artSpec';
 import styles from './card.module.css';
 
 export type CardSize = 'normal' | 'small' | 'tiny';
@@ -118,9 +127,17 @@ export function CardFrame({
             <span className={styles.rarityTag}>{spec.rarityLabel}</span>
           </div>
 
-          {/* Franchise drives Full Case, Graded Run and The Grail. */}
+          {/* Franchise drives Full Case, Graded Run and The Grail. The mark
+              matches the one printed on a buyer's want, so a player digging for
+              "◆ Pocket Beasts" is looking for one glyph rather than reading
+              both of these lines on every card. */}
           <div className={styles.attrRow}>
-            <span className={styles.franchise}>{franchise.name}</span>
+            <span className={styles.franchise}>
+              <span className={styles.attrMark} title={FRANCHISE_MARK_LABEL}>
+                {FRANCHISE_MARK}
+              </span>
+              {franchise.name}
+            </span>
             <span className={styles.year} data-vintage={vintage}>
               {set.year}
             </span>
@@ -128,7 +145,12 @@ export function CardFrame({
 
           {/* Set and number drive Pair, Bundle, Set Run and Set Builders. */}
           <div className={styles.attrRow}>
-            <span className={styles.setName}>{setDisplayName(set.name, franchise.name)}</span>
+            <span className={styles.setName}>
+              <span className={styles.attrMark} title={SET_MARK_LABEL}>
+                {SET_MARK}
+              </span>
+              {setDisplayName(set.name, franchise.name)}
+            </span>
             <span className={styles.setNumber}>#{card.setNumber}</span>
           </div>
         </div>

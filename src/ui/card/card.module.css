@@ -71,6 +71,8 @@
   background: var(--paper);
   border: 2px solid var(--ink);
   padding: 2px 6px;
+  /* It is the hover target for the condition tip, so it says so. */
+  cursor: help;
 }
 
 .stamp[data-slab='true'] {
@@ -78,10 +80,12 @@
 }
 
 /* --- Condition tooltip ---------------------------------------------------
-   Held back half a second so it never flashes while the cursor is crossing a
-   row of cards on the way somewhere else. It hangs above the card because the
-   art slot clips, and it is the card that is hovered rather than the stamp:
-   the stamp is a few millimetres across on a small card. */
+   Hovering anywhere on the card used to raise this, which meant it fired
+   constantly while picking cards and covered the card above. It answers a
+   question about one chip, so it is that chip you have to point at.
+
+   Held back a beat so it does not flash while the cursor crosses the stamp on
+   the way somewhere else, and hung above the card because the art slot clips. */
 
 .conditionTip {
   position: absolute;
@@ -107,9 +111,12 @@
   transition-delay: 0s;
 }
 
-.card:hover .conditionTip {
+/* The stamp lives inside the clipping art slot and the tip has to live outside
+   it, so they are not siblings — :has on the slot is what bridges the two. */
+.artSlot:has(.stamp:hover) + .conditionTip,
+.conditionTip:hover {
   opacity: 1;
-  transition-delay: 500ms;
+  transition-delay: 350ms;
 }
 
 /* --- Data block ---------------------------------------------------------- */
@@ -181,6 +188,16 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Prints on the card and on the buyer's want, so the two can be matched by
+   shape. Dimmed: it is a category marker, not part of the name. */
+.attrMark {
+  display: inline-block;
+  margin-right: 4px;
+  color: var(--muted);
+  font-size: 0.92em;
+  cursor: help;
 }
 
 .setNumber,

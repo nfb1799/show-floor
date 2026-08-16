@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { formatMoney } from '../game/cards/value';
+import { GOODWILL_COST_DIG, GOODWILL_COST_PASS } from '../game/constants';
 import type { PitchResult } from '../game/types';
 import { Band } from './kit';
 import { PitchGuide } from './PitchGuide';
@@ -88,16 +89,26 @@ export function Tally({
               <button className={styles.btn} disabled data-tour="send">
                 SELL
               </button>
-              <button className={styles.btnSm} onClick={onDig} disabled={!canDig} data-tour="dig">
-                DIG
+              {/* Both spend the same pool, so both print what they cost. The
+                  number is goodwill, not a counter — passes remaining are the
+                  pips on the board. */}
+              <button
+                className={styles.btnSm}
+                onClick={onDig}
+                disabled={!canDig}
+                data-tour="dig"
+                title={`Dig through the box for a card they want — costs ${GOODWILL_COST_DIG} goodwill`}
+              >
+                DIG · {GOODWILL_COST_DIG}
               </button>
               <button
                 className={styles.btnSm}
                 onClick={onTurnAway}
                 disabled={!canTurnAway}
                 data-tour="pass"
+                title={`Wave this buyer off for a new one — costs ${GOODWILL_COST_PASS} goodwill, ${turnAwaysLeft} pass${turnAwaysLeft === 1 ? '' : 'es'} left`}
               >
-                PASS · {turnAwaysLeft}
+                PASS · {GOODWILL_COST_PASS}
               </button>
             </div>
           </div>
@@ -185,14 +196,14 @@ export function Tally({
               <>
                 <span className={styles.struck}>{formatMoney(result.uncappedOffer)}</span>
                 <span className={styles.cappedFlag}>
-                  <span className={styles.cappedFlagTitle}>OVER THEIR BUDGET</span>
-                  {/* They stretch past what they brought, but only for a
-                      slice of the excess — spell out both halves, or paying
-                      more than the stated budget reads as a bug. */}
+                  <span className={styles.cappedFlagTitle}>PART TRADE</span>
+                  {/* Their cash is a real cap. What it will not cover they make
+                      up out of their own binder and you sell on, which is why
+                      the total lands above their budget. Saying they simply
+                      "pay over budget" made the number read as a bug. */}
                   <span className={styles.cappedFlagNote}>
-                    {formatMoney(result.budget)} on them, plus{' '}
-                    {formatMoney(result.offer - result.budget)} of the extra{' '}
-                    {formatMoney(result.uncappedOffer - result.budget)}
+                    {formatMoney(result.budget)} cash, plus cards off them worth{' '}
+                    {formatMoney(result.offer - result.budget)} to you
                   </span>
                 </span>
               </>

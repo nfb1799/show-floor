@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { formatMoney } from '../game/cards/value';
 import { GOODWILL_COST_DIG, MAX_PITCH_CARDS } from '../game/constants';
 import { getConditions } from '../game/conditions/registry';
-import { remainingQueue, type SaleRecord } from '../game/show/showEngine';
+import { canTurnAway, remainingQueue, type SaleRecord } from '../game/show/showEngine';
 import { useRun } from '../state/runStore';
 import { BuyerPanel } from './BuyerPanel';
 import { BuyerQueue } from './BuyerQueue';
@@ -165,7 +165,7 @@ export function ShowScreen() {
           result={result}
           turnAwaysLeft={show.turnAwaysLeft}
           canPitch={show.selection.length > 0}
-          canTurnAway={show.turnAwaysLeft > 0}
+          canTurnAway={canTurnAway(show)}
           onPitch={pitch}
           onTurnAway={turnAway}
         />

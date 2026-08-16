@@ -106,3 +106,20 @@ export const CONDITION_NAME: Record<Condition, string> = {
  * the thing is.
  */
 export const GRADER_MARK = 'GRADED';
+
+/**
+ * Marks for the two things a buyer can ask for by name.
+ *
+ * A want reading "Cards from Storm Cycle" gave no clue whether Storm Cycle was
+ * a set or a franchise, so digging meant checking both fields on every card.
+ * The same mark prints on the want and on the card line it refers to, which
+ * turns the search into matching one glyph.
+ *
+ * Geometric rather than lettered so they survive at card-stamp sizes, and a
+ * diamond against a set of bars is a difference you can see without reading.
+ */
+export const FRANCHISE_MARK = '◆';
+export const SET_MARK = '▤';
+
+export const FRANCHISE_MARK_LABEL = 'Franchise';
+export const SET_MARK_LABEL = 'Set';

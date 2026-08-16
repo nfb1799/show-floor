@@ -96,8 +96,8 @@ export const PITCH_TYPES: readonly PitchTypeDef[] = [
   { id: 'bundle', label: 'Bundle', value: 25, interest: 3, requires: 'Three cards sharing a subject, a franchise or a set.' },
   { id: 'rainbow', label: 'Rainbow', value: 40, interest: 4, requires: 'Four or more of one rarity, Uncommon or better, every subject different.' },
   { id: 'playset', label: 'Playset', value: 55, interest: 4, requires: 'Four cards of the same subject.' },
-  { id: 'setRun', label: 'Set Run', value: 60, interest: 5, requires: 'Three or more from one set, running in order. One number may be missing.' },
   { id: 'fullCase', label: 'Full Case', value: 85, interest: 5, requires: 'Five cards from one franchise.' },
+  { id: 'setRun', label: 'Set Run', value: 95, interest: 6, requires: 'Three or more from one set, running in order. One number may be missing.' },
   { id: 'gradedRun', label: 'Graded Run', value: 100, interest: 6, requires: 'Three or more slabs from one franchise, every grade different.' },
   { id: 'holoWall', label: 'Holo Wall', value: 130, interest: 8, requires: 'Five cards, every one Rare Holo or Ultra.' },
   { id: 'grail', label: 'The Grail', value: 160, interest: 10, requires: "Five from one franchise, including the buyer's chase card." },
@@ -130,13 +130,12 @@ export const SET_RUN_MIN_CARDS = 3;
  * of the time. One gap is the cheapest way to make the rung real, and its
  * value drops from 70 to 60 to pay for it.
  *
- * Detection was only half the problem, and this fixes only that half. Set Run
- * still almost never *wins*: it is worth less than Full Case (60 against 85),
- * and any five-card run from one set is necessarily also five cards from one
- * franchise, so a Full Case is always available and always pays more. Set Run
- * can only come out ahead on three or four cards where no Full Case exists.
- * Making it live properly means deciding it is harder than a Full Case and
- * ranking it above one — a change to the ladder, not to a predicate.
+ * Detection was only half of it. Set Run also has to be able to *win*, and it
+ * could not: any five-card run from one set is necessarily also five cards from
+ * one franchise, so a Full Case was always available and, at 85 against 60,
+ * always paid more. It now sits above Full Case in the table at 95, which is
+ * the honest ordering — five cards running in sequence out of a set of 90 is a
+ * far harder thing to hold than five cards of one franchise.
  */
 export const SET_RUN_MAX_GAPS = 1;
 
@@ -173,15 +172,19 @@ export const MIN_INTEREST = 1;
 export const REFUSAL_INTEREST_MULT = 0.25;
 
 /**
- * Fraction of Appeal above a buyer's budget that still gets paid.
+ * How much of the Appeal above a buyer's budget they can cover in trade.
  *
  * The cap used to be hard, and two thirds of all pitches hit it. Past that
- * point another point of Interest bought exactly nothing, so dozens of
- * different card sets paid the same and the pitch stopped being a decision.
- * Overflow keeps every extra point worth something while leaving budget the
- * dominant term — the buyer goes to the ATM rather than walking into a wall.
+ * point another point of Interest bought exactly nothing, so dozens of card
+ * sets paid the same and the pitch stopped being a decision.
+ *
+ * Cash is still the cap: a buyer with $200 on them never hands over $260. What
+ * they do at a card show is make up the difference out of their own binder, and
+ * you sell that on — so the extra arrives as trade rather than as money they
+ * did not bring. Only a quarter of it, because their spares are worth less to
+ * you than they are to them.
  */
-export const BUDGET_OVERFLOW_RATE = 0.25;
+export const BUDGET_TRADE_RATE = 0.25;
 
 /**
  * What an unwanted card fetches if you list it rather than pitch it.
@@ -246,12 +249,17 @@ export const INVESTOR_MIN_GRADE = 8;
 export const BULK_GUY_MIN_CARDS = 4;
 
 /**
- * Goodwill is a single pool for the whole show, not a per-buyer allowance.
- * Spent making a buyer wait while you dig through stock for something they
- * actually want.
+ * Goodwill is a single pool for the whole show, not a per-buyer allowance, and
+ * both things you can do with a buyer come out of it: making them wait while
+ * you dig, or waving them off entirely.
+ *
+ * One pool for both is what makes either one a decision. A pass used to cost
+ * only a counter, so waving people off until the queue looked right was simply
+ * correct; now it is two digs you will not get to make later.
  */
 export const SHOW_GOODWILL = 6;
 export const GOODWILL_COST_DIG = 1;
+export const GOODWILL_COST_PASS = 2;
 
 /** Relative frequency of each archetype in the buyer queue. */
 export const ARCHETYPE_WEIGHTS: Record<BuyerArchetypeId, number> = {
@@ -295,31 +303,44 @@ export const DRAW_AFFINITY_FRANCHISE = 0.6;
 export const DRAW_AFFINITY_SET = 1.6;
 export const DRAW_AFFINITY_SUBJECT = 2.5;
 
-// A run-aware draw term was tried here and removed: weighting cards by nearby
-// set numbers moved Set Run from 0.0% to 0.1% of pitches at best, while
-// distorting the whole draw enough to cost early-show revenue. Set Run's
-// problem is not that it fails to appear — see SET_RUN_MAX_GAPS.
+/**
+ * Extra weight for a card within DRAW_AFFINITY_RUN_SPAN of something already in
+ * the case, from the same set. On top of DRAW_AFFINITY_SET.
+ *
+ * Sets hold 55 to 140 cards, so three landing near each other by chance is a
+ * one-in-five-hundred event and Set Run simply never appeared. Clustering by
+ * set is not enough on its own: the set is the shelf, this is the order the
+ * cards sit in on it.
+ */
+export const DRAW_AFFINITY_RUN = 6;
+export const DRAW_AFFINITY_RUN_SPAN = 2;
 
 export const DISPLAY_CASE_SIZE = 8;
-export const BUYERS_PER_SHOW = 4;
+
+/**
+ * Three buyers, not four. Every pitch is a quarter of the show rather than a
+ * fifth, which is most of what makes one worth thinking about — and it is why
+ * the quota base had to come down with it.
+ */
+export const BUYERS_PER_SHOW = 3;
+
+/**
+ * A ceiling on passes, on top of what GOODWILL_COST_PASS can afford. Goodwill
+ * is the binding constraint at the default numbers (6 goodwill, 2 a pass); this
+ * is here so an upgrade granting extra passes still has something to grant.
+ */
 export const TURN_AWAYS_PER_SHOW = 3;
 
 /**
  * Turning a buyer away replaces them with a fresh buyer rather than consuming
- * the buyer slot. Consuming the slot (4 buyers minus 3 turn-aways = 1 sale)
- * makes the button a trap against a hard quota.
+ * the buyer slot. Consuming the slot would leave three buyers minus three
+ * passes = no sales, which makes the button a trap against a hard quota.
  */
 export const TURN_AWAY_CONSUMES_BUYER_SLOT = false;
 
-/**
- * What each turn-away already spent this show does to the next replacement's
- * budget. Compounding, so three passes bring a wallet down to about 61%.
- *
- * Without it nothing in a show could be lost by being greedy: every action was
- * monotonically good or neutral, and the mulligan cost only a counter. This is
- * the price on it. Set to 1 to make turning away free again.
- */
-export const TURN_AWAY_BUDGET_DECAY = 0.85;
+// A compounding budget penalty on replacements was tried here and replaced by
+// GOODWILL_COST_PASS. It priced the pass correctly but invisibly: the player
+// saw a fresh buyer with a smaller wallet and no way to connect the two.
 
 /**
  * Quota growth sits just above budget growth, not far above it.
@@ -331,7 +352,7 @@ export const TURN_AWAY_BUDGET_DECAY = 0.85;
  * quota climbing" — comes from cards being gone forever, not from a number the
  * player cannot reach.
  */
-export const QUOTA_BASE = 300;
+export const QUOTA_BASE = 240;
 export const QUOTA_GROWTH = 1.38;
 export const QUOTA_SOFT_GROWTH = 1.3;
 export const QUOTA_SOFTEN_AFTER_SHOW = 12;

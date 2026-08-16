@@ -10,9 +10,12 @@ import {
   BUYERS_PER_SHOW,
   DISPLAY_CASE_SIZE,
   DRAW_AFFINITY_FRANCHISE,
+  DRAW_AFFINITY_RUN,
+  DRAW_AFFINITY_RUN_SPAN,
   DRAW_AFFINITY_SET,
   DRAW_AFFINITY_SUBJECT,
   GOODWILL_COST_DIG,
+  GOODWILL_COST_PASS,
   MAX_PITCH_CARDS,
   OFFER_RATIO_START,
   QUOTA_BASE,
@@ -23,7 +26,6 @@ import {
   TABLE_FEE_BASE,
   TABLE_FEE_GROWTH,
   TURN_AWAYS_PER_SHOW,
-  TURN_AWAY_BUDGET_DECAY,
   TURN_AWAY_CONSUMES_BUYER_SLOT,
 } from '../constants';
 import { generateBuyer } from '../buyers/generate';
@@ -203,8 +205,16 @@ function drawUp(state: ShowState, deps: ShowDeps): ShowState {
   const affinity = (card: Card): number => {
     let weight = 1;
     for (const held of context) {
-      if (held.setId === card.setId) weight += DRAW_AFFINITY_SET;
-      else if (held.franchise === card.franchise) weight += DRAW_AFFINITY_FRANCHISE;
+      if (held.setId === card.setId) {
+        weight += DRAW_AFFINITY_SET;
+        // Binders fill in numerical order, so neighbours travel together. This
+        // is the only thing anywhere that puts a Set Run on the table.
+        if (Math.abs(held.setNumber - card.setNumber) <= DRAW_AFFINITY_RUN_SPAN) {
+          weight += DRAW_AFFINITY_RUN;
+        }
+      } else if (held.franchise === card.franchise) {
+        weight += DRAW_AFFINITY_FRANCHISE;
+      }
       if (held.subject === card.subject) weight += DRAW_AFFINITY_SUBJECT;
     }
     return weight;
@@ -577,9 +587,16 @@ export function pitch(state: ShowState, deps: ShowDeps): ShowState {
   return seatBuyer(next, deps);
 }
 
+/** Whether the player can afford to wave the current buyer off. */
+export function canTurnAway(state: ShowState): boolean {
+  if (state.phase !== 'pitching' || !state.buyer) return false;
+  if (state.turnAwaysLeft <= 0) return false;
+  return state.goodwill >= GOODWILL_COST_PASS;
+}
+
 export function turnAway(state: ShowState, deps: ShowDeps): ShowState {
-  if (state.phase !== 'pitching' || !state.buyer) return state;
-  if (state.turnAwaysLeft <= 0) return state;
+  const leaving = state.buyer;
+  if (!canTurnAway(state) || !leaving) return state;
 
   const swappedOut = state.displayCase.filter(
     (c) => state.selection.includes(c.id) && !isLocked(state, c.id),
@@ -591,35 +608,28 @@ export function turnAway(state: ShowState, deps: ShowDeps): ShowState {
     inventory: [...state.inventory, ...swappedOut],
     selection: [],
     turnAwaysLeft: state.turnAwaysLeft - 1,
+    // The same pool digging spends, so a pass is priced in the thing the
+    // player already understands: two cards you will not get to fetch later.
+    goodwill: state.goodwill - GOODWILL_COST_PASS,
   };
 
   if (TURN_AWAY_CONSUMES_BUYER_SLOT) {
     next = { ...next, queueIndex: next.queueIndex + 1 };
   } else {
     // The slot survives, but the buyer does not: a fresh one takes their place.
-    // Thinner in the wallet each time, so waving people off is a real choice
-    // rather than a free reroll — word gets round a hall this size.
     const made = makeBuyer(next, deps);
-    const spent = next.config.turnAways - next.turnAwaysLeft;
     const queue = [...next.queue];
-    queue[next.queueIndex] = {
-      ...made.buyer,
-      budget: Math.max(1, Math.round(made.buyer.budget * Math.pow(TURN_AWAY_BUDGET_DECAY, spent))),
-    };
+    queue[next.queueIndex] = made.buyer;
     next = { ...next, queue, buyerSeq: made.seq };
   }
 
   next = log(
     next,
     swappedOut.length > 0
-      ? `You wave off the ${state.buyer.label} and swap ${swappedOut.length} card${swappedOut.length === 1 ? '' : 's'}.`
-      : `You wave off the ${state.buyer.label}.`,
+      ? `You wave off the ${leaving.label} and swap ${swappedOut.length} card${swappedOut.length === 1 ? '' : 's'}.`
+      : `You wave off the ${leaving.label}.`,
     'turnAway',
   );
-
-  if (!TURN_AWAY_CONSUMES_BUYER_SLOT && TURN_AWAY_BUDGET_DECAY < 1) {
-    next = log(next, 'Word gets round the hall. The next wallet is thinner.', 'turnAway');
-  }
 
   return seatBuyer(drawUp(next, deps), deps);
 }

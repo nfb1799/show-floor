@@ -11,6 +11,7 @@
  * advance on NEXT, and block the screen while they explain.
  */
 
+import { GOODWILL_COST_PASS, SHOW_GOODWILL } from '../../game/constants';
 import { W, WALKTHROUGH_OFFERS } from '../../game/run/walkthrough';
 import type { RunState } from '../../state/runStore';
 
@@ -66,8 +67,8 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'budget',
     anchor: 'budget',
-    title: 'What they brought',
-    text: 'Near enough a ceiling. Pitch past it and most of the extra is lost.',
+    title: 'The cash they brought',
+    text: 'All the money they have on them. Pitch past it and most of the extra is lost.',
   },
   {
     id: 'wants',
@@ -128,8 +129,8 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'capped',
     anchor: 'budget',
-    title: 'And the wallet bites',
-    text: 'Worth more than they came with. They stretch a little past it, but only a little.',
+    title: 'And the wallet runs out',
+    text: 'Worth more than they carry. They make up a little of it from their own binder.',
   },
   {
     id: 'send',
@@ -219,7 +220,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'pass',
     anchor: 'pass',
     title: 'You could wave them off',
-    text: 'Three passes a show, and you do not get to choose who walks up next.',
+    text: `Costs ${GOODWILL_COST_PASS} goodwill — two digs — and you do not choose who walks up next.`,
   },
   {
     id: 'digButton',
@@ -267,7 +268,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'digCost',
     anchor: 'goodwill',
     title: 'That cost a goodwill pip',
-    text: 'Six a show. Every dig is one you cannot make later.',
+    text: `${SHOW_GOODWILL} a show, and passing spends ${GOODWILL_COST_PASS} of the same pool. Digging or waving off — not both.`,
   },
   {
     id: 'sendThree',

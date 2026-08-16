@@ -3,7 +3,7 @@ import { getArchetype } from '../game/buyers/archetypes';
 import { pitchTypeLabel } from '../game/pitch/pitchTypes';
 import type { Buyer, PitchTypeId } from '../game/types';
 import { Band, initialsOf } from './kit';
-import { describeTurnoff, describeWant, explainWant, wantBonus } from './wantText';
+import { describeTurnoff, describeWant, explainWant, wantBonus, wantMark } from './wantText';
 import styles from './app.module.css';
 
 export function BuyerPanel({
@@ -40,8 +40,9 @@ export function BuyerPanel({
             <Band title="Pays up to" ink="blue" />
             <div className={styles.figureValue}>
               <span className={styles.num}>{formatMoney(buyer.budget)}</span>
-              {/* Not "hard cap" any more: they will stretch a little past it. */}
-              <span className={styles.figureHint}>what they brought</span>
+              {/* Not "hard cap": it caps their *cash*, and anything past it
+                  they make up in trade. */}
+              <span className={styles.figureHint}>cash on them</span>
             </div>
           </div>
         </div>
@@ -51,19 +52,31 @@ export function BuyerPanel({
             WHAT WINS THEM
           </div>
 
-          {buyer.wants.map((want, i) => (
-            <span
-              key={i}
-              className={styles.wantChip}
-              data-tone="good"
-              // The long form is the only place some demands are explained at
-              // all, so keep it reachable even where the note below is hidden.
-              title={explainWant(want) ?? describeWant(want)}
-            >
-              <span className={styles.wantChipText}>{describeWant(want)}</span>
-              <span className={styles.wantChipBonus}>{wantBonus(want)}</span>
-            </span>
-          ))}
+          {buyer.wants.map((want, i) => {
+            // Whether "Storm Cycle" is a set or a franchise decided which line
+            // to read on every card in the box. The mark says which.
+            const mark = wantMark(want);
+            return (
+              <span
+                key={i}
+                className={styles.wantChip}
+                data-tone="good"
+                // The long form is the only place some demands are explained at
+                // all, so keep it reachable even where the note below is hidden.
+                title={explainWant(want) ?? describeWant(want)}
+              >
+                <span className={styles.wantChipText}>
+                  {mark && (
+                    <span className={styles.wantMark} title={mark.label}>
+                      {mark.mark}
+                    </span>
+                  )}
+                  {describeWant(want)}
+                </span>
+                <span className={styles.wantChipBonus}>{wantBonus(want)}</span>
+              </span>
+            );
+          })}
 
           {buyer.wants.map((want, i) => {
             const detail = explainWant(want);

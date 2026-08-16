@@ -26,7 +26,9 @@ export function DigOverlay({ onClose }: { onClose: () => void }) {
     const pool = q
       ? stock.filter((c) => c.subject.toLowerCase().includes(q))
       : [...stock];
-    return pool.sort((a, b) => cardValue(b) - cardValue(a)).slice(0, 60);
+    // The panel is close to full-screen now, so it can show a lot more of the
+    // box before the player has to fall back on the search field.
+    return pool.sort((a, b) => cardValue(b) - cardValue(a)).slice(0, 150);
   }, [stock, query]);
 
   if (!show) return null;

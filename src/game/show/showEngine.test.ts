@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createRng } from '../rng';
 import { generateCards } from '../cards/generate';
 import {
+  canTurnAway,
   createShow,
   digFromStock,
   previewPitch,
@@ -14,13 +15,13 @@ import {
   type ShowDeps,
   type ShowState,
 } from './showEngine';
-import { generateBuyer } from '../buyers/generate';
 import {
   DISPLAY_CASE_SIZE,
   BUYERS_PER_SHOW,
+  GOODWILL_COST_DIG,
+  GOODWILL_COST_PASS,
   MAX_PITCH_CARDS,
   TURN_AWAYS_PER_SHOW,
-  TURN_AWAY_BUDGET_DECAY,
 } from '../constants';
 
 function deps(seed = 'show-test'): ShowDeps {
@@ -44,8 +45,8 @@ function selectFirst(state: ShowState, n: number): ShowState {
 
 describe('escalation', () => {
   it('grows the quota and the table fee from show 1', () => {
-    expect(quotaForShow(1)).toBe(300);
-    expect(quotaForShow(2)).toBe(414);
+    expect(quotaForShow(1)).toBe(240);
+    expect(quotaForShow(2)).toBe(331);
     expect(tableFeeForShow(1)).toBe(50);
     expect(tableFeeForShow(2)).toBe(70);
   });
@@ -174,31 +175,30 @@ describe('turning a buyer away', () => {
     expect(after.selection).toEqual([]);
   });
 
-  it('thins the replacement wallet, and again on every further pass', () => {
+  it('costs goodwill, out of the same pool digging spends', () => {
     // The mulligan used to be free: nothing in a show could be lost by being
     // greedy, so waving people off until the queue looked good was strictly
-    // correct. Each pass now compounds against the next wallet.
-    //
-    // Budgets run from $20 to $340, so comparing one replacement against
-    // another says nothing about a 15% effect. This replays the exact roll the
-    // replacement came from instead: makeBuyer is the first thing in turnAway
-    // to touch the stream, so forking the state here reproduces that buyer
-    // undecayed, and the two can be compared directly.
+    // correct. A pass is now two digs the player will not get to make.
     const { state, deps: d } = newShow();
-
-    const rollAt = (s: ShowState, rngState: number): number =>
-      generateBuyer(createRng(rngState), s.config.showIndex, `s${s.config.showIndex}-b${s.buyerSeq}`)
-        .budget;
-
-    const firstRoll = rollAt(state, d.rng.state);
     const once = turnAway(state, d);
-    expect(once.buyer!.budget).toBe(Math.round(firstRoll * TURN_AWAY_BUDGET_DECAY));
 
-    const secondRoll = rollAt(once, d.rng.state);
-    const twice = turnAway(once, d);
-    expect(twice.buyer!.budget).toBe(
-      Math.round(secondRoll * Math.pow(TURN_AWAY_BUDGET_DECAY, 2)),
-    );
+    expect(once.goodwill).toBe(state.goodwill - GOODWILL_COST_PASS);
+    expect(GOODWILL_COST_PASS).toBeGreaterThan(GOODWILL_COST_DIG);
+  });
+
+  it('is refused when the goodwill for it is gone', () => {
+    const { state, deps: d } = newShow();
+    const broke: ShowState = { ...state, goodwill: GOODWILL_COST_PASS - 1 };
+
+    expect(canTurnAway(broke)).toBe(false);
+    expect(turnAway(broke, d)).toBe(broke);
+  });
+
+  it('leaves digging affordable after a pass, so the two really compete', () => {
+    // If one pass emptied the pool the choice would be fake: the player has to
+    // be able to feel both sides of the trade in the same show.
+    const { state, deps: d } = newShow();
+    expect(turnAway(state, d).goodwill).toBeGreaterThanOrEqual(GOODWILL_COST_DIG);
   });
 
   it('is refused once the allowance is gone', () => {
