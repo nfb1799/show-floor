@@ -1,11 +1,15 @@
 /**
  * The spotlight.
  *
- * Four opaque panels are drawn around the highlighted element rather than one
- * scrim with a transparent hole, which means the highlighted thing is shown at
- * full brightness on every step — not just the ones you can click. Steps that
- * only explain something cover the gap with a transparent catcher, so the item
- * still reads clearly but the click goes nowhere.
+ * Two ways of cutting the dim, for two different jobs:
+ *
+ * An action step draws four opaque panels *around* one element, so the gap
+ * between them is a real gap and the control underneath takes the click.
+ *
+ * An explaining step paints one dim and punches a hole per anchor through an
+ * SVG mask, because it may be pointing at two things at opposite corners of
+ * the board — a single cutout spanning both would light half the screen and
+ * highlight nothing. Clicks are blocked everywhere on these, holes included.
  *
  * The panel is docked, not floating: it holds the bottom of the screen and the
  * board is made shorter by exactly its height (see --tour-dock), so it never
@@ -47,16 +51,6 @@ function boxOf(el: Element): Box {
   };
 }
 
-/** Smallest box containing all of them, for steps that point at two things. */
-function union(boxes: readonly Box[]): Box | null {
-  if (boxes.length === 0) return null;
-  const top = Math.min(...boxes.map((b) => b.top));
-  const left = Math.min(...boxes.map((b) => b.left));
-  const right = Math.max(...boxes.map((b) => b.left + b.width));
-  const bottom = Math.max(...boxes.map((b) => b.top + b.height));
-  return { top, left, width: right - left, height: bottom - top };
-}
-
 export function TourLayer() {
   const active = useTour((s) => s.active);
   const index = useTour((s) => s.index);
@@ -64,10 +58,9 @@ export function TourLayer() {
   const quit = useTour((s) => s.quit);
 
   const step = TOUR_STEPS[index];
-  /** One per anchor. The cutout is their union; each gets its own ring. */
+  /** One per anchor: each is cut out of the dim and gets its own ring. */
   const [boxes, setBoxes] = useState<readonly Box[]>([]);
   const frame = useRef(0);
-  const box = union(boxes);
 
   // Shrinks every screen by the dock's height for as long as the tour runs.
   useEffect(() => {
@@ -191,43 +184,63 @@ export function TourLayer() {
 
   const waiting =
     step.until !== undefined || step.untilAnchor !== undefined || step.untilGone !== undefined;
-  const interactive = waiting && box !== null;
+  // Only one target can be made clickable, so only a single-anchor step opens.
+  const target = waiting && boxes.length === 1 ? boxes[0]! : null;
   const last = index === TOUR_STEPS.length - 1;
-  const hole: React.CSSProperties | null = box
-    ? { top: box.top, left: box.left, width: box.width, height: box.height }
-    : null;
 
   return (
     <>
       <div className={styles.root}>
-        {box ? (
+        {target ? (
           <>
-            <div className={styles.block} style={{ top: 0, left: 0, right: 0, height: box.top }} />
             <div
               className={styles.block}
-              style={{ top: box.top + box.height, left: 0, right: 0, bottom: 0 }}
+              style={{ top: 0, left: 0, right: 0, height: target.top }}
             />
             <div
               className={styles.block}
-              style={{ top: box.top, left: 0, width: box.left, height: box.height }}
+              style={{ top: target.top + target.height, left: 0, right: 0, bottom: 0 }}
             />
             <div
               className={styles.block}
-              style={{ top: box.top, left: box.left + box.width, right: 0, height: box.height }}
+              style={{ top: target.top, left: 0, width: target.left, height: target.height }}
             />
-            {/* Explained, not offered: the item stays lit, the click does not
-                land. */}
-            {!interactive && hole && <div className={styles.catcher} style={hole} />}
+            <div
+              className={styles.block}
+              style={{
+                top: target.top,
+                left: target.left + target.width,
+                right: 0,
+                height: target.height,
+              }}
+            />
           </>
         ) : (
-          <div className={styles.blockAll} />
+          <svg className={styles.dim} aria-hidden>
+            <defs>
+              <mask id="tourHoles">
+                <rect x="0" y="0" width="100%" height="100%" fill="white" />
+                {boxes.map((b, i) => (
+                  <rect
+                    key={i}
+                    x={b.left}
+                    y={b.top}
+                    width={b.width}
+                    height={b.height}
+                    fill="black"
+                  />
+                ))}
+              </mask>
+            </defs>
+            <rect x="0" y="0" width="100%" height="100%" mask="url(#tourHoles)" />
+          </svg>
         )}
 
         {boxes.map((b, i) => (
           <div
             key={i}
             className={styles.ring}
-            data-live={interactive}
+            data-live={target !== null}
             style={{ top: b.top, left: b.left, width: b.width, height: b.height }}
           />
         ))}

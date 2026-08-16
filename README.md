@@ -228,10 +228,14 @@ a grader who refuses slabs, and a set builder wanting a card that is not in the
 case at all, so the only way to sell to them is to dig for it. Every card of
 copy is one or two short sentences; the spotlight does the pointing.
 
-The spotlight is four opaque panels drawn *around* the target rather than one
-scrim with a hole, so the highlighted thing is at full brightness on every step,
-not just the clickable ones. Steps that only explain cover the gap with a
-transparent catcher: the item still reads clearly, the click goes nowhere. The
+The spotlight cuts the dim two ways. An action step draws four opaque panels
+*around* one element, so the gap between them is a real gap and the control
+underneath takes the click. An explaining step paints one sheet and punches a
+hole per anchor through an SVG mask, because it may be pointing at two things in
+opposite corners — the refusal chip on the buyer and the price it produced down
+in the tally — and a single cutout spanning both would light half the board and
+highlight nothing. A mask only affects paint, so clicks are still swallowed over
+those holes, which is what an explaining step wants. The
 panel is docked to the bottom edge and never moves — the screens shrink by its
 height (`--tour-dock`) so it is reserved space rather than something floating
 over the board, and every other row gives back the padding it can spare so the
