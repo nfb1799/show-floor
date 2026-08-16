@@ -316,9 +316,6 @@ export function walkthroughShow(deps: ShowDeps): ShowState {
     inventory: [...WALKTHROUGH_RESERVE],
     lockedCardIds: [],
     heldStockIds: [...WALKTHROUGH_HELD_STOCK],
-    // The collector's scripted pitch goes past their budget, which would open a
-    // binder the script has no step for. The trade beat is not written yet.
-    tradeEnabled: false,
     selection: [],
     queue: [...WALKTHROUGH_BUYERS],
     queueIndex: 0,

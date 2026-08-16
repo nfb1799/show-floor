@@ -17,7 +17,6 @@ import {
   pitch,
   quotaForShow,
   remainingInventory,
-  resolveTrade,
   tableFeeForShow,
   toggleSelection,
   type ShowDeps,
@@ -82,12 +81,6 @@ function playPerfectly(state: ShowState, deps: ShowDeps): ShowState {
     let next = show;
     for (const card of best) next = toggleSelection(next, card.id);
     show = pitch(next, deps);
-
-    // Lists every card a buyer trades in, rather than keeping any. These tests
-    // ask whether a *single show* can be cleared, and cash now beats cards for
-    // that: stock is only worth anything at a show this run may never reach.
-    // The full-run bot in sim/harness.ts keeps them for exactly that reason.
-    if (show.pendingTrade) show = resolveTrade(show, [], deps);
   }
   return show;
 }

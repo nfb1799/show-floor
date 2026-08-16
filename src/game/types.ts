@@ -173,16 +173,8 @@ export interface PitchResult {
   readonly cappedByBudget: boolean;
   /** Post-cap adjustments from onOfferFinalize hooks. */
   readonly offerLines: readonly ScoreLine[];
-  /** Everything the pitch is worth, cash and trade together, whole dollars. */
+  /** Final money, whole dollars. */
   readonly offer: number;
-  /**
-   * The slice of `offer` the buyer cannot cover in cash and makes up out of
-   * their own binder. Zero unless the pitch went past their budget.
-   *
-   * It is part of `offer` rather than on top of it: `offer` stays the one
-   * number that says what a pitch is worth, and the sale splits it.
-   */
-  readonly tradeValue: number;
 }
 
 

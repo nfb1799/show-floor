@@ -56,7 +56,6 @@ import {
   previewPitch,
   pitch as enginePitch,
   remainingInventory,
-  resolveTrade as engineResolveTrade,
   toggleSelection,
   turnAway as engineTurnAway,
   type ShowDeps,
@@ -86,8 +85,6 @@ export interface RunState extends Omit<RunSnapshot, 'rngState'> {
   toggleCard: (cardId: string) => void;
   /** Sells the current selection to the buyer at the table. */
   pitch: () => void;
-  /** Sorts a buyer's trade binder: keep these, list the rest online. */
-  resolveTrade: (keepIds: readonly string[]) => void;
   turnAway: () => void;
   /** Swap a case card for a named card from stock, for a goodwill pip. */
   dig: (outCardId: string, inCardId: string) => void;
@@ -397,7 +394,6 @@ export const useRun = create<RunState>((set, get) => {
 
     toggleCard: (cardId) => applyShow((s) => toggleSelection(s, cardId)),
     pitch: () => applyShow(enginePitch),
-    resolveTrade: (keepIds) => applyShow((s, d) => engineResolveTrade(s, keepIds, d)),
     turnAway: () => applyShow(engineTurnAway),
     dig: (outCardId, inCardId) => applyShow((st) => digFromStock(st, outCardId, inCardId)),
 

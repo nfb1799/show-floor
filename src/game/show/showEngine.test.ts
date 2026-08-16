@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createRng } from '../rng';
 import { generateCards } from '../cards/generate';
-import { onlineValue } from '../shop/shop';
-import { franchiseSpread } from '../testing/factories';
 import {
   canTurnAway,
   createShow,
@@ -11,7 +9,6 @@ import {
   pitch,
   quotaForShow,
   remainingInventory,
-  resolveTrade,
   tableFeeForShow,
   toggleSelection,
   turnAway,
@@ -155,126 +152,6 @@ describe('selling outright', () => {
   });
 });
 
-describe('trading against a buyer who is out of cash', () => {
-  /**
-   * Puts a pitch in front of a buyer who cannot get near it.
-   *
-   * The case is stocked deliberately rather than drawn: five cards off the top
-   * of a starting case are junk commons worth a few dollars all told, so the
-   * shortfall would round to nothing and there would be no binder to test.
-   */
-  function overBudget() {
-    const d = deps('trade-test');
-    const inventory = generateCards(createRng('trade-inv'), 40, 'inv');
-    const rich = franchiseSpread('grimoire', ['A', 'B', 'C', 'D', 'E'], {
-      rarity: 'ultra',
-      condition: 'mint',
-    });
-
-    let show = createShow(1, inventory, d);
-    show = {
-      ...show,
-      displayCase: rich,
-      lockedCardIds: [],
-      buyer: { ...show.buyer!, budget: 200 },
-    };
-    show = selectFirst(show, MAX_PITCH_CARDS);
-    return { show, deps: d };
-  }
-
-  it('banks the cash half and puts the rest on the table as cards', () => {
-    const { show, deps: d } = overBudget();
-    const result = previewPitch(show, d)!;
-    expect(result.cappedByBudget).toBe(true);
-    expect(result.tradeValue).toBeGreaterThan(0);
-
-    const after = pitch(show, d);
-
-    // Only the cash reaches the till at the point of sale.
-    expect(after.earned).toBe(result.offer - result.tradeValue);
-    expect(after.pendingTrade).not.toBeNull();
-    expect(after.pendingTrade!.value).toBe(result.tradeValue);
-    expect(after.pendingTrade!.cards.length).toBeGreaterThan(0);
-  });
-
-  it('puts kept cards into stock, not into the case', () => {
-    // A trade cannot rescue the pitch you are standing in front of.
-    const { show, deps: d } = overBudget();
-    const sold = pitch(show, d);
-    const offered = sold.pendingTrade!.cards;
-
-    const after = resolveTrade(sold, offered.map((c) => c.id), d);
-
-    expect(after.pendingTrade).toBeNull();
-    for (const card of offered) {
-      expect(after.inventory.map((c) => c.id)).toContain(card.id);
-      expect(after.displayCase.map((c) => c.id)).not.toContain(card.id);
-    }
-    // Kept, so nothing further was banked.
-    expect(after.earned).toBe(sold.earned);
-  });
-
-  it('pays the online rate for whatever is listed instead', () => {
-    const { show, deps: d } = overBudget();
-    const sold = pitch(show, d);
-    const offered = sold.pendingTrade!.cards;
-
-    const after = resolveTrade(sold, [], d);
-    const expected = offered.reduce((sum, c) => sum + onlineValue(c), 0);
-
-    expect(after.earned).toBe(sold.earned + expected);
-    expect(after.inventory.map((c) => c.id)).not.toContain(offered[0]!.id);
-    // Listing is deliberately worse than the value it stands in for, which is
-    // what makes keeping a card a real option rather than a formality.
-    expect(expected).toBeLessThan(sold.pendingTrade!.value);
-  });
-
-  it('pays cash outright when trading is switched off', () => {
-    const { show, deps: d } = overBudget();
-    const result = previewPitch(show, d)!;
-    const after = pitch({ ...show, tradeEnabled: false }, d);
-
-    expect(after.pendingTrade).toBeNull();
-    expect(after.earned).toBe(result.offer);
-  });
-
-  it('holds the show open until the binder is sorted', () => {
-    // The bug this replaces: selling to the *last* buyer seated no one, so the
-    // show ended and was judged on the spot — before the player had seen the
-    // binder, and before anything they listed had been banked against quota.
-    const { show, deps: d } = overBudget();
-    const lastBuyer = { ...show, queueIndex: show.config.buyerCount - 1 };
-
-    const sold = pitch(lastBuyer, d);
-    expect(sold.pendingTrade).not.toBeNull();
-    expect(sold.phase).toBe('pitching');
-    expect(sold.outcome).toBe('inProgress');
-
-    const after = resolveTrade(sold, [], d);
-    expect(after.phase).toBe('over');
-    // The listing money is in the total the show is judged on.
-    expect(after.earned).toBeGreaterThan(sold.earned);
-  });
-
-  it('counts a last-buyer listing toward clearing the quota', () => {
-    const { show, deps: d } = overBudget();
-    const sold = pitch(
-      { ...show, queueIndex: show.config.buyerCount - 1, config: { ...show.config, quota: 1 } },
-      d,
-    );
-
-    const listed = resolveTrade(sold, [], d);
-    expect(listed.outcome).toBe('cleared');
-    expect(listed.earned).toBeGreaterThanOrEqual(listed.config.quota);
-  });
-
-  it('does nothing when there is no binder open', () => {
-    const { show, deps: d } = overBudget();
-    const sold = resolveTrade(pitch(show, d), [], d);
-    expect(resolveTrade(sold, [], d)).toBe(sold);
-  });
-});
-
 describe('turning a buyer away', () => {
   it('does not consume a buyer slot', () => {
     const { state, deps: d } = newShow();
@@ -341,9 +218,6 @@ describe('show completion', () => {
 
     while (next.phase !== 'over') {
       next = pitch(selectFirst(next, 5), d);
-      // A sale with a binder open does not seat the next buyer, so anything
-      // playing a show through has to sort it before the show can move on.
-      if (next.pendingTrade) next = resolveTrade(next, [], d);
     }
 
     expect(next.queueIndex).toBe(BUYERS_PER_SHOW);

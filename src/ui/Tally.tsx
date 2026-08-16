@@ -197,13 +197,13 @@ export function Tally({
                 <span className={styles.struck}>{formatMoney(result.uncappedOffer)}</span>
                 <span className={styles.cappedFlag}>
                   <span className={styles.cappedFlagTitle}>PART TRADE</span>
-                  {/* Their cash is a real cap. What it will not cover comes out
-                      of their binder, and those cards are only worth face value
-                      if you can move them — so the two halves are named
-                      separately rather than added into one number. */}
+                  {/* Their cash is a real cap. What it will not cover they make
+                      up out of their own binder and you sell on, which is why
+                      the total lands above their budget. Saying they simply
+                      "pay over budget" made the number read as a bug. */}
                   <span className={styles.cappedFlagNote}>
-                    {formatMoney(result.offer - result.tradeValue)} cash, plus{' '}
-                    {formatMoney(result.tradeValue)} out of their binder to pick over
+                    {formatMoney(result.budget)} cash, plus cards off them worth{' '}
+                    {formatMoney(result.offer - result.budget)} to you
                   </span>
                 </span>
               </>

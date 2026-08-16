@@ -26,7 +26,6 @@ import {
   pitch,
   planShow,
   remainingInventory,
-  resolveTrade,
   toggleSelection,
   type ShowDeps,
   type ShowState,
@@ -189,18 +188,6 @@ export function playShow(
     let next = show;
     for (const card of choice.cards) next = toggleSelection(next, card.id);
     show = pitch(next, deps);
-
-    // Sorts the binder the way the quota demands. Short of it, cards are worth
-    // nothing tonight and the online rate is the only way to turn them into
-    // rent; clear of it, they are worth full value at some later show.
-    //
-    // A bot that always kept them looked like a much harder game than this is:
-    // it banked no cash from a third of every capped sale and died at show 5
-    // sitting on 368 cards.
-    if (show.pendingTrade) {
-      const short = show.earned < show.config.quota;
-      show = resolveTrade(show, short ? [] : show.pendingTrade.cards.map((c) => c.id), deps);
-    }
   }
   return show;
 }

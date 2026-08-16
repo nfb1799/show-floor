@@ -29,8 +29,6 @@ import {
   TURN_AWAY_CONSUMES_BUYER_SLOT,
 } from '../constants';
 import { generateBuyer } from '../buyers/generate';
-import { generateTradeOffer } from '../buyers/tradeStock';
-import { onlineValueOf } from '../shop/shop';
 import { queueRng } from '../run/rumors';
 import { resolvePitch } from '../pitch/resolvePitch';
 import {
@@ -89,19 +87,6 @@ export interface ShowStats {
   readonly cardsSold: number;
 }
 
-/**
- * A buyer's binder, open on the table, waiting to be picked over.
- *
- * The show does not advance the money for these: the cash half of the sale is
- * banked immediately and this half is worth whatever the player makes of it.
- */
-export interface PendingTrade {
-  readonly buyerLabel: string;
-  readonly cards: readonly Card[];
-  /** The cash shortfall these cards stand in for. */
-  readonly value: number;
-}
-
 export interface ShowState {
   readonly config: ShowConfig;
   readonly earned: number;
@@ -128,13 +113,6 @@ export interface ShowState {
   readonly phase: ShowPhase;
   /** The sale being shown on the resolve screen. */
   readonly lastSale: SaleRecord | null;
-  /** Cards a buyer put up in trade, still to be picked over. */
-  readonly pendingTrade: PendingTrade | null;
-  /**
-   * Whether buyers make up a shortfall in cards at all. Off for the
-   * walkthrough, which does not teach the mechanic yet.
-   */
-  readonly tradeEnabled: boolean;
   readonly log: readonly LogEntry[];
   readonly outcome: ShowOutcome;
   /** Cards sold this show. They are gone from the run for good. */
@@ -473,8 +451,6 @@ export function createShow(
     offerRatio: config.startingOfferRatio,
     phase: 'pitching',
     lastSale: null,
-    pendingTrade: null,
-    tradeEnabled: true,
     log: [],
     outcome: 'inProgress',
     sold: [],
@@ -571,29 +547,11 @@ export function pitch(state: ShowState, deps: ShowDeps): ShowState {
     rng: deps.rng,
   });
 
-  // The offer splits: cash is banked now, and the part the buyer could not
-  // cover arrives as their own cards, worth whatever the player makes of them.
-  const tradeValue = state.tradeEnabled ? result.tradeValue : 0;
-  const tradeCards =
-    tradeValue > 0
-      ? generateTradeOffer(
-          deps.rng,
-          state.buyer,
-          tradeValue,
-          `trade-s${state.config.showIndex}-${state.logSeq}`,
-        )
-      : [];
-  // A binder with nothing small enough in it pays cash after all, rather than
-  // quietly swallowing the difference.
-  const traded = tradeCards.length > 0;
-  const money = result.offer - (traded ? tradeValue : 0) + sale.extraMoney;
+  const money = result.offer + sale.extraMoney;
 
   let next: ShowState = {
     ...state,
     earned: state.earned + money,
-    pendingTrade: traded
-      ? { buyerLabel: state.buyer.label, cards: tradeCards, value: tradeValue }
-      : null,
     // Sold cards leave the case; they were already out of the inventory pool,
     // so this is what makes the loss permanent.
     displayCase: state.displayCase.filter((c) => !state.selection.includes(c.id)),
@@ -618,9 +576,7 @@ export function pitch(state: ShowState, deps: ShowDeps): ShowState {
 
   next = log(
     next,
-    traded
-      ? `${state.buyer.label} takes the ${result.pitchTypeLabel} for $${Math.round(money)} and opens their binder for the rest.`
-      : `${state.buyer.label} takes the ${result.pitchTypeLabel} for $${Math.round(money)}.`,
+    `${state.buyer.label} takes the ${result.pitchTypeLabel} for $${Math.round(money)}.`,
     'sale',
   );
   for (const line of sale.lines) next = log(next, line.label, 'info');
@@ -628,63 +584,6 @@ export function pitch(state: ShowState, deps: ShowDeps): ShowState {
   next = drawUp(next, deps);
   next = swapCaseCards(next, sale.caseSwaps, deps);
 
-  // A sale with a binder still open is not finished. Seating the next buyer
-  // here would end the show on the last one before the player had sorted it —
-  // and the show is judged the moment it ends, so anything they listed would
-  // have been banked after the quota was already counted.
-  if (next.pendingTrade) return next;
-
-  return seatBuyer(next, deps);
-}
-
-/**
- * Sorts the buyer's binder: `keepIds` go into stock, the rest are listed online
- * at SELL_ONLINE_RATE and banked against this show's quota.
- *
- * This is also where the sale finishes — `pitch` stops short of seating the
- * next buyer while a binder is open, so the money from a listing lands before
- * the show can end and be judged.
- *
- * Kept cards land in stock rather than in the case, so a trade cannot rescue
- * the pitch you are standing in front of — it is next show's problem, which is
- * what makes keeping one a real bet on your own inventory.
- */
-export function resolveTrade(
-  state: ShowState,
-  keepIds: readonly string[],
-  deps: ShowDeps,
-): ShowState {
-  const trade = state.pendingTrade;
-  if (!trade) return state;
-
-  const kept = trade.cards.filter((c) => keepIds.includes(c.id));
-  const listed = trade.cards.filter((c) => !keepIds.includes(c.id));
-  const payout = onlineValueOf(listed);
-
-  let next: ShowState = {
-    ...state,
-    pendingTrade: null,
-    inventory: [...state.inventory, ...kept],
-    earned: state.earned + payout,
-  };
-
-  if (kept.length > 0) {
-    next = log(
-      next,
-      `You keep ${kept.length} card${kept.length === 1 ? '' : 's'} out of the ${trade.buyerLabel}'s binder.`,
-      'info',
-    );
-  }
-  if (listed.length > 0) {
-    next = log(
-      next,
-      `You list ${listed.length} of their card${listed.length === 1 ? '' : 's'} online for $${Math.round(payout)}.`,
-      'sale',
-    );
-  }
-
-  // The sale was held open for this, so finish it: seat whoever is next, or
-  // end the show now that everything owed has actually been banked.
   return seatBuyer(next, deps);
 }
 

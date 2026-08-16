@@ -12,7 +12,6 @@ import {
   createShow,
   pitch,
   remainingInventory,
-  resolveTrade,
   toggleSelection,
   type ShowDeps,
   type ShowState,
@@ -43,9 +42,6 @@ function playShow(state: ShowState, deps: ShowDeps): ShowState {
     if (next.selection.length === 0) break;
 
     show = pitch(next, deps);
-    // A buyer who could not cover the pitch in cash leaves a binder open, and
-    // the sale is not finished — nor the show able to end — until it is sorted.
-    if (show.pendingTrade) show = resolveTrade(show, [], deps);
   }
   return show;
 }

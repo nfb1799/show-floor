@@ -55,10 +55,10 @@ describe('Appeal arithmetic', () => {
     expect(result.offer).toBe(3); // 3 + 1.06 x 0.25, rounded
   });
 
-  it('still pays for appeal above the budget, in trade', () => {
+  it('still pays for appeal above the budget, at the overflow rate', () => {
     // The cap used to be hard, and two thirds of pitches hit it — past that
     // point a better pitch paid exactly the same as a worse one, which is what
-    // collapsed the decision. A buyer out of cash opens their binder instead.
+    // collapsed the decision. A buyer over budget goes to the ATM instead.
     const cards = holoWallCards();
     const tight = resolvePitch(pitch(cards, { buyer: buyer({ budget: 400 }) }));
     const tighter = resolvePitch(pitch(cards.slice(0, 4), { buyer: buyer({ budget: 400 }) }));
@@ -67,18 +67,8 @@ describe('Appeal arithmetic', () => {
     expect(tighter.cappedByBudget).toBe(true);
     // Both are over budget, and the better pitch is still worth more.
     expect(tight.offer).toBeGreaterThan(tighter.offer);
-    // 400 + (1708 - 400) x 0.4
-    expect(tight.offer).toBe(923);
-    // ...of which the part over budget is what the binder has to cover.
-    expect(tight.tradeValue).toBe(523);
-    expect(tight.offer - tight.tradeValue).toBe(tight.budget);
-  });
-
-  it('leaves nothing to trade when the buyer covers it in cash', () => {
-    const result = resolvePitch(pitch(holoWallCards(), { buyer: buyer({ budget: 100_000 }) }));
-
-    expect(result.cappedByBudget).toBe(false);
-    expect(result.tradeValue).toBe(0);
+    // 400 + (1708 - 400) x 0.25
+    expect(tight.offer).toBe(727);
   });
 
   it('leaves budget the dominant term rather than a formality', () => {
@@ -311,12 +301,12 @@ describe('modifier hooks', () => {
       pitch(holoWallCards(), { buyer: buyer({ budget: 400 }), upgrades: [recover] }),
     );
 
-    // Uncapped was 1708 against a $400 budget. The binder already covers 523 of
-    // that excess, so the gap still on the table is 784.8 — and half of it
-    // comes back. A cap-recovery upgrade reads what the cap actually ate, not
-    // the whole distance to uncapped.
-    expect(seenGap).toBeCloseTo(784.8);
-    expect(result.offer).toBe(1316);
+    // Uncapped was 1708 against a $400 budget. Overflow already paid 327 of
+    // that excess, so the gap still on the table is 981 — and half of it comes
+    // back. A cap-recovery upgrade reads what the cap actually ate, not the
+    // whole distance to uncapped.
+    expect(seenGap).toBeCloseTo(981);
+    expect(result.offer).toBe(1218);
     expect(result.offer).toBeGreaterThan(result.budget);
   });
 
