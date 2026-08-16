@@ -74,7 +74,7 @@ export function BuyerPanel({
           })}
 
           {buyer.turnoff && (
-            <span className={styles.wantChip} data-tone="bad">
+            <span className={styles.wantChip} data-tone="bad" data-tour="refusal">
               <span className={styles.wantChipText}>{describeTurnoff(buyer.turnoff)}</span>
               <span className={styles.wantChipBonus}>NO</span>
             </span>

@@ -1,15 +1,9 @@
 /** Player-facing phrasing for buyer demands. Presentation only. */
 
 import { getFranchise, getSet } from '../game/cards/catalog';
+import { CONDITION_NAME } from './card/artSpec';
 import { VINTAGE_YEAR_CUTOFF } from '../game/constants';
 import type { Turnoff, Want } from '../game/types';
-
-const CONDITION_TEXT: Record<string, string> = {
-  played: 'Played',
-  lightlyPlayed: 'Lightly Played',
-  nearMint: 'Near Mint',
-  mint: 'Mint',
-};
 
 export function describeWant(want: Want): string {
   switch (want.kind) {
@@ -22,7 +16,7 @@ export function describeWant(want: Want): string {
     case 'franchise':
       return `${getFranchise(want.franchiseId).name} cards`;
     case 'rawMinCondition':
-      return `Raw cards, ${CONDITION_TEXT[want.minCondition] ?? want.minCondition} or better`;
+      return `Raw cards, ${CONDITION_NAME[want.minCondition]} or better`;
     case 'minGrade':
       return `Slabs graded ${want.minGrade}+`;
     case 'holo':

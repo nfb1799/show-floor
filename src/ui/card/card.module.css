@@ -77,6 +77,41 @@
   background: var(--gold);
 }
 
+/* --- Condition tooltip ---------------------------------------------------
+   Held back half a second so it never flashes while the cursor is crossing a
+   row of cards on the way somewhere else. It hangs above the card because the
+   art slot clips, and it is the card that is hovered rather than the stamp:
+   the stamp is a few millimetres across on a small card. */
+
+.conditionTip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  width: max-content;
+  max-width: 210px;
+  padding: 6px 9px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 rgb(28 24 19 / 30%);
+  font-family: 'Barlow', system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 90ms ease;
+  transition-delay: 0s;
+}
+
+.card:hover .conditionTip {
+  opacity: 1;
+  transition-delay: 500ms;
+}
+
 /* --- Data block ---------------------------------------------------------- */
 
 /* Type scales with the card's own width (cqw), so a bigger card is genuinely

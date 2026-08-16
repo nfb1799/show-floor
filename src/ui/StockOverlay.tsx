@@ -15,17 +15,11 @@ import { gradingFee, gradingOutcomeRange } from '../game/shop/grading';
 import { onlineValue } from '../game/shop/shop';
 import { useRun } from '../state/runStore';
 import { CardView } from './card/CardView';
+import { CONDITION_NAME } from './card/artSpec';
 import { Band } from './kit';
 import type { Card } from '../game/types';
 import styles from './app.module.css';
 
-/** Spelled out here: the card face prints the abbreviation, a price needs words. */
-const CONDITION_NAME: Record<string, string> = {
-  played: 'Played',
-  lightlyPlayed: 'Lightly Played',
-  nearMint: 'Near Mint',
-  mint: 'Mint',
-};
 
 function CardActions({ card, onDone }: { card: Card; onDone: () => void }) {
   const spendable = useRun((s) => s.spendable());

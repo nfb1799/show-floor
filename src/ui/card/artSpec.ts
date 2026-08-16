@@ -84,11 +84,20 @@ export const RARITY_LABEL: Record<Rarity, string> = {
   ultra: RARITY_INK.ultra.label,
 };
 
+/** What the corner stamp prints. Two letters each, so they line up. */
 export const CONDITION_LABEL: Record<Condition, string> = {
-  played: 'PL',
+  played: 'HP',
   lightlyPlayed: 'LP',
   nearMint: 'NM',
-  mint: 'MINT',
+  mint: 'MT',
+};
+
+/** Spelled out, for tooltips and anywhere with room for words. */
+export const CONDITION_NAME: Record<Condition, string> = {
+  played: 'Heavy Play',
+  lightlyPlayed: 'Light Play',
+  nearMint: 'Near Mint',
+  mint: 'Mint',
 };
 
 /**

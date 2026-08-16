@@ -157,8 +157,8 @@ export function TitleScreen() {
 
       <div className={styles.centerSheet} style={{ marginTop: 8 }}>
         <p className={styles.sub} style={{ margin: 0, fontSize: 17 }}>
-          One booth, one quota, four buyers a show. Read the room, pull the right cards from the
-          case, and move volume before the aisle empties. Every card you sell is gone for good.
+          You rent a table at a card show and sell to whoever walks up. Read the buyer, pitch the
+          right cards, and clear the quota before closing.
         </p>
 
         {offerTour && (

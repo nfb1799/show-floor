@@ -397,7 +397,7 @@ export const PACK_TIERS: readonly PackTier[] = [
     cardCount: 5,
     rarityWeights: { common: 34, uncommon: 32, rare: 24, rareHolo: 8, ultra: 2 },
     slabChance: 0.08,
-    blurb: 'Five cards, sealed. The odds are honest but not generous.',
+    blurb: 'Five cards, sealed. Honest rates, but not generous ones.',
   },
   {
     id: 'hobby',

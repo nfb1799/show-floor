@@ -11,10 +11,11 @@
 
 import type { CSSProperties, ReactNode } from 'react';
 import { cardValue, formatMoney } from '../../game/cards/value';
+import { CONDITION_MULT, GRADE_MULT, GRADE_MULT_FLOOR, GRADE_MULT_FLOOR_AT } from '../../game/constants';
 import { getFranchise, getSet } from '../../game/cards/catalog';
 import { VINTAGE_YEAR_CUTOFF } from '../../game/constants';
 import type { Card } from '../../game/types';
-import { cardArtSpec, CONDITION_LABEL, GRADER_MARK } from './artSpec';
+import { cardArtSpec, CONDITION_LABEL, CONDITION_NAME, GRADER_MARK } from './artSpec';
 import styles from './card.module.css';
 
 export type CardSize = 'normal' | 'small' | 'tiny';
@@ -67,6 +68,17 @@ export function CardFrame({
 
   const style = { '--rarity-ink': spec.rarityInk } as CSSProperties;
 
+  // The stamp is two letters, which says nothing to a new player about what
+  // they are worth. Spelled out on hover, with the multiplier that is the only
+  // reason condition matters.
+  const gradeMult = card.slabbed
+    ? (card.grade > GRADE_MULT_FLOOR_AT ? GRADE_MULT[card.grade] : GRADE_MULT_FLOOR) ??
+      GRADE_MULT_FLOOR
+    : 0;
+  const conditionTip = card.slabbed
+    ? `Graded ${card.grade} of 10 — sealed, and worth ${gradeMult}x the base price`
+    : `${CONDITION_NAME[card.condition]} (${CONDITION_LABEL[card.condition]}) — worth ${CONDITION_MULT[card.condition]}x the base price`;
+
   return (
     <div
       className={styles.card}
@@ -94,6 +106,9 @@ export function CardFrame({
           {card.slabbed ? `${GRADER_MARK} ${card.grade}` : CONDITION_LABEL[card.condition]}
         </span>
       </div>
+
+      {/* Outside the art slot, which clips, so the tip can hang off the card. */}
+      {size !== 'tiny' && <span className={styles.conditionTip}>{conditionTip}</span>}
 
       {size !== 'tiny' && (
         <div className={styles.data}>

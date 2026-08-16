@@ -135,7 +135,8 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'conditions',
     anchor: `card:${W.ruiz}`,
     title: 'Condition, corner stamp',
-    text: 'PL, LP, NM, MINT. Condition multiplies price — Played pays 0.4x, Mint 1.3x.',
+    text:
+      'Heavy Play (HP), Light Play (LP), Near Mint (NM), Mint (MT) — hover any card to check. It multiplies the price: HP pays 0.4x, MT pays 1.3x.',
   },
   {
     id: 'pickClean',
@@ -163,9 +164,10 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     id: 'collapse',
-    anchor: ['mult', 'pay'],
+    anchor: ['refusal', 'pay'],
     title: '$302 to $87',
-    text: 'Grading it is the one thing they wanted to do. The red line is the whole pitch, quartered.',
+    text:
+      'Grading it is the one thing they wanted to do. That red line is the whole pitch, quartered.',
   },
   {
     id: 'untrap',
@@ -206,10 +208,16 @@ export const TOUR_STEPS: readonly TourStep[] = [
     untilAnchor: 'digPanel',
   },
   {
-    id: 'digCols',
-    anchor: ['digOutCol', 'digInCol'],
-    title: 'Your case, and your box',
-    text: 'Left is what is on the table right now. Right is everything else you own.',
+    id: 'digCaseCol',
+    anchor: 'digOutCol',
+    title: 'On the left, your case',
+    text: 'The eight cards on the table right now.',
+  },
+  {
+    id: 'digBoxCol',
+    anchor: 'digInCol',
+    title: 'On the right, your box',
+    text: 'Everything else you own, which the buyer never sees.',
   },
   {
     id: 'digOut',
@@ -284,14 +292,14 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'packs',
     anchor: 'packs',
-    title: 'Or gamble on sealed',
-    text: 'Cheaper per card. You open them here and keep what is worth carrying.',
+    title: 'Or buy sealed',
+    text: 'Cheaper per card, but you take what you pull. Open them here and keep what earns.',
   },
   {
     id: 'gear',
     anchor: 'gear',
     title: 'Gear changes the rules',
-    text: 'Permanent upgrades. Each one prints exactly what it does to your pitches.',
+    text: 'Permanent upgrades: better prices, more room, buyers who want what you already hold.',
   },
   {
     id: 'openStock',
@@ -332,7 +340,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'grade',
     anchor: 'grade',
     title: 'Or send it to be graded',
-    text: 'A fee now, a sealed and scored card back. The range on the button is the bet.',
+    text: 'A fee now, a sealed and scored card back. The range on the button is what it could come back as.',
     action: 'Click GRADE',
     untilAnchor: 'gradedPanel',
   },

@@ -315,6 +315,13 @@ most buyers cap, the answer was nearly always "take it". SEND IT now sells at
 the price on the board. Goodwill survives as the currency for digging, which is
 a real decision: you spend it to go and fetch a card the buyer actually wants.
 
+**Condition says what it is.** The stamps are HP / LP / NM / MT, and hovering a
+card for half a second spells the condition out with the multiplier that is the
+only reason it matters — "Heavy Play (HP) — worth 0.4x the base price", or for a
+slab, "Graded 9 of 10 — sealed, and worth 3.2x". The delay is deliberate: the
+cursor crosses a row of eight cards on its way to anything, and an instant
+tooltip would strobe.
+
 **Vintage is now readable.** Every card face prints its set year, highlighted in
 gold when it is at or under the cutoff, and the want reads "Anything printed 1990
 or earlier" instead of "Vintage sets".
