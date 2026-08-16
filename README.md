@@ -315,6 +315,16 @@ most buyers cap, the answer was nearly always "take it". SEND IT now sells at
 the price on the board. Goodwill survives as the currency for digging, which is
 a real decision: you spend it to go and fetch a card the buyer actually wants.
 
+**The pitch-type table is on the board now.** Ten types was the core skill of
+the game and the one thing nothing ever showed: the tally names the type you
+*did* build, which teaches nothing about the nine you did not. A **What pays?**
+button in the tally header opens the full list at any point in a show — name,
+what it needs, its flat value and its Interest — printed straight out of
+`PITCH_TYPES`, with the type your current selection is scoring as highlighted
+live. The requirement copy lives beside each type's numbers in `constants.ts`,
+so a type added without its rules line fails a test rather than rendering a
+blank row.
+
 **Condition says what it is.** The stamps are HP / LP / NM / MT, and hovering a
 card for half a second spells the condition out with the multiplier that is the
 only reason it matters — "Heavy Play (HP) — worth 0.4x the base price", or for a

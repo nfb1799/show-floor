@@ -104,6 +104,12 @@ export const TOUR_STEPS: readonly TourStep[] = [
     text: 'Cards that go together are worth far more than the same cards sold loose.',
   },
   {
+    id: 'guide',
+    anchor: 'guideBtn',
+    title: 'Every combination that pays',
+    text: 'Ten of them, from a Pair up. This list is here whenever you need it.',
+  },
+  {
     id: 'capped',
     anchor: 'budget',
     title: 'And the wallet bites',

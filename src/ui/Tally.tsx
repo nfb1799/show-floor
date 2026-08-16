@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { formatMoney } from '../game/cards/value';
 import type { PitchResult } from '../game/types';
 import { Band } from './kit';
+import { PitchGuide } from './PitchGuide';
 import styles from './app.module.css';
 
 function round(n: number, places = 0): string {
@@ -37,10 +39,34 @@ export function Tally({
   onTurnAway,
   onDig,
 }: TallyProps) {
+  const [guide, setGuide] = useState(false);
+
+  /** Always in the same place, whether or not a pitch is on the table. */
+  const guideButton = (
+    <button
+      className={styles.guideBtn}
+      onClick={() => setGuide(true)}
+      data-tour="guideBtn"
+      title="Every combination that pays"
+    >
+      WHAT PAYS?
+    </button>
+  );
+
   if (!result) {
     return (
       <div className={styles.sheetFlat}>
-        <Band title="The tally" note="PULL UP TO 5 CARDS" goldTitle />
+        <Band
+          title="The tally"
+          note={
+            <span className={styles.bandNoteRow}>
+              <span>PULL UP TO 5 CARDS</span>
+              {guideButton}
+            </span>
+          }
+          goldTitle
+        />
+        {guide && <PitchGuide onClose={() => setGuide(false)} />}
         <div className={styles.tallyBody}>
           <div className={styles.tallyMath}>
             <div className={styles.tallyIdle}>
@@ -90,12 +116,17 @@ export function Tally({
       <Band
         title="The tally"
         note={
-          <>
-            DETECTED PITCH: <span style={{ color: 'var(--gold)' }}>{result.pitchTypeLabel}</span>
-          </>
+          <span className={styles.bandNoteRow}>
+            <span>
+              DETECTED PITCH: <span style={{ color: 'var(--gold)' }}>{result.pitchTypeLabel}</span>
+            </span>
+            {guideButton}
+          </span>
         }
         goldTitle
       />
+
+      {guide && <PitchGuide active={result.pitchType} onClose={() => setGuide(false)} />}
 
       <div className={styles.tallyBody}>
         <div className={styles.tallyMath} data-tour="math">

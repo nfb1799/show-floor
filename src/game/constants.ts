@@ -91,7 +91,7 @@ export interface PitchTypeDef {
  * it is the tiebreak when two valid types produce an identical offer.
  */
 export const PITCH_TYPES: readonly PitchTypeDef[] = [
-  { id: 'looseCards', label: 'Loose Cards', value: 5, interest: 1, requires: 'Any 1-5 cards. Always available, so no pitch is ever unscoreable.' },
+  { id: 'looseCards', label: 'Loose Cards', value: 5, interest: 1, requires: 'Any 1-5 cards, always available. One on its own is a Loose Single.' },
   { id: 'pair', label: 'Pair', value: 12, interest: 2, requires: 'Two cards sharing a subject, a franchise or a set.' },
   { id: 'bundle', label: 'Bundle', value: 25, interest: 3, requires: 'Three cards sharing a subject, a franchise or a set.' },
   { id: 'rainbow', label: 'Rainbow', value: 40, interest: 4, requires: 'Three or more of one rarity, every subject different.' },
