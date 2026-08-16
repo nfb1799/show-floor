@@ -42,8 +42,8 @@ export const TOUR_STEPS: readonly TourStep[] = [
   // -- Buyer one: pitch types and the budget cap ----------------------------
   {
     id: 'welcome',
-    title: 'Your table, mid-show',
-    text: 'A short show — three buyers. Everything here is the real game.',
+    title: 'You rented a table at a card show',
+    text: 'Sell cards out of your case to whoever walks up, and clear the quota before closing.',
   },
   {
     id: 'quota',
