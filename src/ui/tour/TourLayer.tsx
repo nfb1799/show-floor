@@ -118,11 +118,43 @@ export function TourLayer() {
     });
   }, [active, step, next]);
 
+  // Overlays open and close in local component state rather than the run, so
+  // those steps watch the screen instead: the panel appearing *is* the event.
+  useEffect(() => {
+    if (!active || !step) return;
+    if (!step.untilAnchor && !step.untilGone) return;
+
+    const check = (): void => {
+      const found = (a: string): boolean => document.querySelector(`[data-tour="${a}"]`) !== null;
+      const appeared = step.untilAnchor ? found(step.untilAnchor) : true;
+      const vanished = step.untilGone ? !found(step.untilGone) : true;
+      if (appeared && vanished) next();
+    };
+
+    // Watched rather than polled: the overlay appearing is a DOM mutation, so
+    // the step ends on the same tick the panel opens instead of up to a poll
+    // interval later. The interval stays as a backstop for anything that
+    // changes without touching the tree we observe.
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, { childList: true, subtree: true });
+    const timer = window.setInterval(check, 250);
+
+    return () => {
+      observer.disconnect();
+      clearInterval(timer);
+    };
+  }, [active, step, next]);
+
   useEffect(() => {
     if (!active) return;
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') quit();
-      if ((e.key === 'Enter' || e.key === ' ') && step && !step.until) {
+      const waits =
+        step?.until !== undefined ||
+        step?.untilAnchor !== undefined ||
+        step?.untilGone !== undefined;
+      if ((e.key === 'Enter' || e.key === ' ') && step && !waits) {
         e.preventDefault();
         next();
       }
@@ -133,7 +165,9 @@ export function TourLayer() {
 
   if (!active || !step) return null;
 
-  const interactive = step.until !== undefined && box !== null;
+  const waiting =
+    step.until !== undefined || step.untilAnchor !== undefined || step.untilGone !== undefined;
+  const interactive = waiting && box !== null;
   const last = index === TOUR_STEPS.length - 1;
   const hole: React.CSSProperties | null = box
     ? { top: box.top, left: box.left, width: box.width, height: box.height }
@@ -170,20 +204,15 @@ export function TourLayer() {
 
       <div className={styles.dock}>
         <div className={styles.dockText}>
-          <div className={styles.head}>
-            <span className={styles.count}>
-              {index + 1}/{TOUR_STEPS.length}
-            </span>
-            <span className={styles.title}>{step.title}</span>
-          </div>
+          <button className={styles.skip} onClick={quit}>
+            {last ? 'CLOSE TUTORIAL' : 'SKIP TUTORIAL'}
+          </button>
+          <div className={styles.title}>{step.title}</div>
           <p className={styles.text}>{step.text}</p>
         </div>
 
         <div className={styles.dockActions}>
-          <button className={styles.skip} onClick={quit}>
-            {last ? 'CLOSE' : 'SKIP'}
-          </button>
-          {step.until ? (
+          {waiting ? (
             <span className={styles.prompt}>{step.action ?? 'Your turn'}</span>
           ) : (
             <button className={styles.next} onClick={next}>

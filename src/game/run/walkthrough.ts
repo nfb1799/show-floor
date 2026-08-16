@@ -19,11 +19,11 @@ export const WALKTHROUGH_SEED = 'walkthrough';
 export const WALKTHROUGH_BANKROLL = 100;
 
 /**
- * Both scripted buyers cap out, so the show pays about $350. The quota is set
+ * The scripted pitches pay about $560 across the three buyers. The quota sits
  * under that: the walkthrough should end on a cleared show, because the last
  * thing it does is hand the player the shop.
  */
-export const WALKTHROUGH_QUOTA = 300;
+export const WALKTHROUGH_QUOTA = 400;
 
 /** Ids the step script points at. Named so a typo is a type error. */
 export const W = {
@@ -35,13 +35,16 @@ export const W = {
   ruiz: 'w-hw-57',
   slab: 'w-dl-88',
   pup: 'w-pb-30',
+  /** In stock, never in the case: the card the third buyer has to be dug for. */
+  origin: 'w-pb-origin-4',
 } as const;
 
 /**
  * Eight cards carrying every lesson the script needs: three Grimoire cards for
  * the collector (two of them a Pair, all three a Set Run), two clean Hardwood
- * raws for the grader, one beaten Hardwood raw as the trap that shows a
- * turnoff biting, and a slab and a junk common as the cards that never fit.
+ * raws for the grader, a beaten Hardwood raw that earns nothing from them, a
+ * slab the grader actively refuses, and a junk common to hand back when the
+ * third buyer sends you digging.
  */
 export const WALKTHROUGH_CASE: readonly Card[] = [
   {
@@ -128,8 +131,23 @@ export const WALKTHROUGH_CASE: readonly Card[] = [
   },
 ];
 
-/** Refills after each sale come from here, so the case never runs short. */
+/**
+ * Refills after each sale come from here, so the case never runs short. The
+ * Origin Set card is the point of the third buyer: it is the only thing in the
+ * run that satisfies them, and it is never in the case, so the only way to sell
+ * it is to dig.
+ */
 export const WALKTHROUGH_RESERVE: readonly Card[] = [
+  {
+    id: W.origin,
+    subject: 'Emberclaw',
+    franchise: 'pocketBeasts',
+    setId: 'pb-origin',
+    setNumber: 4,
+    rarity: 'rareHolo',
+    slabbed: false,
+    condition: 'nearMint',
+  },
   {
     id: 'w-res-1',
     subject: 'Tidecaller',
@@ -193,10 +211,10 @@ export const WALKTHROUGH_RESERVE: readonly Card[] = [
 ];
 
 /**
- * Two buyers, chosen for contrast: one who pays for a franchise you happen to
- * be deep in, and one whose refusal punishes a single bad card. Budgets are
- * large enough that the pitch, not the wallet, is what the player is reading —
- * though both still cap, which is a lesson of its own.
+ * Three buyers, each teaching one thing: a collector who pays for a franchise
+ * you are deep in, a grader who refuses slabs outright, and a set builder who
+ * wants a card that is not in the case at all — the only way to sell to them is
+ * to dig for it.
  */
 export const WALKTHROUGH_BUYERS: readonly Buyer[] = [
   {
@@ -215,11 +233,16 @@ export const WALKTHROUGH_BUYERS: readonly Buyer[] = [
     // whether or not the beaten card is in it, and the lesson evaporates.
     budget: 320,
     wants: [{ kind: 'rawMinCondition', minCondition: GRADER_MIN_CONDITION, interestPerCard: 5 }],
-    turnoff: {
-      kind: 'rawBelowCondition',
-      minCondition: GRADER_MIN_CONDITION,
-      interestMult: REFUSAL_INTEREST_MULT,
-    },
+    turnoff: { kind: 'anySlab', interestMult: REFUSAL_INTEREST_MULT },
+  },
+  {
+    id: 'w-buyer-3',
+    archetype: 'setBuilder',
+    label: 'Set Builder',
+    budget: 260,
+    // Nothing in the opening case is from this set, and the refill cannot fix
+    // that either: the one card that matches is held back in stock.
+    wants: [{ kind: 'fromSets', setIds: ['pb-origin'], interestPerCard: 6 }],
   },
 ];
 

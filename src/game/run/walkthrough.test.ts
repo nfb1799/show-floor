@@ -7,8 +7,14 @@
 
 import { describe, expect, it } from 'vitest';
 import { createRng } from '../rng';
-import { pitch, toggleSelection, type ShowDeps } from '../show/showEngine';
-import { previewPitch } from '../show/showEngine';
+import {
+  digFromStock,
+  pitch,
+  previewPitch,
+  toggleSelection,
+  type ShowDeps,
+  type ShowState,
+} from '../show/showEngine';
 import {
   W,
   WALKTHROUGH_BUYERS,
@@ -30,11 +36,11 @@ function showWith(...cardIds: string[]) {
 }
 
 describe('the scripted case', () => {
-  it('seats the collector first and the grader second', () => {
+  it('seats the collector first, ahead of the grader and the set builder', () => {
     const state = walkthroughShow(deps());
     expect(state.buyer?.id).toBe(WALKTHROUGH_BUYERS[0]!.id);
-    expect(state.queue).toHaveLength(2);
-    expect(state.config.buyerCount).toBe(2);
+    expect(state.queue).toHaveLength(3);
+    expect(state.config.buyerCount).toBe(3);
   });
 
   it('opens with a single card that the collector can actually afford', () => {
@@ -64,6 +70,50 @@ describe('the scripted case', () => {
   });
 });
 
+describe('the dig beat', () => {
+  /** Plays the scripted first two sales, leaving the set builder at the table. */
+  function atSetBuilder(): { state: ShowState; deps: ShowDeps } {
+    const d = deps();
+    let state = walkthroughShow(d);
+    state = pitch(toggleSelection(toggleSelection(state, W.lich), W.golem), d);
+    state = pitch(toggleSelection(toggleSelection(state, W.dell), W.vance), d);
+    return { state, deps: d };
+  }
+
+  it('seats a buyer nothing in the case can satisfy', () => {
+    const { state, deps: d } = atSetBuilder();
+
+    expect(state.buyer?.id).toBe(WALKTHROUGH_BUYERS[2]!.id);
+    // The whole point of the step: no pitch from the case earns the want.
+    for (const card of state.displayCase) {
+      const only = toggleSelection(state, card.id);
+      expect(previewPitch(only, d)!.interestAddLines, card.id).toHaveLength(0);
+    }
+  });
+
+  it('keeps the card they want out of the case until it is dug for', () => {
+    // Refills draw at random from stock, so this is a real risk rather than a
+    // formality: if the run ever hands the Origin card over for free, the dig
+    // step has nothing left to teach.
+    const { state } = atSetBuilder();
+    expect(state.displayCase.map((c) => c.id)).not.toContain(W.origin);
+    expect(state.inventory.map((c) => c.id)).toContain(W.origin);
+  });
+
+  it('pays for the dug card once it is on the table', () => {
+    const { state, deps: d } = atSetBuilder();
+    const spare = state.displayCase.find((c) => c.id !== W.origin)!;
+    const dug = digFromStock(state, spare.id, W.origin);
+
+    expect(dug.goodwill).toBe(state.goodwill - 1);
+    expect(dug.selection).toContain(W.origin);
+
+    const result = previewPitch(dug, d)!;
+    expect(result.interestAddLines.length).toBeGreaterThan(0);
+    expect(result.offer).toBeGreaterThan(100);
+  });
+});
+
 describe('the grader beat', () => {
   /** Plays through the collector so the grader is the one at the table. */
   function atGrader() {
@@ -85,31 +135,46 @@ describe('the grader beat', () => {
     expect(ids).toContain(W.ruiz);
   });
 
-  it('punishes the beaten card with a visible multiplier', () => {
+  it('refuses a slab rather than a beaten card', () => {
     const { state, deps: d } = atGrader();
     const clean = toggleSelection(toggleSelection(state, W.dell), W.vance);
-    const spoiled = toggleSelection(clean, W.ruiz);
+    const spoiled = toggleSelection(clean, W.slab);
 
     expect(previewPitch(clean, d)!.interestMultLines).toHaveLength(0);
-    // The clean pitch has to sit under the wallet, or the penalty lands on a
+    // The clean pitch has to sit under the wallet, or the refusal lands on a
     // capped number and the player watches nothing happen.
     expect(previewPitch(clean, d)!.cappedByBudget).toBe(false);
 
-    // One beaten raw card, and the whole pitch is worth a quarter.
+    // One graded card, and the whole pitch is worth a quarter.
     expect(previewPitch(spoiled, d)!.interestMultLines).toHaveLength(1);
-    // The script says "watch it fall off a cliff", so a shrug is a failure:
-    // one beaten card has to cost a quarter of the offer at minimum.
     expect(previewPitch(spoiled, d)!.offer).toBeLessThan(previewPitch(clean, d)!.offer * 0.75);
+  });
+
+  it('lets a beaten raw card earn nothing without punishing the pitch', () => {
+    // A grader buys to submit, so a Played card is simply not what they came
+    // for. It used to quarter the pitch, which read as a trap rather than a
+    // preference — and the chip describing it said "Any slab" regardless.
+    const { state, deps: d } = atGrader();
+    const clean = toggleSelection(toggleSelection(state, W.dell), W.vance);
+    const withBeaten = toggleSelection(clean, W.ruiz);
+
+    expect(previewPitch(withBeaten, d)!.interestMultLines).toHaveLength(0);
+    expect(previewPitch(withBeaten, d)!.offer).toBeGreaterThan(
+      previewPitch(clean, d)!.offer * 0.9,
+    );
   });
 });
 
 describe('the show as a whole', () => {
-  it('clears its quota when both scripted pitches are taken', () => {
+  it('clears its quota when all three scripted pitches are taken', () => {
     const d = deps();
     let state = walkthroughShow(d);
 
     state = pitch(toggleSelection(toggleSelection(state, W.lich), W.golem), d);
     state = pitch(toggleSelection(toggleSelection(state, W.dell), W.vance), d);
+
+    const spare = state.displayCase.find((c) => c.id !== W.origin)!;
+    state = pitch(digFromStock(state, spare.id, W.origin), d);
 
     expect(state.phase).toBe('over');
     expect(state.outcome).toBe('cleared');

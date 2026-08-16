@@ -57,55 +57,42 @@
    Fixed to the bottom edge and never moved. The screens shrink by --tour-dock
    to make room, so this is reserved space rather than an overlay. */
 
+/* Every pixel here is a pixel off the display case, so the box is kept as
+   short as three lines of readable type allow. */
 .dock {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 95;
-  height: var(--tour-dock, 136px);
+  height: var(--tour-dock, 94px);
   background: var(--paper);
   border-top: 3px solid var(--ink);
   box-shadow: 0 -6px 0 rgb(28 24 19 / 22%);
   display: flex;
   align-items: center;
   gap: 26px;
-  padding: 16px 28px;
+  padding: 6px 26px 8px;
   pointer-events: auto;
 }
 
 .dockText {
   flex: 1;
   min-width: 0;
-  max-width: 1100px;
-}
-
-.head {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.count {
-  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
-  font-weight: 800;
-  font-size: 13px;
-  letter-spacing: 0.1em;
-  color: var(--muted-2);
-  flex: none;
+  max-width: 1180px;
 }
 
 .title {
   font-family: 'Bungee', system-ui, sans-serif;
-  font-size: 19px;
-  line-height: 1.2;
+  font-size: 16px;
+  line-height: 1.1;
   color: var(--ink);
 }
 
 .text {
-  margin: 6px 0 0;
+  margin: 3px 0 0;
   font-size: 19px;
-  line-height: 1.4;
+  line-height: 1.35;
   color: var(--body);
 }
 
@@ -113,18 +100,20 @@
   flex: none;
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: flex-end;
+  min-width: 210px;
 }
 
 .skip {
+  display: block;
   font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
   font-weight: 800;
-  font-size: 13px;
-  letter-spacing: 0.1em;
+  font-size: 11px;
+  letter-spacing: 0.12em;
   color: var(--muted-2);
   background: none;
   border: none;
-  padding: 6px 4px;
+  padding: 0 0 2px;
   cursor: pointer;
 }
 

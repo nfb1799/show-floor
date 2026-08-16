@@ -113,11 +113,7 @@ export type Turnoff =
   | { readonly kind: 'anyRaw'; readonly interestMult: number }
   | { readonly kind: 'anySlab'; readonly interestMult: number }
   /** Grader: submitting beaten cards to a condition hunter insults them. */
-  | {
-      readonly kind: 'rawBelowCondition';
-      readonly minCondition: Condition;
-      readonly interestMult: number;
-    };
+;
 
 export interface Buyer {
   readonly id: string;

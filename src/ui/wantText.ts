@@ -53,8 +53,16 @@ export function explainWant(want: Want): string | null {
   }
 }
 
+/**
+ * Exhaustive on purpose. The old version was a ternary with an else branch, so
+ * a third turnoff kind was silently described as "Any slab" — the chip and the
+ * rules disagreed and the player had no way to tell which was lying.
+ */
 export function describeTurnoff(turnoff: Turnoff): string {
-  return turnoff.kind === 'anyRaw'
-    ? `Any raw card: x${turnoff.interestMult} Interest`
-    : `Any slab: x${turnoff.interestMult} Interest`;
+  switch (turnoff.kind) {
+    case 'anyRaw':
+      return `Any raw card: x${turnoff.interestMult} Interest`;
+    case 'anySlab':
+      return `Any graded slab: x${turnoff.interestMult} Interest`;
+  }
 }

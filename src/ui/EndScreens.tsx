@@ -142,7 +142,7 @@ export function TitleScreen() {
     const save = loadRun();
     setHasSave(save !== null);
     // No save and no history: they have never seen any of this, so offer the
-    // walkthrough rather than hoping they find the button.
+    // tutorial rather than hoping they find the button.
     if (save === null && !hasSeenTutorial()) setOfferTour(true);
   }, []);
 
@@ -165,7 +165,7 @@ export function TitleScreen() {
           <div className={styles.tourOffer}>
             <div className={styles.tourOfferText}>
               <strong>First time?</strong> Play one short show with the game explaining itself as
-              you go. Two buyers, then the shop — about three minutes.
+              you go. Three buyers, then the shop — about three minutes.
             </div>
             <div className={styles.tourOfferButtons}>
               <button className={styles.btn} data-ink="gold" onClick={startTour}>
@@ -198,7 +198,7 @@ export function TitleScreen() {
         />
 
         <button className={styles.btnSm} style={{ marginTop: 10 }} onClick={startTour}>
-          WALKTHROUGH
+          TUTORIAL
         </button>
       </div>
     </div>

@@ -107,10 +107,6 @@ function turnoffApplies(cards: readonly Card[], buyer: Buyer): boolean {
       return cards.some((c) => !c.slabbed);
     case 'anySlab':
       return cards.some((c) => c.slabbed);
-    case 'rawBelowCondition':
-      return cards.some(
-        (c) => !c.slabbed && conditionRank(c.condition) < conditionRank(turnoff.minCondition),
-      );
   }
 }
 

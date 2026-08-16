@@ -1,18 +1,22 @@
 /**
- * Procedural card art, derived deterministically from set + rarity.
+ * Procedural card art, derived deterministically from franchise + rarity.
  *
- * The price-guide redesign prints each set as one flat ink block and codes
- * rarity on a spine down the left edge, rather than the earlier per-franchise
- * gradient. This module and CardArt.tsx remain the entire visual layer for a
- * card: swapping in sprites means replacing CardArt inside CardView.
+ * The card prints its franchise as one flat ink block and codes rarity on a
+ * spine down the left edge. Colour is keyed to the franchise rather than the
+ * individual set because franchise is what the player is actually sorting by:
+ * Full Case, Graded Run, collection depth and most Personal Collectors are all
+ * franchise-shaped, so a case full of one colour is a case full of one pitch.
+ *
+ * This module and CardArt.tsx remain the entire visual layer for a card:
+ * swapping in sprites means replacing CardArt inside CardView.
  */
 
 import { isHolo } from '../../game/cards/value';
 import type { Card, Condition, Rarity } from '../../game/types';
 
 export interface CardArtSpec {
-  /** Flat block colour behind the subject name. */
-  readonly setInk: string;
+  /** Flat block colour behind the subject name. One per franchise. */
+  readonly franchiseInk: string;
   /** Spine colour down the left edge. */
   readonly rarityInk: string;
   readonly rarityLabel: string;
@@ -20,21 +24,18 @@ export interface CardArtSpec {
 }
 
 /**
- * One ink per set. Six come straight from the design; the rest extend the same
- * press palette, chosen so white display type stays legible on every one.
+ * One ink per franchise, each picked for what the franchise is about rather
+ * than for variety: hardwood floors and basketball leather are brown, an
+ * outfield is green, arcana is purple, race liveries are red, and the pocket
+ * monsters keep the electric blue their box art has always used. All five are
+ * dark enough to carry white display type.
  */
-const SET_INK: Record<string, string> = {
-  'pb-origin': '#1f7a6a',
-  'pb-wildlands': '#2f7d52',
-  'pb-storm': '#4a5db8',
-  'hw-89': '#a8801f',
-  'hw-92': '#b8632a',
-  'dl-76': '#1f5fa8',
-  'dl-84': '#2c7c9c',
-  'gr-codex': '#8e3b8f',
-  'gr-ledger': '#a02c4a',
-  'cr-s1': '#cf3a2e',
-  'cr-turbo': '#d97b1e',
+const FRANCHISE_INK: Record<string, string> = {
+  pocketBeasts: '#2a5fbc',
+  hardwood: '#8a5423',
+  diamondLeague: '#2f7d52',
+  grimoire: '#7c3a94',
+  chromeRacers: '#c3352a',
 };
 
 const RARITY_INK: Record<Rarity, { label: string; ink: string }> = {
@@ -56,15 +57,19 @@ function hash(text: string): number {
 
 const FALLBACK_INKS = ['#1f7a6a', '#4a5db8', '#a02c4a', '#b8632a', '#2c7c9c'];
 
-/** An unknown set still gets a stable ink rather than a fallback grey. */
-function inkForSet(setId: string): string {
-  return SET_INK[setId] ?? FALLBACK_INKS[hash(setId) % FALLBACK_INKS.length] ?? '#5c5346';
+/** An unknown franchise still gets a stable ink rather than a fallback grey. */
+function inkForFranchise(franchiseId: string): string {
+  return (
+    FRANCHISE_INK[franchiseId] ??
+    FALLBACK_INKS[hash(franchiseId) % FALLBACK_INKS.length] ??
+    '#5c5346'
+  );
 }
 
 export function cardArtSpec(card: Card): CardArtSpec {
   const rarity = RARITY_INK[card.rarity];
   return {
-    setInk: inkForSet(card.setId),
+    franchiseInk: inkForFranchise(card.franchise),
     rarityInk: rarity.ink,
     rarityLabel: rarity.label,
     foil: isHolo(card.rarity),

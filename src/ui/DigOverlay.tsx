@@ -36,7 +36,7 @@ export function DigOverlay({ onClose }: { onClose: () => void }) {
 
   return (
     <div className={styles.scrim} onClick={onClose}>
-      <div className={styles.digPanel} onClick={(e) => e.stopPropagation()}>
+      <div className={styles.digPanel} onClick={(e) => e.stopPropagation()} data-tour="digPanel">
         <Band
           title="Dig through the box"
           note={

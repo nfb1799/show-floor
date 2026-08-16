@@ -118,6 +118,6 @@ a:hover {
 }
 
 html[data-tour-open='true'] {
-  --tour-dock: 136px;
+  --tour-dock: 94px;
   --app-height: calc(100vh - var(--tour-dock));
 }

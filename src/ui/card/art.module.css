@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------------------
    The procedural art layer: one flat set ink, a rarity spine, and a foil
-   overlay for holo tiers. Driven entirely by --set-ink and --rarity-ink.
+   overlay for holo tiers. Driven entirely by --franchise-ink and --rarity-ink.
 
    Disposable by design — swapping in sprites means deleting this file and
    CardArt.tsx. Nothing in card.module.css or the game layer refers to it.
@@ -9,7 +9,7 @@
 .art {
   position: absolute;
   inset: 0;
-  background: var(--set-ink);
+  background: var(--franchise-ink);
   overflow: hidden;
 }
 

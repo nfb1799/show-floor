@@ -220,12 +220,13 @@ was one show condition, and paying up front against a maybe was never a real
 decision. The Price Guide, the one remaining consumable, sits with the tables
 and cases.
 
-**Onboarding is a scripted walkthrough, not a manual.** The first version was
-six pages of annotated screenshots, which is a wall of text wearing a costume.
-This one plays: a real show with a hand-picked case and two hand-picked buyers,
-where each step spotlights one thing on the real screen and the player performs
-the action themselves. Every card is one or two short sentences — the spotlight
-is doing the pointing, so the words only carry what the player cannot see.
+**Onboarding is a scripted tutorial, not a manual.** The first version was six
+pages of annotated screenshots, which is a wall of text wearing a costume. This
+one plays: a real show with a hand-picked case and three hand-picked buyers,
+each teaching one thing — a collector who pays for a franchise you are deep in,
+a grader who refuses slabs, and a set builder wanting a card that is not in the
+case at all, so the only way to sell to them is to dig for it. Every card of
+copy is one or two short sentences; the spotlight does the pointing.
 
 The spotlight is four opaque panels drawn *around* the target rather than one
 scrim with a hole, so the highlighted thing is at full brightness on every step,
@@ -233,19 +234,37 @@ not just the clickable ones. Steps that only explain cover the gap with a
 transparent catcher: the item still reads clearly, the click goes nowhere. The
 panel is docked to the bottom edge and never moves — the screens shrink by its
 height (`--tour-dock`) so it is reserved space rather than something floating
-over the board. The screens know nothing about any of it beyond a `data-tour`
-attribute on the things worth pointing at.
+over the board, and every other row gives back the padding it can spare so the
+cards stay near the size they are in a real show. Overlay steps end on a
+MutationObserver rather than a poll, because a panel opening *is* a DOM
+mutation.
 
 The script rides beats the arithmetic produces on its own: one Grimoire card
 pays $59, a second makes a Pair worth $210, and the collector's wallet caps it
-there. Then a grader pays $302 for two clean raws, $169 the moment a Played card
-joins them, and $302 again when it leaves.
-[walkthrough.test.ts](src/game/run/walkthrough.test.ts) asserts each of those
-beats still lands, so a change to the value constants fails a test rather than
-making the walkthrough lie. The sandbox never persists — a real save on disk
-survives a walkthrough untouched.
+there. Then a grader pays $302 for two clean raws, $87 the moment a slab joins
+them, and $302 again when it leaves.
+[walkthrough.test.ts](src/game/run/walkthrough.test.ts) asserts each beat still
+lands — including that the card the third buyer wants is never dealt into the
+case by a refill, which would leave the dig step with nothing to teach. The
+sandbox never persists; a real save survives a tutorial untouched.
 
-**The walkthrough found a live bug on its first run.** `.tableGrid` sized its
+**The Grader stopped punishing dirt and started refusing slabs.** It used to
+quarter any pitch containing a raw card below Near Mint, which read as a trap
+rather than a preference — and the chip describing it said "Any slab" no matter
+what the turnoff actually was, because `describeTurnoff` was a ternary with an
+else branch. A beaten card now simply earns nothing from them. What they refuse
+is a slab, which is coherent: they are buying raw cards to submit for grading,
+and a slab has already been graded. The `rawBelowCondition` turnoff is gone
+entirely and the description is exhaustive over what remains.
+
+**Card colour is keyed to franchise, not set.** Every Pocket Beasts card is the
+same blue, every Hardwood the same leather brown, Bullpen outfield green,
+Grimoire arcane purple, Slipstream racing red. Franchise is what the player is
+actually sorting by — Full Case, Graded Run, collection depth and most Personal
+Collectors are all franchise-shaped — so a case full of one colour is a case
+full of one pitch.
+
+**The tutorial found a live bug on its first run.** `.tableGrid` sized its
 single column implicitly, and a grid track will not shrink below its content's
 min-content width. A long Interest breakdown stretched the tally past the
 viewport, and the screen's `overflow: hidden` clipped SEND IT clean off the

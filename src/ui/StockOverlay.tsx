@@ -54,7 +54,7 @@ function CardActions({ card, onDone }: { card: Card; onDone: () => void }) {
         <CardView card={card} />
       </div>
 
-      <div className={styles.cardDetailActions}>
+      <div className={styles.cardDetailActions} data-tour="cardActions">
         <div>
           <div className={styles.lbl}>Face value</div>
           <div className={styles.num} style={{ fontSize: 30 }}>
@@ -67,6 +67,7 @@ function CardActions({ card, onDone }: { card: Card; onDone: () => void }) {
             className={styles.btnSm}
             disabled={spendable < fee}
             onClick={() => act(() => submitForGrading(card.id))}
+            data-tour="grade"
           >
             GRADE · {formatMoney(fee)}
             {range && (
@@ -87,6 +88,7 @@ function CardActions({ card, onDone }: { card: Card; onDone: () => void }) {
               className={styles.btnSm}
               disabled={spendable < sleeveCost}
               onClick={() => act(() => sleeveCard(card.id))}
+              data-tour="sleeve"
             >
               SLEEVE · {formatMoney(sleeveCost)}
               <span className={styles.actionHint}>
@@ -98,7 +100,11 @@ function CardActions({ card, onDone }: { card: Card; onDone: () => void }) {
             <div className={styles.dim}>Mint already — sleeving has nothing to add.</div>
           ))}
 
-        <button className={styles.btnSm} onClick={() => act(() => sellOnline(card.id))}>
+        <button
+          className={styles.btnSm}
+          onClick={() => act(() => sellOnline(card.id))}
+          data-tour="sellOnline"
+        >
           SELL ONLINE · +{formatMoney(onlineValue(card))}
         </button>
 
@@ -124,13 +130,18 @@ export function StockOverlay({ onClose }: { onClose: () => void }) {
 
   return (
     <div className={styles.scrim} onClick={onClose}>
-      <div className={styles.stockPanel} onClick={(e) => e.stopPropagation()}>
+      <div className={styles.stockPanel} onClick={(e) => e.stopPropagation()} data-tour="stockPanel">
         <Band
           title={`Your stock · ${inventory.length} cards · ${formatMoney(totalValue)} on paper`}
           note={
             <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <span>{formatMoney(spendable)} SPENDABLE</span>
-              <button className={styles.btnSm} onClick={onClose} style={{ padding: '3px 10px' }}>
+              <button
+                className={styles.btnSm}
+                onClick={onClose}
+                style={{ padding: '3px 10px' }}
+                data-tour="stockClose"
+              >
                 CLOSE
               </button>
             </span>
@@ -143,7 +154,7 @@ export function StockOverlay({ onClose }: { onClose: () => void }) {
         ) : (
           <>
             {depth.length > 0 && (
-              <div className={styles.depthStrip}>
+              <div className={styles.depthStrip} data-tour="depth">
                 <span className={styles.lbl}>Depth</span>
                 {depth.map((entry) => (
                   <span
@@ -169,17 +180,14 @@ export function StockOverlay({ onClose }: { onClose: () => void }) {
               </div>
             )}
 
-            <div className={styles.stockGrid}>
+            <div className={styles.stockGrid} data-tour="stockGrid">
               {inventory.length === 0 && (
                 <p className={styles.dim}>Nothing in stock. Buy singles or a pack.</p>
               )}
               {sorted.map((card) => (
-                <CardView
-                  key={card.id}
-                  card={card}
-                  size="small"
-                  onClick={() => setSelectedId(card.id)}
-                />
+                <div key={card.id} data-tour={`stockCard:${card.id}`}>
+                  <CardView card={card} size="small" onClick={() => setSelectedId(card.id)} />
+                </div>
               ))}
             </div>
           </>

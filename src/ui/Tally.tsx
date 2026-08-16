@@ -49,20 +49,28 @@ export function Tally({
             </div>
           </div>
           <div className={styles.tallyPay}>
-            <div>
+            <div data-tour="pay">
               <div className={styles.lbl}>They'll pay</div>
               <div className={styles.payAmount} style={{ color: 'var(--rule)' }}>
                 —
               </div>
             </div>
+            {/* Same anchors as the scored branch: an empty selection is a
+                perfectly normal state to be taught in — it is where you stand
+                when the buyer wants something the case does not hold. */}
             <div className={styles.payButtons}>
-              <button className={styles.btn} disabled>
-                SEND IT
+              <button className={styles.btn} disabled data-tour="send">
+                SELL
               </button>
-              <button className={styles.btnSm} onClick={onDig} disabled={!canDig}>
+              <button className={styles.btnSm} onClick={onDig} disabled={!canDig} data-tour="dig">
                 DIG
               </button>
-              <button className={styles.btnSm} onClick={onTurnAway} disabled={!canTurnAway}>
+              <button
+                className={styles.btnSm}
+                onClick={onTurnAway}
+                disabled={!canTurnAway}
+                data-tour="pass"
+              >
                 PASS · {turnAwaysLeft}
               </button>
             </div>
@@ -189,7 +197,7 @@ export function Tally({
               disabled={!canPitch}
               data-tour="send"
             >
-              SEND IT
+              SELL
             </button>
             <button className={styles.btnSm} onClick={onDig} disabled={!canDig} data-tour="dig">
               DIG

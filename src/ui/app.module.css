@@ -1544,6 +1544,51 @@
   padding: 12px 18px 14px;
 }
 
+/* The walkthrough costs the case 104px of height, and the case is the row that
+   absorbs it — cards are sized from whatever is left over. So while the tour
+   runs, every other row gives back the padding it can spare and the cards stay
+   close to the size they are in a real show. */
+html[data-tour-open='true'] .fixed {
+  gap: 5px;
+  padding: 5px 18px 5px;
+}
+
+html[data-tour-open='true'] .tableGrid {
+  gap: 6px;
+}
+
+html[data-tour-open='true'] .hudCell,
+html[data-tour-open='true'] .hudGrow {
+  padding: 6px 14px;
+}
+
+html[data-tour-open='true'] .buyerBody {
+  padding: 10px 16px;
+}
+
+html[data-tour-open='true'] .buyerFigures {
+  margin-top: 10px;
+}
+
+html[data-tour-open='true'] .wants {
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+html[data-tour-open='true'] .tallyMath {
+  padding: 10px 16px;
+  gap: 8px;
+}
+
+html[data-tour-open='true'] .tallyPay {
+  padding: 10px 16px;
+  gap: 8px;
+}
+
+html[data-tour-open='true'] .topBar {
+  display: none;
+}
+
 /* The single column is minmax(0, 1fr), not the implicit auto: a grid track
    refuses to go below its content's min-content width, so a wide tally row
    stretched this track past the viewport and the screen's overflow:hidden then

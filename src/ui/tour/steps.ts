@@ -5,9 +5,10 @@
  * the words only have to say the thing the player cannot see for themselves —
  * anything longer and it stops being a walkthrough and starts being a manual.
  *
- * Steps with an `until` predicate hand control back: only the highlighted
- * control is clickable, and the step ends when the game reaches the state it
- * asked for. Anchors are `data-tour` values on the real components.
+ * A step ends by itself when the game reaches the state it asked for: `until`
+ * reads the run, `untilAnchor` waits for something to appear on screen (an
+ * overlay opening), `untilGone` waits for it to close. Steps with none of those
+ * advance on NEXT, and block the screen while they explain.
  */
 
 import { W } from '../../game/run/walkthrough';
@@ -21,19 +22,25 @@ export interface TourStep {
   readonly text: string;
   /** Shown as the prompt when the player has to act. */
   readonly action?: string;
-  /** When true, the step is done and the tour moves on by itself. */
+  /** Done when this reads true of the run. */
   readonly until?: (s: RunState) => boolean;
+  /** Done when this anchor appears — an overlay opening. */
+  readonly untilAnchor?: string;
+  /** Done when this anchor disappears — an overlay closing. */
+  readonly untilGone?: string;
 }
 
 const sel = (s: RunState): readonly string[] => s.show?.selection ?? [];
 const has = (s: RunState, id: string): boolean => sel(s).includes(id);
+const inCase = (s: RunState, id: string): boolean =>
+  (s.show?.displayCase ?? []).some((c) => c.id === id);
 
 export const TOUR_STEPS: readonly TourStep[] = [
-  // -- The table ------------------------------------------------------------
+  // -- Buyer one: pitch types and the budget cap ----------------------------
   {
     id: 'welcome',
     title: 'Your table, mid-show',
-    text: 'A short show — two buyers instead of four. Everything here is the real game.',
+    text: 'A short show — three buyers. Everything here is the real game.',
   },
   {
     id: 'quota',
@@ -97,18 +104,18 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'capped',
     anchor: 'budget',
     title: 'And the wallet bites',
-    text: 'The pitch is worth more than they can pay, so the rest is wasted. Stop here and sell.',
+    text: 'The pitch is worth more than they can pay, so the rest is wasted. Sell now.',
   },
   {
     id: 'send',
     anchor: 'send',
     title: 'Sell it',
     text: 'No haggling — the price you see is the price you get.',
-    action: 'Click SEND IT',
+    action: 'Click SELL',
     until: (s) => s.show?.queueIndex === 1,
   },
 
-  // -- Buyer two: the refusal ----------------------------------------------
+  // -- Buyer two: condition, slabs and refusals -----------------------------
   {
     id: 'sold',
     anchor: 'quota',
@@ -118,14 +125,20 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'grader',
     anchor: 'wants',
-    title: 'A grader, and a warning',
-    text: 'Green is what they want. Red is a refusal — one beaten card quarters the whole pitch.',
+    title: 'A grader',
+    text: 'Green is what they pay for: raw cards, Near Mint or better. Red is what they refuse.',
+  },
+  {
+    id: 'conditions',
+    anchor: `card:${W.ruiz}`,
+    title: 'Condition, corner stamp',
+    text: 'PL, LP, NM, MINT. Condition multiplies price — Played pays 0.4x, Mint 1.3x.',
   },
   {
     id: 'pickClean',
     anchor: `card:${W.dell}`,
     title: 'Give them a clean one',
-    text: 'Marcus Dell is raw and Near Mint.',
+    text: 'Marcus Dell is raw and Near Mint, so he counts.',
     action: 'Click Marcus Dell',
     until: (s) => has(s, W.dell),
   },
@@ -139,38 +152,76 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     id: 'trap',
-    anchor: `card:${W.ruiz}`,
+    anchor: `card:${W.slab}`,
     title: 'Now break it on purpose',
-    text: 'Bobby Ruiz is worth real money, but he is Played.',
-    action: 'Click Bobby Ruiz',
-    until: (s) => has(s, W.ruiz),
+    text: 'A slab is a card sealed and scored out of 10. Worth more, but already graded.',
+    action: 'Click Ramon Cruz',
+    until: (s) => has(s, W.slab),
   },
   {
     id: 'collapse',
     anchor: 'pay',
-    title: '$302 to $169',
-    text: 'One beaten card cost more than it was worth. Read the red chip before you build.',
+    title: '$302 to $87',
+    text: 'Grading it is the one thing they wanted to do. Read the red chip before you build.',
   },
   {
     id: 'untrap',
-    anchor: `card:${W.ruiz}`,
-    title: 'Take him back out',
+    anchor: `card:${W.slab}`,
+    title: 'Take it back out',
     text: 'Clicking a selected card removes it. Nothing commits until you send.',
-    action: 'Click Bobby Ruiz again',
-    until: (s) => !has(s, W.ruiz),
-  },
-  {
-    id: 'dig',
-    anchor: 'dig',
-    title: 'Digging',
-    text: 'Swaps a card with your stock without losing the buyer, for a goodwill pip.',
+    action: 'Click Ramon Cruz again',
+    until: (s) => !has(s, W.slab),
   },
   {
     id: 'sendTwo',
     anchor: 'send',
     title: 'Sell it',
     text: 'Two clean cards, no refusal, under their wallet.',
-    action: 'Click SEND IT',
+    action: 'Click SELL',
+    until: (s) => s.show?.queueIndex === 2,
+  },
+
+  // -- Buyer three: passing, and digging ------------------------------------
+  {
+    id: 'setBuilder',
+    anchor: 'wants',
+    title: 'A set builder',
+    text: 'They only want cards from one set — and there is nothing from it in your case.',
+  },
+  {
+    id: 'pass',
+    anchor: 'pass',
+    title: 'You could wave them off',
+    text: 'Three passes a show, and you do not get to choose who walks up next.',
+  },
+  {
+    id: 'digButton',
+    anchor: 'dig',
+    title: 'Better: go and look',
+    text: 'Digging swaps a card with your stock while the buyer waits.',
+    action: 'Click DIG',
+    untilAnchor: 'digPanel',
+  },
+  {
+    id: 'digPanel',
+    anchor: 'digPanel',
+    title: 'Put one back, bring one out',
+    text: 'Hand back the Bramblepup, then fetch Emberclaw — the one card from their set.',
+    action: 'Swap in Emberclaw',
+    until: (s) => inCase(s, W.origin),
+  },
+  {
+    id: 'digCost',
+    anchor: 'goodwill',
+    title: 'That cost a goodwill pip',
+    text: 'Six a show. Every dig is one you cannot make later.',
+  },
+  {
+    id: 'sendThree',
+    anchor: 'send',
+    title: 'Sell it',
+    text: 'A card they actually want, fetched from a box they cannot see.',
+    action: 'Click SELL',
     until: (s) => s.phase === 'showResult',
   },
 
@@ -187,7 +238,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'money',
     anchor: 'money',
     title: 'What you can spend',
-    text: 'Some of it is held back for the next table fee. That is why prices grey out.',
+    text: 'Some is held back for the next table fee. That is why prices grey out.',
   },
   {
     id: 'singles',
@@ -205,13 +256,56 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'gear',
     anchor: 'gear',
     title: 'Gear changes the rules',
-    text: 'Permanent scoring upgrades. Hover one to see what it does.',
+    text: 'Permanent upgrades. Each one prints exactly what it does to your pitches.',
   },
   {
-    id: 'stock',
+    id: 'openStock',
     anchor: 'stockBtn',
-    title: 'Your box',
-    text: 'Grade a card, sleeve one up a condition step, or sell anything online.',
+    title: 'Everything you own',
+    text: 'The case is only what fits on the table. This is the whole box.',
+    action: 'Click YOUR STOCK',
+    untilAnchor: 'stockPanel',
+  },
+  {
+    id: 'depth',
+    anchor: 'depth',
+    title: 'Depth pays',
+    text: 'Hold eight of one franchise and every one of them pitches harder.',
+  },
+  {
+    id: 'pickStockCard',
+    // The card handed back during the dig: raw, so it has every action on it.
+    anchor: `stockCard:${W.pup}`,
+    title: 'Cards act one at a time',
+    text: 'The Bramblepup you handed back is in here. Click it.',
+    action: 'Click Bramblepup',
+    untilAnchor: 'cardActions',
+  },
+  {
+    id: 'grade',
+    anchor: 'grade',
+    title: 'Grading',
+    text: 'Seals it and scores it. A high grade multiplies the price; a low one wastes the fee.',
+  },
+  {
+    id: 'sleeve',
+    anchor: 'sleeve',
+    title: 'Sleeving',
+    text: 'Lifts a raw card one condition step. Priced by the step it buys.',
+  },
+  {
+    id: 'sellOnline',
+    anchor: 'sellOnline',
+    title: 'Selling online',
+    text: 'Always available, never the best price: 70% of face, no buyer needed.',
+  },
+  {
+    id: 'closeStock',
+    anchor: 'stockClose',
+    title: 'Back to the shop',
+    text: 'Nothing here is urgent — the box keeps.',
+    action: 'Close your stock',
+    untilGone: 'stockPanel',
   },
   {
     id: 'next',

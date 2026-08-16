@@ -22,7 +22,7 @@ export function CardArt({ card, size = 'normal' }: CardArtProps) {
   const spec = cardArtSpec(card);
 
   const style = {
-    '--set-ink': spec.setInk,
+    '--franchise-ink': spec.franchiseInk,
     '--rarity-ink': spec.rarityInk,
   } as CSSProperties;
 
