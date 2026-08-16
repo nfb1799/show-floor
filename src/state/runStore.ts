@@ -43,6 +43,11 @@ import {
   type RunStats,
 } from '../game/run/runState';
 import { clearRun, loadRun, recordBest, saveRun } from '../game/run/persistence';
+import {
+  walkthroughShow,
+  WALKTHROUGH_BANKROLL,
+  WALKTHROUGH_SEED,
+} from '../game/run/walkthrough';
 import type { Card, PitchResult, RawCard } from '../game/types';
 import {
   accept as engineAccept,
@@ -65,10 +70,15 @@ export interface RunState extends Omit<RunSnapshot, 'rngState'> {
   revealBuyerMix: boolean;
   /** The card that just came back from grading, for the reveal. */
   lastGraded: { before: Card; after: Card } | null;
+  /** True while the scripted walkthrough is driving the run. Never saved. */
+  walkthrough: boolean;
 
   newRun: (seed?: string) => void;
   resume: () => boolean;
   abandonRun: () => void;
+  /** Installs the scripted show the walkthrough teaches on. */
+  startWalkthrough: () => void;
+  endWalkthrough: () => void;
 
   equip: (upgradeId: string) => void;
   unequip: (upgradeId: string) => void;
@@ -164,6 +174,9 @@ export const useRun = create<RunState>((set, get) => {
   const persist = (): void => {
     const s = get();
     if (s.phase === 'title') return;
+    // The walkthrough is a sandbox. Saving it would overwrite a real run, and
+    // its scripted cards would then be loose in the player's stock.
+    if (s.walkthrough) return;
     saveRun(snapshot());
   };
 
@@ -229,6 +242,7 @@ export const useRun = create<RunState>((set, get) => {
     stats: EMPTY_STATS,
     revealBuyerMix: false,
     lastGraded: null,
+    walkthrough: false,
 
     // -- Run lifecycle ------------------------------------------------------
 
@@ -256,15 +270,62 @@ export const useRun = create<RunState>((set, get) => {
         stats: EMPTY_STATS,
         revealBuyerMix: false,
         lastGraded: null,
+        walkthrough: false,
       });
       enterSetup(1);
+    },
+
+    startWalkthrough: () => {
+      const rng = createRng(WALKTHROUGH_SEED);
+      set({
+        seed: WALKTHROUGH_SEED,
+        rng,
+        bankroll: WALKTHROUGH_BANKROLL,
+        inventory: [],
+        ownedUpgradeIds: [],
+        equippedUpgradeIds: [],
+        tableTier: 0,
+        casesBought: 0,
+        priceGuides: 0,
+        showIndex: 1,
+        conditionIds: [],
+        rumor: '',
+        shop: null,
+        pendingPack: null,
+        runOverReason: null,
+        stats: EMPTY_STATS,
+        revealBuyerMix: false,
+        lastGraded: null,
+        walkthrough: true,
+        show: walkthroughShow({ rng, upgrades: [], conditions: [] }),
+        phase: 'inShow',
+      });
+    },
+
+    /** Drops the sandbox without touching whatever real run is on disk. */
+    endWalkthrough: () => {
+      set({
+        walkthrough: false,
+        phase: 'title',
+        seed: '',
+        show: null,
+        shop: null,
+        pendingPack: null,
+        lastGraded: null,
+      });
     },
 
     resume: () => {
       const saved = loadRun();
       if (!saved) return false;
       const { rngState, ...rest } = saved;
-      set({ ...rest, rng: createRng(rngState), revealBuyerMix: false, lastGraded: null });
+      set({
+        ...rest,
+        rng: createRng(rngState),
+        revealBuyerMix: false,
+        lastGraded: null,
+        walkthrough: false,
+      });
       return true;
     },
 

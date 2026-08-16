@@ -9,7 +9,7 @@ import {
 } from '../game/run/persistence';
 import { useRun } from '../state/runStore';
 import { Band, Track } from './kit';
-import { TutorialOverlay } from './TutorialOverlay';
+import { useTour } from './tour/tourStore';
 import styles from './app.module.css';
 
 function Masthead() {
@@ -57,7 +57,7 @@ export function ShowResultScreen() {
             <Track pct={pct} met={cleared} big />
           </div>
 
-          <button className={styles.btn} onClick={collect}>
+          <button className={styles.btn} onClick={collect} data-tour="collect">
             {cleared ? 'PACK UP · HIT THE SHOP' : 'SEE THE DAMAGE'}
           </button>
         </div>
@@ -135,19 +135,20 @@ export function TitleScreen() {
   const resume = useRun((s) => s.resume);
   const [hasSave, setHasSave] = useState(false);
   const [seedInput, setSeedInput] = useState('');
-  const [tutorial, setTutorial] = useState(false);
+  const startTour = useTour((s) => s.start);
+  const [offerTour, setOfferTour] = useState(false);
 
   useEffect(() => {
     const save = loadRun();
     setHasSave(save !== null);
-    // Someone with no save and no history here has never seen any of this, so
-    // open it for them rather than hoping they find the button.
-    if (save === null && !hasSeenTutorial()) setTutorial(true);
+    // No save and no history: they have never seen any of this, so offer the
+    // walkthrough rather than hoping they find the button.
+    if (save === null && !hasSeenTutorial()) setOfferTour(true);
   }, []);
 
-  const closeTutorial = (): void => {
+  const declineTour = (): void => {
     markTutorialSeen();
-    setTutorial(false);
+    setOfferTour(false);
   };
 
   return (
@@ -159,6 +160,23 @@ export function TitleScreen() {
           One booth, one quota, four buyers a show. Read the room, pull the right cards from the
           case, and move volume before the aisle empties. Every card you sell is gone for good.
         </p>
+
+        {offerTour && (
+          <div className={styles.tourOffer}>
+            <div className={styles.tourOfferText}>
+              <strong>First time?</strong> Play one short show with the game explaining itself as
+              you go. Two buyers, then the shop — about three minutes.
+            </div>
+            <div className={styles.tourOfferButtons}>
+              <button className={styles.btn} data-ink="gold" onClick={startTour}>
+                SHOW ME
+              </button>
+              <button className={styles.btnSm} onClick={declineTour}>
+                NO THANKS
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className={styles.titleActions}>
           {hasSave && (
@@ -179,16 +197,10 @@ export function TitleScreen() {
           aria-label="Run seed"
         />
 
-        <button
-          className={styles.btnSm}
-          style={{ marginTop: 10 }}
-          onClick={() => setTutorial(true)}
-        >
-          HOW TO PLAY
+        <button className={styles.btnSm} style={{ marginTop: 10 }} onClick={startTour}>
+          WALKTHROUGH
         </button>
       </div>
-
-      {tutorial && <TutorialOverlay onClose={closeTutorial} />}
     </div>
   );
 }

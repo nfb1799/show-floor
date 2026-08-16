@@ -59,7 +59,7 @@ export function ShopScreen() {
       />
 
       <Sheet className={styles.fillSheet}>
-        <div className={styles.hallBand}>
+        <div className={styles.hallBand} data-tour="money">
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
             <span className={styles.hallName}>THE BACK ROOM</span>
             <span className={styles.hallWhen}>AFTER SHOW {String(showIndex).padStart(2, '0')}</span>
@@ -105,7 +105,7 @@ export function ShopScreen() {
           <div className={styles.shopCols}>
             {/* Left column ------------------------------------------- */}
             <div className={styles.stack}>
-              <div className={styles.sheetFlat}>
+              <div className={styles.sheetFlat} data-tour="singles">
                 <Band
                   title="Singles &amp; slabs"
                   note={
@@ -138,7 +138,7 @@ export function ShopScreen() {
                 </div>
               </div>
 
-              <div className={styles.sheetFlat}>
+              <div className={styles.sheetFlat} data-tour="packs">
                 <Band title="Packs" note="SEALED — YOU SEE WHAT YOU PULL" goldTitle />
                 <div className={styles.pad}>
                   <div className={styles.rowWrap}>
@@ -162,7 +162,7 @@ export function ShopScreen() {
 
             {/* Right column ------------------------------------------ */}
             <div className={styles.stack}>
-              <div className={styles.sheetFlat}>
+              <div className={styles.sheetFlat} data-tour="gear">
                 <Band title="Booth gear" note={`${owned.length} OWNED`} goldTitle />
                 <div className={styles.pad}>
                   <div className={styles.gearGrid} style={{ padding: 0 }}>
@@ -200,7 +200,7 @@ export function ShopScreen() {
                 </div>
               </div>
 
-              <div className={styles.sheetFlat}>
+              <div className={styles.sheetFlat} data-tour="capacity">
                 <Band
                   title="Table, cases &amp; guide"
                   note={`${upgradeSlotsFor(tableTier)} GEAR SLOTS`}
@@ -241,10 +241,15 @@ export function ShopScreen() {
               </div>
 
               <div className={styles.shopActions}>
-                <button className={styles.btn} data-ink="gold" onClick={() => setOverlay('stock')}>
+                <button
+                  className={styles.btn}
+                  data-ink="gold"
+                  onClick={() => setOverlay('stock')}
+                  data-tour="stockBtn"
+                >
                   YOUR STOCK · {inventory.length}
                 </button>
-                <button className={styles.btn} onClick={leaveShop}>
+                <button className={styles.btn} onClick={leaveShop} data-tour="next">
                   ON TO SHOW {String(showIndex + 1).padStart(2, '0')} →
                 </button>
               </div>

@@ -19,7 +19,7 @@ export function BuyerPanel({
   const rivalMark = buyer.marks?.find((m) => m.startsWith('rival:'));
 
   return (
-    <div className={styles.buyerCard}>
+    <div className={styles.buyerCard} data-tour="buyer">
       <Band
         title={`Now serving · ${position} of ${total}`}
         note={def.label.toUpperCase()}
@@ -35,7 +35,7 @@ export function BuyerPanel({
           </div>
         </div>
 
-        <div className={styles.buyerFigures}>
+        <div className={styles.buyerFigures} data-tour="budget">
           <div className={styles.figureBox}>
             <Band title="Pays up to" ink="blue" />
             <div className={styles.figureValue}>
@@ -45,7 +45,7 @@ export function BuyerPanel({
           </div>
         </div>
 
-        <div className={styles.wants}>
+        <div className={styles.wants} data-tour="wants">
           <div className={styles.benchLabel} style={{ marginBottom: 8 }}>
             WHAT WINS THEM
           </div>

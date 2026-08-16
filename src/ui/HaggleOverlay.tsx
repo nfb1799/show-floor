@@ -42,7 +42,7 @@ export function HaggleOverlay() {
 
   return (
     <div className={styles.scrim}>
-      <div className={styles.hagglePanel}>
+      <div className={styles.hagglePanel} data-tour="haggle">
         <Band
           title={`Haggling · ${buyer.label}`}
           note={
@@ -115,11 +115,17 @@ export function HaggleOverlay() {
             </div>
 
             <div className={styles.dealActions}>
-              <button className={styles.btn} data-ink="gold" onClick={accept}>
+              <button className={styles.btn} data-ink="gold" onClick={accept} data-tour="take">
                 TAKE {formatMoney(pending.offer)}
               </button>
 
-              <button className={styles.btn} data-ink="paper" onClick={push} disabled={false}>
+              <button
+                className={styles.btn}
+                data-ink="paper"
+                onClick={push}
+                disabled={false}
+                data-tour="push"
+              >
                 {outOfGoodwill ? 'PUSH — THEY WALK' : 'PUSH'}
               </button>
 

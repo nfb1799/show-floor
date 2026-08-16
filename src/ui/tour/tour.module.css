@@ -1,0 +1,157 @@
+/* The walkthrough spotlight. Same price-guide language as the rest of the
+   board: flat inks, 3px rules, hard offset shadows, no rounding. */
+
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+}
+
+/* Each panel is a real surface that swallows clicks, so the gap between them
+   is the only way through to the game underneath. */
+.block,
+.blockAll {
+  position: fixed;
+  background: rgb(28 24 19 / 62%);
+  pointer-events: auto;
+}
+
+.blockAll {
+  inset: 0;
+}
+
+.ring {
+  position: fixed;
+  border: 3px solid var(--gold);
+  box-shadow: 0 0 0 2px rgb(28 24 19 / 55%);
+  pointer-events: none;
+}
+
+/* An actionable target gets a pulse; an explained one just gets the outline. */
+.ring[data-live='true'] {
+  animation: tourPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes tourPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgb(28 24 19 / 55%), 0 0 0 6px rgb(214 168 62 / 0%);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgb(28 24 19 / 55%), 0 0 0 8px rgb(214 168 62 / 38%);
+  }
+}
+
+.callout {
+  position: fixed;
+  width: 340px;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  box-shadow: 8px 8px 0 rgb(28 24 19 / 45%);
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.calloutHead {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  background: var(--ink);
+  padding: 8px 12px;
+}
+
+.count {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--gold);
+  flex: none;
+}
+
+.title {
+  font-family: 'Bungee', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.25;
+  color: var(--paper);
+}
+
+.text {
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--body);
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-top: 3px solid var(--ink);
+  background: var(--paper-2);
+}
+
+.skip {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--muted-2);
+  background: none;
+  border: none;
+  padding: 4px 2px;
+  cursor: pointer;
+}
+
+.skip:hover {
+  color: var(--ink);
+}
+
+.next {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--paper);
+  background: var(--red);
+  border: 2px solid var(--ink);
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.next:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 rgb(28 24 19 / 30%);
+}
+
+/* The prompt replaces the button on steps where the player has to act, so
+   there is never a way to click past the thing being taught. */
+.prompt {
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--red);
+  animation: tourNudge 1.4s ease-in-out infinite;
+}
+
+@keyframes tourNudge {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (max-width: 720px) {
+  .callout {
+    width: min(340px, calc(100vw - 24px));
+  }
+}

@@ -220,19 +220,36 @@ was one show condition, and paying up front against a maybe was never a real
 decision. The Price Guide, the one remaining consumable, sits with the tables
 and cases.
 
-**There is an optional tutorial.** Six pages, opened automatically for anyone
-with no save and no history, and reachable from the title screen afterwards. It
-teaches with the real widgets — a real `CardView`, a real `BuyerPanel`, and a
-real `Tally` fed by an actual `resolvePitch` call — so a scoring change updates
-the worked example rather than silently invalidating it. The pitch-type table is
-printed straight out of `PITCH_TYPES`, which is the one thing the game never
-showed anywhere: ten types the player was expected to discover by accident.
+**Onboarding is a scripted walkthrough, not a manual.** The first version was
+six pages of annotated screenshots, which is a wall of text wearing a costume.
+This one plays: a real show with a hand-picked case and two hand-picked buyers,
+where each step spotlights one thing on the real screen and the player performs
+the action themselves.
 
-The worked example is deliberately a Pair. Anything stronger multiplies several
-times past a plausible buyer's wallet, and a first example ending in "$1,282
-left on the table" teaches that the numbers are broken rather than that the cap
-is real. A Pair overshoots by $42, which is the actual lesson — build to the
-wallet, not past it.
+The spotlight is four opaque panels drawn *around* the target rather than one
+scrim with a transparent hole, so the gap is a genuine gap — the real control
+underneath takes the click and everything else is physically unreachable. Steps
+that only explain something block the whole screen; steps that ask for an action
+open exactly one control and end themselves when the game reaches the state they
+asked for. The screens know nothing about any of it beyond a `data-tour`
+attribute on the things worth pointing at.
+
+The script is built around three beats the arithmetic produces on its own:
+one Grimoire card pays $59, a second makes it a Pair worth $210, and the
+collector's wallet caps it there. Then a grader pays $302 for two clean raws,
+$169 the moment a Played card joins them, and $302 again when it leaves.
+[walkthrough.test.ts](src/game/run/walkthrough.test.ts) asserts each of those
+beats still lands, so a change to the value constants fails a test rather than
+making the walkthrough lie. The sandbox never persists — a real save on disk
+survives a walkthrough untouched.
+
+**The walkthrough found a live bug on its first run.** `.tableGrid` sized its
+single column implicitly, and a grid track will not shrink below its content's
+min-content width. A long Interest breakdown stretched the tally past the
+viewport, and the screen's `overflow: hidden` clipped SEND IT clean off the
+right edge — unclickable, with no scrollbar to reveal it, in any pitch whose
+interest had a few lines in it. Fixed with `minmax(0, 1fr)`, which the row
+axis had needed for the same reason.
 
 **Gear explains itself on hover, and a full booth swaps.** Everywhere a piece of
 gear appears it carries its rules text as a tooltip, including on the bench where

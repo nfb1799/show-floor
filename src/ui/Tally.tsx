@@ -90,7 +90,7 @@ export function Tally({
       />
 
       <div className={styles.tallyBody}>
-        <div className={styles.tallyMath}>
+        <div className={styles.tallyMath} data-tour="math">
           <div className={styles.mathRow}>
             <MathBox
               label={result.pitchValueCounted ? 'Pitch value' : 'Pitch value — ignored'}
@@ -178,18 +178,28 @@ export function Tally({
         </div>
 
         <div className={styles.tallyPay}>
-          <div>
+          <div data-tour="pay">
             <div className={styles.lbl}>They'll pay</div>
             <div className={styles.payAmount}>{formatMoney(result.offer)}</div>
           </div>
           <div className={styles.payButtons}>
-            <button className={styles.btn} onClick={onPitch} disabled={!canPitch}>
+            <button
+              className={styles.btn}
+              onClick={onPitch}
+              disabled={!canPitch}
+              data-tour="send"
+            >
               SEND IT
             </button>
-            <button className={styles.btnSm} onClick={onDig} disabled={!canDig}>
+            <button className={styles.btnSm} onClick={onDig} disabled={!canDig} data-tour="dig">
               DIG
             </button>
-            <button className={styles.btnSm} onClick={onTurnAway} disabled={!canTurnAway}>
+            <button
+              className={styles.btnSm}
+              onClick={onTurnAway}
+              disabled={!canTurnAway}
+              data-tour="pass"
+            >
               PASS · {turnAwaysLeft}
             </button>
           </div>

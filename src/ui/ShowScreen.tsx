@@ -78,7 +78,7 @@ export function ShowScreen() {
       <div className={styles.tableGrid}>
         {/* Box score ------------------------------------------------- */}
         <div className={styles.hud}>
-          <div className={styles.hudGrow}>
+          <div className={styles.hudGrow} data-tour="quota">
             <div className={styles.quotaHead}>
               <span className={styles.lbl}>Quota progress</span>
               <span className={styles.quotaFigure}>
@@ -94,11 +94,11 @@ export function ShowScreen() {
             <div className={styles.lbl}>Bankroll</div>
             <div className={styles.hudValue}>{formatMoney(bankroll)}</div>
           </div>
-          <div className={styles.hudCell}>
+          <div className={styles.hudCell} data-tour="stock">
             <div className={styles.lbl}>Stock</div>
             <div className={styles.hudValue}>{show.inventory.length}</div>
           </div>
-          <div className={styles.hudCell}>
+          <div className={styles.hudCell} data-tour="buyers">
             <div className={styles.lbl}>Buyers</div>
             <div className={styles.hudValue}>
               {show.queueIndex + 1}/{show.config.buyerCount}
@@ -112,7 +112,7 @@ export function ShowScreen() {
           </div>
           {/* Goodwill belongs to the whole show, so it lives on the board
               rather than on any one buyer. */}
-          <div className={styles.hudCell}>
+          <div className={styles.hudCell} data-tour="goodwill">
             <div className={styles.lbl} style={{ marginBottom: 6 }}>
               Goodwill
             </div>
@@ -135,7 +135,7 @@ export function ShowScreen() {
         </div>
 
         {/* The case --------------------------------------------------- */}
-        <div className={styles.caseRow}>
+        <div className={styles.caseRow} data-tour="case">
           {show.displayCase.length === 0 ? (
             <div className={styles.caseEmpty}>The case is empty. Nothing left to sell.</div>
           ) : (
@@ -144,7 +144,7 @@ export function ShowScreen() {
               const selected = index >= 0;
               const locked = show.lockedCardIds.includes(card.id);
               return (
-                <div key={card.id} className={styles.caseSlot}>
+                <div key={card.id} className={styles.caseSlot} data-tour={`card:${card.id}`}>
                   <CardView
                     card={card}
                     fill

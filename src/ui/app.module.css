@@ -946,9 +946,14 @@
   flex-wrap: wrap;
 }
 
+/* min-width: 0 rather than a 320px floor. A flex item will not shrink below
+   its content by default, so a long Interest breakdown ("x12 (2 +10 Clean raw,
+   Near Mint or better x2)") grew this column past the viewport and pushed the
+   pay column — SEND IT included — off the right edge of a screen that clips
+   its overflow. The buttons were unreachable. */
 .tallyMath {
-  flex: 1;
-  min-width: 320px;
+  flex: 1 1 320px;
+  min-width: 0;
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
@@ -966,6 +971,7 @@
 .mathBox {
   border: 2px solid var(--ink);
   background: var(--paper-2);
+  min-width: 0;
 }
 
 .mathBoxLabel {
@@ -982,6 +988,8 @@
   padding: 5px 10px;
   font-family: 'Bungee', system-ui, sans-serif;
   font-size: 18px;
+  /* The breakdown wraps inside its box instead of widening the row. */
+  overflow-wrap: anywhere;
 }
 
 .mathOp {
@@ -1536,10 +1544,16 @@
   padding: 12px 18px 14px;
 }
 
+/* The single column is minmax(0, 1fr), not the implicit auto: a grid track
+   refuses to go below its content's min-content width, so a wide tally row
+   stretched this track past the viewport and the screen's overflow:hidden then
+   clipped SEND IT clean off the right edge. The rows already say minmax(0,1fr)
+   for the same reason vertically. */
 .tableGrid {
   flex: 1;
   min-height: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   gap: 10px;
 }
@@ -2528,184 +2542,30 @@
   color: var(--muted);
 }
 
-/* --- Tutorial -------------------------------------------------------------
-   Its own panel rather than the help panel's: the pitch-type table and the
-   worked tally both need width, and the pages need a fixed foot so the
-   controls do not move as the body changes height. */
+/* --- Walkthrough offer on the title screen ------------------------------- */
 
-.tutPanel {
-  width: min(1080px, 100%);
-  max-height: calc(100vh - 40px);
-  background: var(--paper);
+.tourOffer {
+  margin-top: 18px;
   border: 3px solid var(--ink);
-  box-shadow: 10px 10px 0 rgb(28 24 19 / 40%);
+  background: var(--paper-2);
+  padding: 14px 16px;
   display: flex;
-  flex-direction: column;
-  pointer-events: auto;
-}
-
-.tutBody {
-  padding: 18px;
-  overflow-y: auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
   gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  text-align: left;
 }
 
-.tutLead {
-  margin: 0;
-  font-size: 16px;
-  line-height: 1.55;
-  color: var(--body);
-  max-width: 78ch;
-}
-
-.tutSplit {
-  display: flex;
-  gap: 22px;
-  align-items: flex-start;
-}
-
-/* The card frame's art block is a fixed 96px tall, so a card only reads right
-   at roughly the width the table gives it. The buyer panel needs the room a
-   buyer panel needs. */
-.tutArtCard {
-  width: 190px;
-  flex: none;
-}
-
-/* The buyer panel carries its own responsive rules from the table screen -
-   including a 520px floor on short viewports - so it gets a full-width row
-   with its notes underneath rather than a column it would overflow. */
-.tutColumn {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  align-items: flex-start;
-}
-
-.tutNotes {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.tourOfferText {
   flex: 1;
-  min-width: 0;
-}
-
-.tutNote {
-  border-left: 3px solid var(--gold);
-  padding: 2px 0 2px 12px;
-}
-
-.tutNoteTitle {
-  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
-  font-weight: 800;
-  font-size: 14px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.tutNoteBody {
+  min-width: 220px;
   font-size: 14px;
   line-height: 1.5;
   color: var(--body);
 }
 
-.tutTable {
-  border: 2px solid var(--ink);
-}
-
-.tutTableHead,
-.tutTableRow {
-  display: grid;
-  grid-template-columns: 130px 1fr 62px 62px;
+.tourOfferButtons {
+  display: flex;
   gap: 10px;
-  padding: 7px 12px;
-  align-items: baseline;
-}
-
-.tutTableHead {
-  background: var(--ink);
-  color: var(--paper);
-  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
-  font-weight: 800;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.tutTableRow:nth-child(even) {
-  background: var(--paper-2);
-}
-
-.tutTableName {
-  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
-  font-weight: 800;
-  font-size: 15px;
-}
-
-.tutTableReq {
-  font-size: 13px;
-  line-height: 1.4;
-  color: var(--body);
-}
-
-.tutTableNum {
-  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
-  font-weight: 800;
-  font-size: 15px;
-  color: var(--blue);
-  text-align: right;
-}
-
-/* The tally is built for the table screen's dark bed; give it one here too. */
-.tutTally {
-  background: var(--paper-2);
-  border: 2px solid var(--ink);
-}
-
-.tutFoot {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 12px 18px;
-  border-top: 3px solid var(--ink);
-  background: var(--paper-2);
-}
-
-.tutDots {
-  display: flex;
-  gap: 7px;
-}
-
-.tutDot {
-  width: 11px;
-  height: 11px;
-  padding: 0;
-  border: 2px solid var(--ink);
-  background: transparent;
-  cursor: pointer;
-}
-
-.tutDot[data-on='true'] {
-  background: var(--gold);
-}
-
-@media (max-width: 900px) {
-  .tutSplit {
-    flex-direction: column;
-  }
-
-  .tutArtCard {
-    width: 170px;
-  }
-
-
-
-  .tutTableHead,
-  .tutTableRow {
-    grid-template-columns: 100px 1fr 46px 46px;
-  }
 }
