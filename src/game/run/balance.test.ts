@@ -10,79 +10,24 @@
 import { describe, expect, it } from 'vitest';
 import { createRng } from '../rng';
 import { generateCards } from '../cards/generate';
-import { resolvePitch } from '../pitch/resolvePitch';
-import { MAX_PITCH_CARDS } from '../constants';
 import {
   createShow,
-  pitch,
   quotaForShow,
   remainingInventory,
   tableFeeForShow,
-  toggleSelection,
   type ShowDeps,
   type ShowState,
 } from '../show/showEngine';
-import { simulateRuns } from '../sim/harness';
+import { playShow as playWithBot, simulateRuns } from '../sim/harness';
 import { summarize } from '../sim/report';
-import type { Card } from '../types';
 
-/** Every subset of `cards` with 1..MAX_PITCH_CARDS members. */
-function combinations(cards: readonly Card[]): Card[][] {
-  const out: Card[][] = [];
-  const walk = (start: number, picked: Card[]): void => {
-    if (picked.length > 0) out.push([...picked]);
-    if (picked.length === MAX_PITCH_CARDS) return;
-    for (let i = start; i < cards.length; i++) {
-      picked.push(cards[i]!);
-      walk(i + 1, picked);
-      picked.pop();
-    }
-  };
-  walk(0, []);
-  return out;
-}
-
-/** The highest-paying legal pitch from the current case. */
-function bestPitch(state: ShowState, deps: ShowDeps): Card[] | null {
-  if (!state.buyer) return null;
-  const sellable = state.displayCase.filter((c) => !state.lockedCardIds.includes(c.id));
-  if (sellable.length === 0) return null;
-
-  let best: Card[] | null = null;
-  let bestOffer = -1;
-
-  for (const combo of combinations(sellable)) {
-    const offer = resolvePitch({
-      cards: combo,
-      buyer: state.buyer,
-      upgrades: deps.upgrades,
-      conditions: deps.conditions,
-      offerRatio: state.offerRatio,
-      showIndex: state.config.showIndex,
-      rng: deps.rng,
-    }).offer;
-    if (offer > bestOffer) {
-      bestOffer = offer;
-      best = combo;
-    }
-  }
-  return best;
-}
-
-/** Plays a whole show at the skill ceiling. */
+/**
+ * Plays a whole show with the sim's bot: every card set priced for everyone at
+ * the table. One bot for the guards and the report, so they cannot disagree
+ * about what "good play" is.
+ */
 function playPerfectly(state: ShowState, deps: ShowDeps): ShowState {
-  let show = state;
-  let guard = 0;
-
-  while (show.phase !== 'over' && guard++ < 60) {
-    const best = bestPitch(show, deps);
-    if (!best) break;
-
-    let next = show;
-    for (const card of best) next = toggleSelection(next, card.id);
-    show = pitch(next, deps);
-  }
-  return show;
+  return playWithBot(state, deps);
 }
 
 interface RunOutcome {
@@ -162,9 +107,12 @@ describe('the table fee never outruns the bankroll on its own', () => {
  * Twelve runs rather than forty, to keep `npm test` quick — `npm run sim` plays
  * more and prints the detail behind every one of these.
  */
+// One sample for every guard below. Pricing each card set for everyone at the
+// table is the expensive part of the suite, so it is played once.
+const SUMMARY = summarize(simulateRuns(12));
+
 describe('pitches are decisions', () => {
-  const runs = simulateRuns(12);
-  const summary = summarize(runs);
+  const summary = SUMMARY;
 
   it('usually has exactly one best answer', () => {
     // 27 different card sets used to pay the winning number, because a hard
@@ -187,11 +135,36 @@ describe('pitches are decisions', () => {
   });
 });
 
+/**
+ * The crowd is the decision the one-buyer game never had. With a single buyer
+ * the best pitch beat the runner-up by 1.5%; these guard that who gets served,
+ * and when, is worth thinking about.
+ */
+describe('the crowd is a decision', () => {
+  it('matters who is served', () => {
+    // If the best buyer were barely ahead of the next, three seats would be
+    // one seat with extra reading.
+    expect(SUMMARY.medianSeatMargin).toBeGreaterThan(0.15);
+  });
+
+  it('loses some buyers, but not most of them', () => {
+    // Nobody ever walking means patience is decoration; half of them walking
+    // means the table is a queue again.
+    expect(SUMMARY.walkedShare).toBeGreaterThan(0.05);
+    expect(SUMMARY.walkedShare).toBeLessThan(0.4);
+  });
+
+  it('builds Buzz over a show without pinning it at the ceiling', () => {
+    expect(SUMMARY.meanPeakBuzz).toBeGreaterThan(1.5);
+    expect(SUMMARY.meanBuzz).toBeLessThan(3.5);
+  });
+});
+
 describe('the difficulty curve is a curve', () => {
   it('does not put a wall on one show', () => {
     // 17 runs in 40 used to end on show 9, where condition stacking switched on
     // at the same moment three of the harshest house rules became legal.
-    const summary = summarize(simulateRuns(12));
+    const summary = SUMMARY;
     expect(
       summary.worstShowShare,
       `show ${summary.worstShowIndex} takes ${Math.round(summary.worstShowShare * 100)}% of all runs`,

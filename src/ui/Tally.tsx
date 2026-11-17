@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { formatMoney } from '../game/cards/value';
-import { GOODWILL_COST_DIG, GOODWILL_COST_PASS } from '../game/constants';
-import type { PitchResult } from '../game/types';
+import { GOODWILL_COST_DIG } from '../game/constants';
+import type { Buyer, PitchResult } from '../game/types';
 import { Band } from './kit';
 import { PitchGuide } from './PitchGuide';
 import styles from './app.module.css';
+import table from './table.module.css';
 
 function round(n: number, places = 0): string {
   return Number(n.toFixed(places)).toLocaleString('en-US');
@@ -20,25 +21,30 @@ function MathBox({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 interface TallyProps {
+  /** Whose price this is: the buyer being looked at, or the best one. */
+  buyer: Buyer | null;
   result: PitchResult | null;
-  turnAwaysLeft: number;
-  canPitch: boolean;
-  canTurnAway: boolean;
   canDig: boolean;
-  onPitch: () => void;
-  onTurnAway: () => void;
+  /** Offered once the quota is covered: go home with what is left. */
+  canCloseUp: boolean;
+  onSell: () => void;
   onDig: () => void;
+  onCloseUp: () => void;
 }
 
+/**
+ * The working-out for one buyer's price. Every buyer at the table quotes the
+ * same cards differently, so this shows whichever one the player is looking at
+ * and says whose it is.
+ */
 export function Tally({
+  buyer,
   result,
-  turnAwaysLeft,
-  canPitch,
-  canTurnAway,
   canDig,
-  onPitch,
-  onTurnAway,
+  canCloseUp,
+  onSell,
   onDig,
+  onCloseUp,
 }: TallyProps) {
   const [guide, setGuide] = useState(false);
 
@@ -54,7 +60,30 @@ export function Tally({
     </button>
   );
 
-  if (!result) {
+  const digButton = (
+    <button
+      className={styles.btnSm}
+      onClick={onDig}
+      disabled={!canDig}
+      data-tour="dig"
+      title={`Swap a card on the table for one from your box — costs ${GOODWILL_COST_DIG} goodwill, and nobody loses patience`}
+    >
+      DIG · {GOODWILL_COST_DIG}
+    </button>
+  );
+
+  const closeButton = canCloseUp ? (
+    <button
+      className={styles.btnSm}
+      onClick={onCloseUp}
+      data-tour="closeUp"
+      title="The quota is covered. Pack up now and keep everything unsold for the next show."
+    >
+      PACK UP
+    </button>
+  ) : null;
+
+  if (!result || !buyer) {
     return (
       <div className={styles.sheetFlat}>
         <Band
@@ -71,45 +100,26 @@ export function Tally({
         <div className={styles.tallyBody}>
           <div className={styles.tallyMath}>
             <div className={styles.tallyIdle}>
-              Pick cards from the case and the best-paying pitch type is detected
-              automatically — you see the offer before you commit.
+              Pick cards from the case and everyone at the table names a price for them. Sell
+              to whoever you like — the rest wait, and not forever.
             </div>
           </div>
           <div className={styles.tallyPay}>
             <div data-tour="pay">
-              <div className={styles.lbl}>They'll pay</div>
+              <div className={table.payWho}>Nobody is quoting yet</div>
               <div className={styles.payAmount} style={{ color: 'var(--rule)' }}>
                 —
               </div>
             </div>
             {/* Same anchors as the scored branch: an empty selection is a
                 perfectly normal state to be taught in — it is where you stand
-                when the buyer wants something the case does not hold. */}
+                when a buyer wants something the case does not hold. */}
             <div className={styles.payButtons}>
               <button className={styles.btn} disabled data-tour="send">
                 SELL
               </button>
-              {/* Both spend the same pool, so both print what they cost. The
-                  number is goodwill, not a counter — passes remaining are the
-                  pips on the board. */}
-              <button
-                className={styles.btnSm}
-                onClick={onDig}
-                disabled={!canDig}
-                data-tour="dig"
-                title={`Dig through the box for a card they want — costs ${GOODWILL_COST_DIG} goodwill`}
-              >
-                DIG · {GOODWILL_COST_DIG}
-              </button>
-              <button
-                className={styles.btnSm}
-                onClick={onTurnAway}
-                disabled={!canTurnAway}
-                data-tour="pass"
-                title={`Wave this buyer off for a new one — costs ${GOODWILL_COST_PASS} goodwill, ${turnAwaysLeft} pass${turnAwaysLeft === 1 ? '' : 'es'} left`}
-              >
-                PASS · {GOODWILL_COST_PASS}
-              </button>
+              {digButton}
+              {closeButton}
             </div>
           </div>
         </div>
@@ -125,7 +135,7 @@ export function Tally({
   return (
     <div className={styles.sheetFlat}>
       <Band
-        title="The tally"
+        title={`The tally · ${buyer.label}`}
         note={
           <span className={styles.bandNoteRow}>
             <span>
@@ -142,10 +152,7 @@ export function Tally({
       <div className={styles.tallyBody}>
         <div className={styles.tallyMath} data-tour="math">
           <div className={styles.mathRow}>
-            <MathBox
-              label={result.pitchValueCounted ? 'Pitch value' : 'Pitch value — ignored'}
-              value={round(result.pitchValue)}
-            />
+            <MathBox label="Pitch value" value={round(result.pitchValue)} />
             <span className={styles.mathOp}>+</span>
             <MathBox label="Card $" value={round(result.cardValue)} />
             <span className={styles.mathOp}>×</span>
@@ -199,11 +206,10 @@ export function Tally({
                   <span className={styles.cappedFlagTitle}>PART TRADE</span>
                   {/* Their cash is a real cap. What it will not cover they make
                       up out of their own binder and you sell on, which is why
-                      the total lands above their budget. Saying they simply
-                      "pay over budget" made the number read as a bug. */}
+                      the total lands above their budget. */}
                   <span className={styles.cappedFlagNote}>
                     {formatMoney(result.budget)} cash, plus cards off them worth{' '}
-                    {formatMoney(result.offer - result.budget)} to you
+                    {formatMoney(Math.max(0, result.baseOffer - result.budget))} to you
                   </span>
                 </span>
               </>
@@ -218,45 +224,35 @@ export function Tally({
                 {formatMoney(result.uncappedOffer)}
               </span>
             )}
-          </div>
 
-          {result.offerLines.length > 0 && (
-            <div className={styles.mathRow}>
-              {result.offerLines.map((line, i) => (
-                <span key={i} className={line.amount >= 0 ? styles.mathGain : styles.mathLoss}>
-                  {line.amount >= 0 ? '+' : '−'}
-                  {formatMoney(Math.abs(line.amount))} {line.label}
-                </span>
-              ))}
-            </div>
-          )}
+            {result.offerLines.map((line, i) => (
+              <span key={i} className={line.amount >= 0 ? styles.mathGain : styles.mathLoss}>
+                {line.amount >= 0 ? '+' : '−'}
+                {formatMoney(Math.abs(line.amount))} {line.label}
+              </span>
+            ))}
+
+            {/* The crowd pays on top of the buyer, so it is the last thing
+                applied and the only one that ignores their wallet. */}
+            {result.buzzMult > 1 && (
+              <span className={table.buzzChip} data-tour="buzzChip">
+                <strong>×{round(result.buzzMult, 2)}</strong> BUZZ
+              </span>
+            )}
+          </div>
         </div>
 
         <div className={styles.tallyPay}>
           <div data-tour="pay">
-            <div className={styles.lbl}>They'll pay</div>
+            <div className={table.payWho}>{buyer.label} pays</div>
             <div className={styles.payAmount}>{formatMoney(result.offer)}</div>
           </div>
           <div className={styles.payButtons}>
-            <button
-              className={styles.btn}
-              onClick={onPitch}
-              disabled={!canPitch}
-              data-tour="send"
-            >
+            <button className={styles.btn} onClick={onSell} data-tour="send">
               SELL
             </button>
-            <button className={styles.btnSm} onClick={onDig} disabled={!canDig} data-tour="dig">
-              DIG
-            </button>
-            <button
-              className={styles.btnSm}
-              onClick={onTurnAway}
-              disabled={!canTurnAway}
-              data-tour="pass"
-            >
-              PASS · {turnAwaysLeft}
-            </button>
+            {digButton}
+            {closeButton}
           </div>
         </div>
       </div>

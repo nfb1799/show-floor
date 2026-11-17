@@ -43,6 +43,15 @@ export interface BalanceSummary {
   readonly cappedShare: number;
   /** Pitch types that never fired in the whole sample. */
   readonly deadPitchTypes: readonly string[];
+  /** How far ahead the best buyer to serve is of the next best. */
+  readonly medianSeatMargin: number;
+  /** Share of everyone who came through a show and left without buying. */
+  readonly walkedShare: number;
+  readonly servedPerShow: number;
+  /** Mean Buzz a sale was made at, and the mean peak a show reached. */
+  readonly meanBuzz: number;
+  readonly meanPeakBuzz: number;
+  readonly pleasedShare: number;
 }
 
 export function summarize(runs: readonly RunSample[]): BalanceSummary {
@@ -63,6 +72,10 @@ export function summarize(runs: readonly RunSample[]): BalanceSummary {
   }
 
   const fired = new Set(pitches.map((p) => p.pitchType));
+  const shows = runs.flatMap((r) => r.shows);
+  const served = shows.reduce((sum, s) => sum + s.served, 0);
+  const walked = shows.reduce((sum, s) => sum + s.walked, 0);
+  const margins = pitches.map((p) => p.seatMargin).filter((m): m is number => m !== null);
 
   return {
     runs: runs.length,
@@ -77,6 +90,12 @@ export function summarize(runs: readonly RunSample[]): BalanceSummary {
     cappedShare:
       pitches.length > 0 ? pitches.filter((p) => p.cappedByBudget).length / pitches.length : 0,
     deadPitchTypes: PITCH_TYPES.filter((t) => !fired.has(t.id)).map((t) => t.label),
+    medianSeatMargin: median(margins),
+    walkedShare: served + walked > 0 ? walked / (served + walked) : 0,
+    servedPerShow: shows.length > 0 ? served / shows.length : 0,
+    meanBuzz: mean(pitches.map((p) => p.buzz)),
+    meanPeakBuzz: mean(shows.map((s) => s.peakBuzz)),
+    pleasedShare: pitches.length > 0 ? pitches.filter((p) => p.pleased).length / pitches.length : 0,
   };
 }
 
@@ -215,6 +234,14 @@ export function renderReport(runs: readonly RunSample[]): string {
     `  decision density (best vs. alternative)     ${pct(s.medianDensity)}`,
     `  cards spent per sale                        ${s.cardsPerSale.toFixed(2)}`,
     `  pitches capped by budget                    ${pct(s.cappedShare)}`,
+    `  best buyer vs. next best buyer (median)     ${pct(s.medianSeatMargin)}`,
+    '',
+    '-- The crowd --',
+    `  buyers served per show                      ${s.servedPerShow.toFixed(2)}`,
+    `  buyers who walked                           ${pct(s.walkedShare)}`,
+    `  sales that pleased the buyer                ${pct(s.pleasedShare)}`,
+    `  Buzz at the average sale                    ${s.meanBuzz.toFixed(2)}`,
+    `  peak Buzz in the average show               ${s.meanPeakBuzz.toFixed(2)}`,
     '',
     '-- Pitch types --',
     pitchTypeTable(pitches),

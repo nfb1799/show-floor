@@ -14,11 +14,19 @@
 import { GRADER_MIN_CONDITION, REFUSAL_INTEREST_MULT } from '../constants';
 import { resolvePitch } from '../pitch/resolvePitch';
 import { createRng } from '../rng';
-import { createShow, type ShowDeps, type ShowState } from '../show/showEngine';
+import {
+  buzzMultiplier,
+  createShow,
+  type ShowDeps,
+  type ShowState,
+} from '../show/showEngine';
 import type { Buyer, Card } from '../types';
 
 export const WALKTHROUGH_SEED = 'walkthrough';
 export const WALKTHROUGH_BANKROLL = 100;
+
+/** Sales the scripted buyers sit through. Enough that nobody walks mid-lesson. */
+export const WALKTHROUGH_PATIENCE = 3;
 
 /**
  * The scripted pitches pay about $560 across the three buyers. The quota sits
@@ -57,7 +65,10 @@ export const WALKTHROUGH_CASE: readonly Card[] = [
     setNumber: 12,
     rarity: 'rare',
     slabbed: false,
-    condition: 'nearMint',
+    // Lightly played on purpose. The grader is standing at the same table, and
+    // a Near Mint card here is one they would outbid the collector for — which
+    // is a real lesson, but not the first one.
+    condition: 'lightlyPlayed',
   },
   {
     id: W.golem,
@@ -67,7 +78,7 @@ export const WALKTHROUGH_CASE: readonly Card[] = [
     setNumber: 13,
     rarity: 'rare',
     slabbed: false,
-    condition: 'nearMint',
+    condition: 'lightlyPlayed',
   },
   {
     id: W.bloom,
@@ -225,17 +236,19 @@ export const WALKTHROUGH_RESERVE: readonly Card[] = [
 export const WALKTHROUGH_HELD_STOCK: readonly string[] = [W.origin, 'w-res-4'];
 
 /**
- * Three buyers, each teaching one thing: a collector who pays for a franchise
- * you are deep in, a grader who refuses slabs outright, and a set builder who
- * wants a card that is not in the case at all — the only way to sell to them is
- * to dig for it.
+ * Three buyers, all at the table at once, each teaching one thing: a collector
+ * who pays for a franchise you are deep in, a grader who refuses slabs
+ * outright, and a set builder who wants a card that is not in the case at all —
+ * the only way to sell to them is to dig for it.
  */
 export const WALKTHROUGH_BUYERS: readonly Buyer[] = [
   {
     id: 'w-buyer-1',
     archetype: 'personalCollector',
     label: 'Personal Collector',
-    budget: 210,
+    // Under what the Pair is worth to them, so the second beat lands on a
+    // wallet that has run out.
+    budget: 160,
     wants: [{ kind: 'franchise', franchiseId: 'grimoire', interestPerCard: 4 }],
   },
   {
@@ -269,7 +282,7 @@ export const WALKTHROUGH_BUYERS: readonly Buyer[] = [
  * failures in the last rebalance were this. Read them from `resolvePitch` and
  * the lesson cannot drift from the arithmetic.
  */
-function offerFor(cardIds: readonly string[], buyerIndex: number): number {
+function offerFor(cardIds: readonly string[], buyerIndex: number, buzz = 0): number {
   const cards = cardIds.map((id) => {
     const found = WALKTHROUGH_CASE.find((c) => c.id === id);
     if (!found) throw new Error(`Walkthrough card not in the case: ${id}`);
@@ -281,6 +294,7 @@ function offerFor(cardIds: readonly string[], buyerIndex: number): number {
     buyer: WALKTHROUGH_BUYERS[buyerIndex]!,
     upgrades: [],
     conditions: [],
+    buzzMult: buzzMultiplier(buzz),
     // Fixed label rather than the run's stream: these are quoted in the script
     // before the show exists, and no hook in the walkthrough rolls anything.
     rng: createRng(`${WALKTHROUGH_SEED}:quote`),
@@ -291,9 +305,12 @@ export const WALKTHROUGH_OFFERS = {
   /** Beat one: one Grimoire card, then two. */
   single: offerFor([W.lich], 0),
   pair: offerFor([W.lich, W.golem], 0),
-  /** Beat two: two clean raws, then the same pitch with a slab dropped in. */
-  clean: offerFor([W.dell, W.vance], 1),
-  refused: offerFor([W.dell, W.vance, W.slab], 1),
+  /**
+   * Beat two: two clean raws, then the same pitch with a slab dropped in.
+   * Scored at Buzz 1, because the collector has just left happy.
+   */
+  clean: offerFor([W.dell, W.vance], 1, 1),
+  refused: offerFor([W.dell, W.vance, W.slab], 1, 1),
 } as const;
 
 /**
@@ -310,6 +327,7 @@ export function walkthroughShow(deps: ShowDeps): ShowState {
       ...base.config,
       quota: WALKTHROUGH_QUOTA,
       buyerCount: WALKTHROUGH_BUYERS.length,
+      seats: WALKTHROUGH_BUYERS.length,
       conditionIds: [],
     },
     displayCase: [...WALKTHROUGH_CASE],
@@ -318,8 +336,10 @@ export function walkthroughShow(deps: ShowDeps): ShowState {
     heldStockIds: [...WALKTHROUGH_HELD_STOCK],
     selection: [],
     queue: [...WALKTHROUGH_BUYERS],
-    queueIndex: 0,
-    buyer: WALKTHROUGH_BUYERS[0]!,
+    // Everyone is already at the table, so nobody is left in line.
+    queueIndex: WALKTHROUGH_BUYERS.length,
+    seats: WALKTHROUGH_BUYERS.map((buyer) => ({ buyer, patience: WALKTHROUGH_PATIENCE })),
+    buzz: 0,
     log: [],
     logSeq: 0,
   };

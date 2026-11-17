@@ -121,7 +121,11 @@ export function runOfferHooks(mods: readonly Modifier[], ctx: OfferContext): Off
 export interface ShowStartHookResult {
   readonly extraCaseSlots: number;
   readonly extraBuyers: number;
-  readonly extraTurnAways: number;
+  readonly patienceDelta: number;
+  readonly extraSeats: number;
+  readonly buzzStart: number;
+  readonly buzzStepDelta: number;
+  readonly extraRestock: number;
   readonly quotaMult: number;
   readonly tableFeeMult: number;
   readonly offerRatioDelta: number;
@@ -139,7 +143,11 @@ export function runShowStartHooks(
 ): ShowStartHookResult {
   let extraCaseSlots = 0;
   let extraBuyers = 0;
-  let extraTurnAways = 0;
+  let patienceDelta = 0;
+  let extraSeats = 0;
+  let buzzStart = 0;
+  let buzzStepDelta = 0;
+  let extraRestock = 0;
   let quotaMult = 1;
   let tableFeeMult = 1;
   let offerRatioDelta = 0;
@@ -166,8 +174,24 @@ export function runShowStartHooks(
           extraBuyers += amount;
           note(label, amount);
         },
-        addTurnAways: (amount, label) => {
-          extraTurnAways += amount;
+        addPatience: (amount, label) => {
+          patienceDelta += amount;
+          note(label, amount);
+        },
+        addSeats: (amount, label) => {
+          extraSeats += amount;
+          note(label, amount);
+        },
+        addBuzz: (amount, label) => {
+          buzzStart += amount;
+          note(label, amount);
+        },
+        addBuzzStep: (amount, label) => {
+          buzzStepDelta += amount;
+          note(label, amount);
+        },
+        addRestock: (amount, label) => {
+          extraRestock += amount;
           note(label, amount);
         },
         multiplyQuota: (factor, label) => {
@@ -209,7 +233,11 @@ export function runShowStartHooks(
   return {
     extraCaseSlots,
     extraBuyers,
-    extraTurnAways,
+    patienceDelta,
+    extraSeats,
+    buzzStart,
+    buzzStepDelta,
+    extraRestock,
     quotaMult,
     tableFeeMult,
     offerRatioDelta,

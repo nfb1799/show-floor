@@ -3,6 +3,7 @@ import { SetupScreen } from './ui/SetupScreen';
 import { ShopScreen } from './ui/ShopScreen';
 import { ShowScreen } from './ui/ShowScreen';
 import { RunOverScreen, ShowResultScreen, TitleScreen } from './ui/EndScreens';
+import { SaleReceiptLayer } from './ui/SaleReceipt';
 import { TourLayer } from './ui/tour/TourLayer';
 
 export default function App() {
@@ -11,6 +12,8 @@ export default function App() {
   return (
     <>
       {screenFor(phase)}
+      {/* Above the screens too: the last sale of a show closes the table. */}
+      <SaleReceiptLayer />
       {/* Above every screen, because the walkthrough crosses three of them. */}
       <TourLayer />
     </>

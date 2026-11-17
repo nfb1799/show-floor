@@ -11,8 +11,8 @@
  * advance on NEXT, and block the screen while they explain.
  */
 
-import { GOODWILL_COST_PASS, SHOW_GOODWILL } from '../../game/constants';
-import { W, WALKTHROUGH_OFFERS } from '../../game/run/walkthrough';
+import { GOODWILL_COST_HOLD, HOLD_PATIENCE, SHOW_GOODWILL } from '../../game/constants';
+import { W, WALKTHROUGH_BUYERS, WALKTHROUGH_OFFERS } from '../../game/run/walkthrough';
 import type { RunState } from '../../state/runStore';
 
 export interface TourStep {
@@ -44,13 +44,19 @@ const sel = (s: RunState): readonly string[] => s.show?.selection ?? [];
 const has = (s: RunState, id: string): boolean => sel(s).includes(id);
 const inCase = (s: RunState, id: string): boolean =>
   (s.show?.displayCase ?? []).some((c) => c.id === id);
+const served = (s: RunState): number => s.show?.stats.buyersServed ?? 0;
+
+/** The three scripted buyers, by the lesson each one carries. */
+const COLLECTOR = WALKTHROUGH_BUYERS[0]!.id;
+const GRADER = WALKTHROUGH_BUYERS[1]!.id;
+const BUILDER = WALKTHROUGH_BUYERS[2]!.id;
 
 export const TOUR_STEPS: readonly TourStep[] = [
-  // -- Buyer one: pitch types and the budget cap ----------------------------
+  // -- The crowd, and the collector: pitch types and the budget cap ---------
   {
     id: 'welcome',
     title: 'You rented a table at a card show',
-    text: 'Sell cards out of your case to whoever walks up, and clear the quota before closing.',
+    text: 'Sell cards out of your case to the crowd, and clear the quota before closing.',
   },
   {
     id: 'quota',
@@ -59,22 +65,22 @@ export const TOUR_STEPS: readonly TourStep[] = [
     text: 'Clear the quota by closing time or the run is over.',
   },
   {
-    id: 'buyer',
-    anchor: 'buyer',
-    title: 'Who is at your table',
-    text: 'Buyers come one at a time, and there are only ever a handful.',
-  },
-  {
-    id: 'budget',
-    anchor: 'budget',
-    title: 'The cash they brought',
-    text: 'All the money they have on them. Pitch past it and most of the extra is lost.',
+    id: 'crowd',
+    anchor: 'crowd',
+    title: 'Three buyers, one case',
+    text: 'They are all at your table at once. You decide who gets which cards, and who gets served first.',
   },
   {
     id: 'wants',
-    anchor: 'wants',
+    anchor: `wants:${COLLECTOR}`,
     title: 'What wins them',
     text: 'This one collects Grimoire. Every Grimoire card in the pitch adds Interest.',
+  },
+  {
+    id: 'budget',
+    anchor: `budget:${COLLECTOR}`,
+    title: 'The cash they brought',
+    text: 'All the money they have on them. Pitch past it and most of the extra is lost.',
   },
   {
     id: 'case',
@@ -86,27 +92,33 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'pickOne',
     anchor: `card:${W.lich}`,
     title: 'Start with one card',
-    text: 'Ashen Lich is Grimoire — exactly what they collect.',
+    text: 'Ashen Lich is Grimoire — exactly what the collector is after.',
     action: 'Click Ashen Lich',
     until: (s) => has(s, W.lich),
   },
   {
+    id: 'quotes',
+    anchor: 'crowd',
+    title: 'Three prices for one card',
+    text: 'Everyone names a price for what you picked. The collector wants it; the other two shrug.',
+  },
+  {
     id: 'math',
     anchor: 'math',
-    title: 'How the offer is built',
+    title: 'How a price is built',
     text: 'Pitch value plus card value, times Interest. One card is the weakest pitch there is.',
   },
   {
     id: 'pickTwo',
     anchor: `card:${W.golem}`,
     title: 'Now add a second',
-    text: 'Two cards sharing a franchise make a Pair. Watch the offer.',
+    text: 'Two cards sharing a franchise make a Pair. Watch the collector.',
     action: 'Click Rune Golem',
     until: (s) => has(s, W.golem),
   },
   {
     id: 'jumped',
-    anchor: 'pay',
+    anchor: `quote:${COLLECTOR}`,
     title: `${money(WALKTHROUGH_OFFERS.single)} to ${money(WALKTHROUGH_OFFERS.pair)}`,
     text: 'Cards that go together are worth far more than the same cards sold loose.',
   },
@@ -121,36 +133,50 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'guideList',
     anchor: 'guide',
-    title: 'You are on the second rung',
-    text: 'Your Pair is lit. The rows below it are what the same five slots could be worth.',
+    title: 'The rungs of the ladder',
+    text: 'Your Pair is the second one. The rows below it are what the same five slots could be worth.',
     action: 'Close the list',
     untilGone: 'guide',
   },
   {
     id: 'capped',
-    anchor: 'budget',
+    anchor: `budget:${COLLECTOR}`,
     title: 'And the wallet runs out',
     text: 'Worth more than they carry. They make up a little of it from their own binder.',
   },
   {
     id: 'send',
-    anchor: 'send',
-    title: 'Sell it',
+    anchor: `sell:${COLLECTOR}`,
+    title: 'Sell it to the collector',
     text: 'No haggling — the price you see is the price you get.',
     action: 'Click SELL',
-    until: (s) => s.show?.queueIndex === 1,
+    until: (s) => served(s) === 1,
   },
 
-  // -- Buyer two: condition, slabs and refusals -----------------------------
+  // -- What a sale does to everyone else -------------------------------------
   {
-    id: 'sold',
-    anchor: 'quota',
-    title: 'Banked',
-    text: 'Sold cards leave the run for good, and the case refilled from your stock.',
+    id: 'buzz',
+    anchor: 'buzz',
+    title: 'The crowd grew',
+    text: 'They left with something they came for, so Buzz went up. Every sale now pays more, on top of the buyer.',
   },
   {
+    id: 'waited',
+    anchor: [`patience:${GRADER}`, `patience:${BUILDER}`],
+    title: 'And the others waited',
+    text: 'Each sale costs everyone else a pip. Out of pips, they walk — and take a level of Buzz with them.',
+  },
+  {
+    id: 'restock',
+    anchor: 'case',
+    title: 'The case restocked',
+    text: 'Up to three cards come up from your box after a sale. Sell five at once and the table runs thin.',
+  },
+
+  // -- The grader: condition, slabs and refusals -----------------------------
+  {
     id: 'grader',
-    anchor: 'wants',
+    anchor: `wants:${GRADER}`,
     title: 'A grader',
     text: 'Green is what they pay for: raw cards, Near Mint or better. Red is what they refuse.',
   },
@@ -187,10 +213,10 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     id: 'collapse',
-    anchor: ['refusal', 'pay'],
+    anchor: [`refusal:${GRADER}`, `quote:${GRADER}`],
     title: `${money(WALKTHROUGH_OFFERS.clean)} to ${money(WALKTHROUGH_OFFERS.refused)}`,
     text:
-      'Grading it is the one thing they wanted to do. That red line is the whole pitch, quartered.',
+      'Grading it is the one thing they wanted to do. One refused card, and the whole pitch is quartered.',
   },
   {
     id: 'untrap',
@@ -202,31 +228,31 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     id: 'sendTwo',
-    anchor: 'send',
-    title: 'Sell it',
-    text: 'Two clean cards, no refusal, inside their budget.',
+    anchor: `sell:${GRADER}`,
+    title: 'Sell it to the grader',
+    text: 'Two clean cards, no refusal, and the Buzz from the last sale on top.',
     action: 'Click SELL',
-    until: (s) => s.show?.queueIndex === 2,
+    until: (s) => served(s) === 2,
   },
 
-  // -- Buyer three: passing, and digging ------------------------------------
+  // -- The set builder: patience, holding, and digging -----------------------
   {
     id: 'setBuilder',
-    anchor: 'wants',
-    title: 'A set builder',
-    text: 'They only want cards from one set — and there is nothing from it in your case.',
+    anchor: `seat:${BUILDER}`,
+    title: 'A set builder, nearly out of patience',
+    text: 'One pip left. They only want cards from one set — and none of it is on the table.',
   },
   {
-    id: 'pass',
-    anchor: 'pass',
-    title: 'You could wave them off',
-    text: `Costs ${GOODWILL_COST_PASS} goodwill — two digs — and you do not choose who walks up next.`,
+    id: 'hold',
+    anchor: `hold:${BUILDER}`,
+    title: 'You can ask a buyer to wait',
+    text: `${GOODWILL_COST_HOLD} goodwill buys ${HOLD_PATIENCE} more pips. For when somebody else has to be served first.`,
   },
   {
     id: 'digButton',
     anchor: 'dig',
-    title: 'Better: go and look',
-    text: 'Digging swaps a card with your stock while the buyer waits.',
+    title: 'Or go and get what they want',
+    text: 'Digging swaps a card on the table with one from your box. Nobody loses patience over it.',
     action: 'Click DIG',
     untilAnchor: 'digPanel',
   },
@@ -234,19 +260,19 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'digCaseCol',
     anchor: 'digOutCol',
     title: 'On the left, your case',
-    text: 'The eight cards on the table right now.',
+    text: 'The cards on the table right now.',
   },
   {
     id: 'digBoxCol',
     anchor: 'digInCol',
     title: 'On the right, your box',
-    text: 'Everything else you own, which the buyer never sees.',
+    text: 'Everything else you own, which the buyers never see.',
   },
   {
     id: 'digOut',
     anchor: `digOut:${W.pup}`,
     title: 'Something has to go back',
-    text: 'The case only holds eight. Send the Bramblepup back to the box.',
+    text: 'It is a swap. Send the Bramblepup back to the box.',
     action: 'Click Bramblepup',
     untilAnchor: 'digPicked',
   },
@@ -268,13 +294,13 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: 'digCost',
     anchor: 'goodwill',
     title: 'That cost a goodwill pip',
-    text: `${SHOW_GOODWILL} a show, and passing spends ${GOODWILL_COST_PASS} of the same pool. Digging or waving off — not both.`,
+    text: `${SHOW_GOODWILL} a show, shared between digging and holding. Spend them where the money is.`,
   },
   {
     id: 'sendThree',
-    anchor: 'send',
-    title: 'Sell it',
-    text: 'A card they actually want, fetched from a box they cannot see.',
+    anchor: `sell:${BUILDER}`,
+    title: 'Sell it to the set builder',
+    text: 'A card they actually want, fetched from a box they cannot see, at the biggest crowd of the day.',
     action: 'Click SELL',
     until: (s) => s.phase === 'showResult',
   },
@@ -392,6 +418,6 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'done',
     title: 'That is the loop',
-    text: 'Read the buyer, build the best pitch you can, and keep the good stuff together.',
+    text: 'Read the crowd, send people home happy, and save the big pitch for the biggest Buzz.',
   },
 ];

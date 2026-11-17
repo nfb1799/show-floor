@@ -2,12 +2,20 @@
  * The show loop as pure state transitions. Every function takes a state and
  * returns a new one; nothing here imports React or touches a store.
  *
+ * A show is a crowd, not a queue. Several buyers stand at the table at once
+ * and share one case; the player picks cards and chooses who gets them. Every
+ * sale costs everyone else a pip of patience, sends a happy buyer off to grow
+ * the Buzz, and brings a few cards up from the box.
+ *
  * The RNG is threaded in by the caller because drawing and buyer generation
  * genuinely advance the run's stream — unlike resolvePitch, which only forks.
  */
 
 import {
   BUYERS_PER_SHOW,
+  BUYER_PATIENCE,
+  BUZZ_MAX,
+  BUZZ_STEP,
   DISPLAY_CASE_SIZE,
   DRAW_AFFINITY_FRANCHISE,
   DRAW_AFFINITY_RUN,
@@ -15,18 +23,19 @@ import {
   DRAW_AFFINITY_SET,
   DRAW_AFFINITY_SUBJECT,
   GOODWILL_COST_DIG,
-  GOODWILL_COST_PASS,
+  GOODWILL_COST_HOLD,
+  HOLD_PATIENCE,
   MAX_PITCH_CARDS,
   OFFER_RATIO_START,
   QUOTA_BASE,
   QUOTA_GROWTH,
   QUOTA_SOFTEN_AFTER_SHOW,
   QUOTA_SOFT_GROWTH,
+  RESTOCK_PER_SALE,
   SHOW_GOODWILL,
   TABLE_FEE_BASE,
   TABLE_FEE_GROWTH,
-  TURN_AWAYS_PER_SHOW,
-  TURN_AWAY_CONSUMES_BUYER_SLOT,
+  TABLE_SEATS,
 } from '../constants';
 import { generateBuyer } from '../buyers/generate';
 import { queueRng } from '../run/rumors';
@@ -46,7 +55,7 @@ export type ShowPhase = 'pitching' | 'over';
 export type ShowOutcome = 'inProgress' | 'cleared' | 'failed';
 
 /**
- * What the last sale was, so the table can animate the change in place.
+ * What the last sale was, so the table can replay the change in place.
  * `id` changes on every sale, which is what the UI keys its animation off.
  */
 export interface SaleRecord {
@@ -57,6 +66,19 @@ export interface SaleRecord {
   readonly amount: number;
   /** Extra money from onSale hooks, already included in `amount`. */
   readonly bonus: number;
+  /** The scored pitch, so the receipt can replay how the number was built. */
+  readonly result: PitchResult;
+  readonly buzzBefore: number;
+  readonly buzzAfter: number;
+  /** Buyers who ran out of patience during this sale. */
+  readonly walked: readonly string[];
+}
+
+/** A buyer standing at the table, and how much longer they will stand there. */
+export interface Seat {
+  readonly buyer: Buyer;
+  /** Sales to other people they will sit through. At zero they walk. */
+  readonly patience: number;
 }
 
 export interface LogEntry {
@@ -70,8 +92,17 @@ export interface ShowConfig {
   readonly quota: number;
   readonly tableFee: number;
   readonly caseSize: number;
+  /** Everyone who will pass through, served or not. */
   readonly buyerCount: number;
-  readonly turnAways: number;
+  /** How many of them can stand at the table at once. */
+  readonly seats: number;
+  /** Added to every buyer's patience as they step up. */
+  readonly patienceDelta: number;
+  readonly buzzStart: number;
+  /** Payout added per Buzz level. */
+  readonly buzzStep: number;
+  /** Cards brought up from the box after each sale. */
+  readonly restock: number;
   readonly startingOfferRatio: number;
   /** Goodwill the crowd starts the show with. */
   readonly goodwill: number;
@@ -84,7 +115,9 @@ export interface ShowConfig {
 export interface ShowStats {
   readonly biggestSale: number;
   readonly buyersWalked: number;
+  readonly buyersServed: number;
   readonly cardsSold: number;
+  readonly peakBuzz: number;
 }
 
 export interface ShowState {
@@ -104,21 +137,23 @@ export interface ShowState {
   readonly heldStockIds: readonly string[];
   readonly selection: readonly string[];
   readonly queue: readonly Buyer[];
+  /** Index of the next buyer in `queue` who has not stepped up yet. */
   readonly queueIndex: number;
-  readonly buyer: Buyer | null;
-  readonly turnAwaysLeft: number;
-  /** Shared across the whole show: spent making a buyer wait while you dig. */
+  /** Everyone at the table right now, in the order they arrived. */
+  readonly seats: readonly Seat[];
+  /** The crowd, 0..BUZZ_MAX. */
+  readonly buzz: number;
+  /** Shared across the whole show: spent digging, or asking a buyer to wait. */
   readonly goodwill: number;
   readonly offerRatio: number;
   readonly phase: ShowPhase;
-  /** The sale being shown on the resolve screen. */
+  /** The sale being replayed on the table. */
   readonly lastSale: SaleRecord | null;
   readonly log: readonly LogEntry[];
   readonly outcome: ShowOutcome;
   /** Cards sold this show. They are gone from the run for good. */
   readonly sold: readonly Card[];
   readonly stats: ShowStats;
-  readonly buyerSeq: number;
   readonly logSeq: number;
 }
 
@@ -146,6 +181,11 @@ export function quotaForShow(showIndex: number): number {
 
 export function tableFeeForShow(showIndex: number): number {
   return Math.round(TABLE_FEE_BASE * Math.pow(TABLE_FEE_GROWTH, showIndex - 1));
+}
+
+/** What a sale pays on top of the buyer's own money, at this crowd size. */
+export function buzzMultiplier(buzz: number, step: number = BUZZ_STEP): number {
+  return 1 + Math.max(0, buzz) * step;
 }
 
 // ---------------------------------------------------------------------------
@@ -181,10 +221,13 @@ function applyLocks(state: ShowState): ShowState {
   };
 }
 
-/** Moves random cards from inventory into the case until it is full. */
-function drawUp(state: ShowState, deps: ShowDeps): ShowState {
+/**
+ * Moves cards from inventory into the case: until it is full, or `limit` cards
+ * if one is given. Opening the doors fills the case; a sale only restocks it.
+ */
+function drawUp(state: ShowState, deps: ShowDeps, limit = Infinity): ShowState {
   const mods = allModifiers(deps.upgrades, deps.conditions);
-  const wanted = state.config.caseSize - state.displayCase.length;
+  const wanted = Math.min(state.config.caseSize - state.displayCase.length, limit);
   if (wanted <= 0) return applyLocks(state);
 
   const drawHooks = runDrawHooks(mods, {
@@ -250,42 +293,19 @@ function drawUp(state: ShowState, deps: ShowDeps): ShowState {
   });
 }
 
-/**
- * Replacement buyers (after a turn-away) come from the live stream, so the
- * player cannot predict them. The initial queue comes from a per-show fork —
- * see queueRng — which is what lets the setup-phase rumour be truthful.
- */
-function makeBuyer(state: ShowState, deps: ShowDeps): { buyer: Buyer; seq: number } {
-  return {
-    buyer: generateBuyer(
-      deps.rng,
-      state.config.showIndex,
-      `s${state.config.showIndex}-b${state.buyerSeq}`,
-    ),
-    seq: state.buyerSeq + 1,
-  };
+function sellableCards(state: ShowState): Card[] {
+  return state.displayCase.filter((c) => !state.lockedCardIds.includes(c.id));
 }
 
 /**
- * Seats the next buyer from the queue. A buyer scared off by a hook still
- * consumes their slot, so this walks forward until someone stays or the show
- * runs out of buyers.
+ * Brings buyers up from the line until the table is full or the line is empty.
+ * A buyer scared off by a hook still uses up their place in the line.
  */
-function seatBuyer(state: ShowState, deps: ShowDeps): ShowState {
+function fillSeats(state: ShowState, deps: ShowDeps): ShowState {
   const mods = allModifiers(deps.upgrades, deps.conditions);
   let next = state;
 
-  // With nothing left to sell there is no legal action, so the show ends here
-  // rather than seating a buyer the player cannot pitch to.
-  const sellable = next.displayCase.filter((c) => !next.lockedCardIds.includes(c.id));
-  if (sellable.length === 0 && next.inventory.length === 0) {
-    return finishShow(
-      log(next, 'You are sold out. Nothing left to put on the table.', 'info'),
-      deps,
-    );
-  }
-
-  while (next.queueIndex < next.config.buyerCount) {
+  while (next.seats.length < next.config.seats && next.queueIndex < next.config.buyerCount) {
     const queued = next.queue[next.queueIndex];
     if (!queued) break;
 
@@ -310,16 +330,36 @@ function seatBuyer(state: ShowState, deps: ShowDeps): ShowState {
       continue;
     }
 
-    return {
+    const patience = Math.max(
+      1,
+      BUYER_PATIENCE[arrival.buyer.archetype] + next.config.patienceDelta,
+    );
+    next = {
       ...next,
-      buyer: arrival.buyer,
-      offerRatio: next.config.startingOfferRatio,
-      phase: 'pitching',
-      selection: [],
+      seats: [...next.seats, { buyer: arrival.buyer, patience }],
+      queueIndex: next.queueIndex + 1,
     };
   }
 
-  return finishShow(next, deps);
+  return next;
+}
+
+/**
+ * Fills the table and then asks whether the show can go on. It cannot when
+ * nobody is left to sell to, or when nothing on the table can be sold — an
+ * empty case has nothing to swap out either, so digging is no way back.
+ */
+function settle(state: ShowState, deps: ShowDeps): ShowState {
+  if (sellableCards(state).length === 0) {
+    return finishShow(
+      log(state, 'You are sold out. Nothing left to put on the table.', 'info'),
+      deps,
+    );
+  }
+
+  const seated = fillSeats(state, deps);
+  if (seated.seats.length === 0) return finishShow(seated, deps);
+  return { ...seated, phase: 'pitching' };
 }
 
 function finishShow(state: ShowState, deps: ShowDeps): ShowState {
@@ -336,7 +376,7 @@ function finishShow(state: ShowState, deps: ShowDeps): ShowState {
   let next: ShowState = {
     ...state,
     displayCase,
-    buyer: null,
+    seats: [],
     selection: [],
     phase: 'over',
     outcome: cleared ? 'cleared' : 'failed',
@@ -359,15 +399,16 @@ function selectedCards(state: ShowState): Card[] {
   return state.displayCase.filter((c) => state.selection.includes(c.id));
 }
 
-/** Moves `count` random unlocked cards out of the case, then redraws. */
+/** Moves `count` random unlocked cards out of the case and draws as many back. */
 function swapCaseCards(state: ShowState, count: number, deps: ShowDeps): ShowState {
   if (count <= 0) return state;
 
-  const swappable = state.displayCase.filter((c) => !state.lockedCardIds.includes(c.id));
+  const swappable = sellableCards(state);
   const chosen = deps.rng.shuffle(swappable).slice(0, count);
   const chosenIds = new Set(chosen.map((c) => c.id));
   if (chosenIds.size === 0) return state;
 
+  // One in for each one out: the swap churns the case, it does not refill it.
   return drawUp(
     {
       ...state,
@@ -376,6 +417,7 @@ function swapCaseCards(state: ShowState, count: number, deps: ShowDeps): ShowSta
       selection: state.selection.filter((id) => !chosenIds.has(id)),
     },
     deps,
+    chosenIds.size,
   );
 }
 
@@ -409,7 +451,11 @@ function buildConfig(
     tableFee: Math.round(tableFeeForShow(showIndex) * start.tableFeeMult),
     caseSize: Math.max(1, DISPLAY_CASE_SIZE + (deps.extraCaseSlots ?? 0) + start.extraCaseSlots),
     buyerCount: Math.max(1, BUYERS_PER_SHOW + start.extraBuyers),
-    turnAways: Math.max(0, TURN_AWAYS_PER_SHOW + start.extraTurnAways),
+    seats: Math.max(1, TABLE_SEATS + start.extraSeats),
+    patienceDelta: start.patienceDelta,
+    buzzStart: Math.max(0, Math.min(BUZZ_MAX, start.buzzStart)),
+    buzzStep: Math.max(0, BUZZ_STEP + start.buzzStepDelta),
+    restock: Math.max(1, RESTOCK_PER_SALE + start.extraRestock),
     startingOfferRatio: Math.max(0.05, OFFER_RATIO_START + start.offerRatioDelta),
     goodwill: Math.max(
       0,
@@ -445,8 +491,8 @@ export function createShow(
     selection: [],
     queue: [],
     queueIndex: 0,
-    buyer: null,
-    turnAwaysLeft: config.turnAways,
+    seats: [],
+    buzz: config.buzzStart,
     goodwill: config.goodwill,
     offerRatio: config.startingOfferRatio,
     phase: 'pitching',
@@ -454,33 +500,37 @@ export function createShow(
     log: [],
     outcome: 'inProgress',
     sold: [],
-    stats: { biggestSale: 0, buyersWalked: 0, cardsSold: 0 },
-    buyerSeq: 0,
+    stats: {
+      biggestSale: 0,
+      buyersWalked: 0,
+      buyersServed: 0,
+      cardsSold: 0,
+      peakBuzz: config.buzzStart,
+    },
     logSeq: 0,
   };
 
-  // The whole queue is generated up front so an upgrade can reveal who is next,
-  // and from a per-show fork so the setup rumour can describe it in advance.
+  // The whole line is generated up front so an upgrade can reveal who is
+  // coming, and from a per-show fork so the setup rumour can describe it in
+  // advance.
   const stream = queueRng(deps.rng, showIndex);
   const queue = Array.from({ length: config.buyerCount }, (_, i) =>
     generateBuyer(stream, showIndex, `s${showIndex}-q${i}`),
   );
-  blank = { ...blank, queue, buyerSeq: config.buyerCount };
+  blank = { ...blank, queue };
 
   for (const line of start.lines) blank = log(blank, line.label, 'info');
 
-  return seatBuyer(drawUp(blank, deps), deps);
+  return settle(drawUp(blank, deps), deps);
 }
 
-/** Everyone still waiting behind the buyer at the table. */
+/** Everyone still in line, behind the buyers already at the table. */
 export function remainingQueue(state: ShowState): Buyer[] {
-  return state.queue.slice(state.queueIndex + 1);
+  return state.queue.slice(state.queueIndex, state.config.buyerCount);
 }
 
-/** The buyer after the current one, when an upgrade grants the peek. */
-export function nextBuyerPreview(state: ShowState): Buyer | null {
-  if (!state.config.revealNextBuyer) return null;
-  return state.queue[state.queueIndex + 1] ?? null;
+export function seatFor(state: ShowState, buyerId: string): Seat | null {
+  return state.seats.find((s) => s.buyer.id === buyerId) ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -505,49 +555,75 @@ export function clearSelection(state: ShowState): ShowState {
   return { ...state, selection: [] };
 }
 
-/** The offer the current selection would draw, for the pre-commit preview. */
-export function previewPitch(state: ShowState, deps: ShowDeps): PitchResult | null {
-  if (!state.buyer || state.selection.length === 0) return null;
+/**
+ * The offer the current selection would draw from one buyer at the table.
+ * Every seated buyer prices the same cards differently, so the table asks this
+ * once per seat and shows the answers side by side.
+ */
+export function previewPitch(
+  state: ShowState,
+  deps: ShowDeps,
+  buyerId: string,
+): PitchResult | null {
+  const seat = seatFor(state, buyerId);
+  if (!seat || state.selection.length === 0) return null;
   return resolvePitch({
     cards: selectedCards(state),
-    buyer: state.buyer,
+    buyer: seat.buyer,
     upgrades: deps.upgrades,
     conditions: deps.conditions,
     offerRatio: state.offerRatio,
     showIndex: state.config.showIndex,
+    buzzMult: buzzMultiplier(state.buzz, state.config.buzzStep),
     rng: deps.rng,
   });
 }
 
 /**
- * Sells the selection outright, banks it, refills the case and seats the next
- * buyer in one step.
+ * Sells the selection to one buyer at the table and plays out everything that
+ * follows from it, in one step:
  *
- * There used to be a haggling phase between the pitch and the sale — an offer
- * you could push on for a goodwill pip. It was cut: the offer is already
- * visible before you commit, so the push was a second decision made on the
- * same information as the first, and against a capped buyer (which is most of
- * them) the only correct answer was always to take the money.
+ *   1. the money is banked, at the current Buzz;
+ *   2. a buyer who got something they came for grows the Buzz;
+ *   3. everyone else loses a pip of patience, and anyone out of it walks,
+ *      taking a level of Buzz with them;
+ *   4. a few cards come up from the box;
+ *   5. the next people in line step up.
  *
- * `lastSale` carries what just happened so the table can animate the change in
- * place, rather than interrupting the player with a receipt screen.
+ * There is no haggling phase. The offer is visible before you commit, so a
+ * second decision on the same information was only ever "take it".
+ *
+ * `lastSale` carries what just happened so the table can replay it in place,
+ * rather than interrupting the player with a receipt screen.
  */
-export function pitch(state: ShowState, deps: ShowDeps): ShowState {
-  if (state.phase !== 'pitching' || !state.buyer) return state;
-  const result = previewPitch(state, deps);
+export function pitch(state: ShowState, deps: ShowDeps, buyerId: string): ShowState {
+  if (state.phase !== 'pitching') return state;
+  const seat = seatFor(state, buyerId);
+  if (!seat) return state;
+  const result = previewPitch(state, deps, buyerId);
   if (!result) return state;
 
   const mods = allModifiers(deps.upgrades, deps.conditions);
   const soldCards = selectedCards(state);
   const sale = runSaleHooks(mods, {
     cards: soldCards,
-    buyer: state.buyer,
+    buyer: seat.buyer,
     result,
     showIndex: state.config.showIndex,
     rng: deps.rng,
   });
 
   const money = result.offer + sale.extraMoney;
+
+  // Everyone who was not served sat through that sale.
+  const waiting = state.seats
+    .filter((s) => s.buyer.id !== buyerId)
+    .map((s) => ({ ...s, patience: s.patience - 1 }));
+  const walked = waiting.filter((s) => s.patience <= 0);
+  const staying = waiting.filter((s) => s.patience > 0);
+
+  const grown = Math.min(BUZZ_MAX, state.buzz + (result.pleased ? 1 : 0));
+  const buzz = Math.max(0, grown - walked.length);
 
   let next: ShowState = {
     ...state,
@@ -558,88 +634,93 @@ export function pitch(state: ShowState, deps: ShowDeps): ShowState {
     inventory: [...state.inventory, ...sale.returnedCards],
     sold: [...state.sold, ...soldCards],
     selection: [],
+    seats: staying,
+    buzz,
     lastSale: {
       id: state.logSeq,
-      buyerLabel: state.buyer.label,
+      buyerLabel: seat.buyer.label,
       pitchTypeLabel: result.pitchTypeLabel,
       cards: soldCards,
       amount: money,
       bonus: sale.extraMoney,
+      result,
+      buzzBefore: state.buzz,
+      buzzAfter: buzz,
+      walked: walked.map((s) => s.buyer.label),
     },
-    queueIndex: state.queueIndex + 1,
     stats: {
       ...state.stats,
       biggestSale: Math.max(state.stats.biggestSale, money),
+      buyersServed: state.stats.buyersServed + 1,
+      buyersWalked: state.stats.buyersWalked + walked.length,
       cardsSold: state.stats.cardsSold + soldCards.length,
+      peakBuzz: Math.max(state.stats.peakBuzz, grown),
     },
   };
 
   next = log(
     next,
-    `${state.buyer.label} takes the ${result.pitchTypeLabel} for $${Math.round(money)}.`,
+    `${seat.buyer.label} takes the ${result.pitchTypeLabel} for $${Math.round(money)}.`,
     'sale',
   );
   for (const line of sale.lines) next = log(next, line.label, 'info');
-
-  next = drawUp(next, deps);
-  next = swapCaseCards(next, sale.caseSwaps, deps);
-
-  return seatBuyer(next, deps);
-}
-
-/** Whether the player can afford to wave the current buyer off. */
-export function canTurnAway(state: ShowState): boolean {
-  if (state.phase !== 'pitching' || !state.buyer) return false;
-  if (state.turnAwaysLeft <= 0) return false;
-  return state.goodwill >= GOODWILL_COST_PASS;
-}
-
-export function turnAway(state: ShowState, deps: ShowDeps): ShowState {
-  const leaving = state.buyer;
-  if (!canTurnAway(state) || !leaving) return state;
-
-  const swappedOut = state.displayCase.filter(
-    (c) => state.selection.includes(c.id) && !isLocked(state, c.id),
-  );
-
-  let next: ShowState = {
-    ...state,
-    displayCase: state.displayCase.filter((c) => !swappedOut.some((s) => s.id === c.id)),
-    inventory: [...state.inventory, ...swappedOut],
-    selection: [],
-    turnAwaysLeft: state.turnAwaysLeft - 1,
-    // The same pool digging spends, so a pass is priced in the thing the
-    // player already understands: two cards you will not get to fetch later.
-    goodwill: state.goodwill - GOODWILL_COST_PASS,
-  };
-
-  if (TURN_AWAY_CONSUMES_BUYER_SLOT) {
-    next = { ...next, queueIndex: next.queueIndex + 1 };
-  } else {
-    // The slot survives, but the buyer does not: a fresh one takes their place.
-    const made = makeBuyer(next, deps);
-    const queue = [...next.queue];
-    queue[next.queueIndex] = made.buyer;
-    next = { ...next, queue, buyerSeq: made.seq };
+  for (const gone of walked) {
+    next = log(next, `${gone.buyer.label} got tired of waiting and walked.`, 'walk');
   }
 
-  next = log(
-    next,
-    swappedOut.length > 0
-      ? `You wave off the ${leaving.label} and swap ${swappedOut.length} card${swappedOut.length === 1 ? '' : 's'}.`
-      : `You wave off the ${leaving.label}.`,
+  next = drawUp(next, deps, next.config.restock);
+  next = swapCaseCards(next, sale.caseSwaps, deps);
+
+  return settle(next, deps);
+}
+
+/** Whether there is goodwill left to ask this buyer to hang on. */
+export function canHold(state: ShowState, buyerId: string): boolean {
+  if (state.phase !== 'pitching') return false;
+  if (!seatFor(state, buyerId)) return false;
+  return state.goodwill >= GOODWILL_COST_HOLD;
+}
+
+/**
+ * Asks one buyer to wait a little longer, for a pip of goodwill.
+ *
+ * This is the other half of the goodwill pool. Digging fetches the right card;
+ * holding buys the turns to serve somebody else first without losing the one
+ * you are saving your best pitch for.
+ */
+export function holdBuyer(state: ShowState, buyerId: string): ShowState {
+  if (!canHold(state, buyerId)) return state;
+  const held = seatFor(state, buyerId)!;
+
+  return log(
+    {
+      ...state,
+      seats: state.seats.map((s) =>
+        s.buyer.id === buyerId ? { ...s, patience: s.patience + HOLD_PATIENCE } : s,
+      ),
+      goodwill: state.goodwill - GOODWILL_COST_HOLD,
+    },
+    `You ask the ${held.buyer.label} to hang on a minute.`,
     'turnAway',
   );
+}
 
-  return seatBuyer(drawUp(next, deps), deps);
+/**
+ * Packs up before the line is empty. Everything unsold goes home with you,
+ * which is the point: once the quota is covered, the rest of the crowd is a
+ * choice between more money now and more stock next show.
+ */
+export function closeUp(state: ShowState, deps: ShowDeps): ShowState {
+  if (state.phase !== 'pitching') return state;
+  return finishShow(log(state, 'You pack up early.', 'info'), deps);
 }
 
 /**
  * Swaps one card out of the case for a named card from stock, for the price of
- * a goodwill pip — the buyer is waiting while you rummage.
+ * a goodwill pip — the table is waiting while you rummage.
  *
  * This is the answer to "the buyer wants a Tidefin and I have three in the
- * box": it does not dismiss them, because dismissing them defeats the point.
+ * box". It costs nobody any patience, only goodwill.
  */
 export function digFromStock(
   state: ShowState,
@@ -655,7 +736,7 @@ export function digFromStock(
   if (!outCard || !inCard) return state;
 
   // The dug card goes to the front of the case and straight into the pitch:
-  // digging is a deliberate search for a card the buyer wants, so making the
+  // digging is a deliberate search for a card a buyer wants, so making the
   // player hunt for it again in the case and click it is pure friction.
   const kept = state.selection.filter((id) => id !== outCardId);
   const selection = kept.length < MAX_PITCH_CARDS ? [inCard.id, ...kept] : kept;
@@ -670,7 +751,7 @@ export function digFromStock(
 
   return log(
     applyLocks(next),
-    `You dig out ${inCard.subject} while ${state.buyer?.label ?? 'the buyer'} waits.`,
+    `You dig out ${inCard.subject} while the table waits.`,
     'turnAway',
   );
 }

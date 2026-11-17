@@ -32,6 +32,64 @@ gh api --method POST repos/OWNER/REPO/pages -f build_type=workflow
 Runs save to `localStorage`, so each playtester's progress is per-browser and
 nothing is shared or collected.
 
+## The crowd rework
+
+The show used to seat one buyer at a time: three of them, eight cards, pick the
+best subset, three times. `npm run sim` put a number on why that felt flat — the
+best pitch beat the runner-up by **1.5%**, the bot sold 4.65 cards a sale because
+the case refilled for free, and a buyer who wanted nothing you held left you with
+no play at all.
+
+The idea is the same — read buyers, build card combinations, clear the quota —
+but a show is now a crowd rather than a queue:
+
+- **Three buyers stand at the table at once** and share one case. Pick cards and
+  every one of them names a price for the same selection, side by side. The
+  decision is no longer only *which cards* but *who gets them*.
+- **Patience.** Every sale costs everyone else a pip. Out of pips, they walk. Six
+  buyers come through a show and you will not serve all of them; the kid waits
+  through two sales, the investor through four.
+- **Buzz.** Send a buyer off with something they came for and the crowd grows:
+  each level pays +20% on the next sale, after the buyer's budget, up to x2. A
+  walk-off costs a level. Small well-aimed sales early are what make the big
+  pitch late worth making, so a show has an arc.
+- **Restock, not refill.** Three cards come up from the box after a sale. A
+  five-card pitch leaves the table thinner for whoever is next.
+- **Goodwill buys time.** DIG still fetches a named card from the box. Passing
+  is gone — you choose your buyer now — and in its place HOLD asks one buyer to
+  wait two more sales. Same pool, so they compete.
+- **Pack up early.** Once the quota is covered you can close the table and keep
+  what is unsold for the next show.
+- **The receipt.** A sale replays line by line and counts up, instead of a
+  number quietly changing.
+
+Measured with the same harness, forty runs each:
+
+| | one buyer at a time | the crowd |
+|---|---|---|
+| best pitch vs. next best | 1.5% | 3.9% |
+| best buyer vs. next best buyer | n/a | 39% |
+| cards per sale | 4.65 | 4.09 |
+| sales per show | 3 | 4.7 of 6, 20% walk |
+| median run depth (bot, no gear) | 9 | 10 |
+
+The 39% is the point: which buyer you serve is now the biggest decision on the
+board. Quota was retuned to match (`QUOTA_BASE` 460, growth 1.42 easing to 1.30
+after show 8) so the bot clears show 1 at 2.7x, as it did before, and deaths
+spread over shows 9 to 11 rather than stacking on one. The starting box grew
+from 32 to 40 cards because a show now sells about 19 of them.
+
+New gear and one new house rule ride the same hooks: Vinyl Banner (open at Buzz
+1), Hand Truck (+1 restock), Velvet Rope (a fourth seat), The Hype Man (Buzz
+levels worth +30%), and Rush Hour (everyone waits one sale fewer). Folding
+Chair and the Table Extension now move patience instead of passes. Saves from
+before the rework are discarded on load; the save version went from 2 to 3.
+
+The sim's bot changed with the game. It prices every card set for everyone at
+the table, charges each card a small holding cost so it does not dump five every
+time, and counts a buyer on their last pip against serving anyone else. It never
+digs or holds. It is still a constant rather than a model of a good player.
+
 ## Build state
 
 All seven steps of section 9 are done: card model, `resolvePitch`, the show
@@ -128,8 +186,8 @@ The doc left these open or self-contradictory. Each is tunable in `constants.ts`
 | Flipper's "value ≥ 2× offer" is unsatisfiable, not just circular | Archetype cut and replaced with the Type Collector — see below |
 | "Bundle: 3 cards sharing any one attribute" | Attributes are subject, franchise, set only — including rarity or slabbed would make almost any 3 cards a Bundle |
 | Graded Run trivially satisfiable at 100/×6 | Also requires one franchise |
-| Display case never refilled in the doc | Refills to 8 after each resolved buyer |
-| Turning a buyer away consumes the buyer slot | It does not; it replaces them. Consuming the slot leaves 1 sale against a hard quota |
+| Display case never refilled in the doc | Fills to 8 when the doors open, then restocks 3 after each sale — see The crowd rework |
+| Turning a buyer away consumes the buyer slot | Passing is gone. Several buyers stand at the table and you choose who to serve; the rest lose patience |
 | Nostalgia Buyer's "oldest set in the pool" | Sets carry a release year; vintage is a cutoff resolved at buyer generation |
 | `condition?` and `grade?` both optional on one interface | Discriminated union on `slabbed` |
 | Set Builder's slab refusal present in §3, absent in §5 | Kept the refusal |

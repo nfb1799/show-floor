@@ -11,7 +11,9 @@ import type { RunSnapshot } from './runState';
 const KEY = 'showFloor.run.v1';
 const BEST_KEY = 'showFloor.best.v1';
 const TUTORIAL_KEY = 'showFloor.tutorialSeen.v1';
-const VERSION = 2;
+// Bumped whenever ShowState changes shape: a save from the one-buyer-at-a-time
+// game has no seats and no Buzz, and loading it would crash the table.
+const VERSION = 3;
 
 interface Envelope {
   readonly version: number;

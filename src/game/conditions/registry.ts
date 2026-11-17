@@ -38,6 +38,10 @@ export const ALL_CONDITIONS: readonly ConditionDef[] = [
     onShowStart: (_ctx, fx) => fx.multiplyTableFee(3, 'Convention Center'),
   }),
 
+  condition('rushHour', 'Rush Hour', 'Every buyer waits through one sale fewer.', 3, {
+    onShowStart: (_ctx, fx) => fx.addPatience(-1, 'Rush Hour'),
+  }),
+
   condition('noBulkBins', 'No Bulk Bins', 'Pitches of 1 or 2 cards pay nothing.', 6, {
     onOfferFinalize: (ctx, fx) => {
       if (ctx.cards.length <= 2) fx.multiplyOffer(0, 'No Bulk Bins');

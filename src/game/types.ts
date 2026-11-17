@@ -173,7 +173,16 @@ export interface PitchResult {
   readonly cappedByBudget: boolean;
   /** Post-cap adjustments from onOfferFinalize hooks. */
   readonly offerLines: readonly ScoreLine[];
-  /** Final money, whole dollars. */
+  /** What the buyer hands over before the crowd gets involved. */
+  readonly baseOffer: number;
+  /** The Buzz multiplier this pitch was scored under. 1 with no crowd. */
+  readonly buzzMult: number;
+  /**
+   * True when the pitch gave the buyer something they came for and nothing
+   * they refuse. This is what grows the crowd.
+   */
+  readonly pleased: boolean;
+  /** Final money, whole dollars: baseOffer x buzzMult. */
   readonly offer: number;
 }
 
@@ -191,7 +200,16 @@ export interface ShowStartContext {
 export interface ShowStartEffects {
   addDisplayCaseSlots(amount: number, label: string): void;
   addBuyers(amount: number, label: string): void;
-  addTurnAways(amount: number, label: string): void;
+  /** Sales to other people every buyer will stand through. Can be negative. */
+  addPatience(amount: number, label: string): void;
+  /** Buyers who can stand at the table at once. */
+  addSeats(amount: number, label: string): void;
+  /** Buzz the show opens with. */
+  addBuzz(amount: number, label: string): void;
+  /** Extra payout per Buzz level, on top of BUZZ_STEP. */
+  addBuzzStep(amount: number, label: string): void;
+  /** Cards brought up from the box after each sale. */
+  addRestock(amount: number, label: string): void;
   multiplyQuota(factor: number, label: string): void;
   multiplyTableFee(factor: number, label: string): void;
   /** Undercutter starts the haggle lower; some upgrades start it higher. */

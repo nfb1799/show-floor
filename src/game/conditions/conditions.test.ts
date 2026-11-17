@@ -32,8 +32,8 @@ function score(cards: Card[], conditions: Modifier[], b: Buyer = buyer()) {
 const c = (id: string) => getCondition(id);
 
 describe('the condition pool', () => {
-  it('ships the ten conditions from the design doc', () => {
-    expect(ALL_CONDITIONS).toHaveLength(10);
+  it('ships the ten conditions from the design doc, plus one for the crowd', () => {
+    expect(ALL_CONDITIONS).toHaveLength(11);
     const ids = ALL_CONDITIONS.map((x) => x.id);
     expect(new Set(ids).size).toBe(ids.length);
 

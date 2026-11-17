@@ -69,8 +69,12 @@ export const TIER_1: readonly UpgradeDef[] = [
     },
   }),
 
-  upgrade('foldingChair', 'Folding Chair', 100, 'One extra turn-away per show.', {
-    onShowStart: (_ctx, fx) => fx.addTurnAways(1, 'Folding Chair'),
+  upgrade('foldingChair', 'Folding Chair', 100, 'Every buyer waits through one more sale.', {
+    onShowStart: (_ctx, fx) => fx.addPatience(1, 'Folding Chair'),
+  }),
+
+  upgrade('hypeBanner', 'Vinyl Banner', 160, 'Every show opens with 1 Buzz already.', {
+    onShowStart: (_ctx, fx) => fx.addBuzz(1, 'Vinyl Banner'),
   }),
 
   upgrade(

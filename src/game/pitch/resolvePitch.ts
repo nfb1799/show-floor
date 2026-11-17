@@ -2,7 +2,8 @@
  * The scoring boundary. Pure, no React, no module state, no global RNG.
  *
  *   Appeal = (pitchValue + sum(cardValues)) x interest
- *   Offer  = min(Appeal x offerRatio, buyerBudget), then post-cap hooks
+ *   Offer  = min(Appeal x offerRatio, buyerBudget), then post-cap hooks,
+ *            then the crowd's Buzz multiplier
  *
  * Interest has two channels that the design doc conflates under one name:
  * additive bonuses (buyer wants, most upgrades) and multiplicative modifiers
@@ -40,6 +41,11 @@ export interface PitchInput {
   /** Defaults to OFFER_RATIO_START; upgrades and conditions can move it. */
   readonly offerRatio?: number;
   readonly showIndex?: number;
+  /**
+   * What the crowd around the table is worth right now. Applied last, after
+   * the budget and every offer hook, which is why Buzz can pay past a wallet.
+   */
+  readonly buzzMult?: number;
   /**
    * Injected, never global. resolvePitch only ever forks from this, so the
    * caller's stream is not advanced and the same input always scores the same.
@@ -206,6 +212,12 @@ function scoreAs(pitchType: PitchTypeId, input: PitchInput, rng: Rng): PitchResu
     cappedByBudget,
   });
 
+  const buzzMult = input.buzzMult ?? 1;
+  const baseOffer = Math.max(0, Math.round(finalized.offer));
+  const pleased =
+    interestAddLines.some((l) => l.source === 'want') &&
+    !interestMultLines.some((l) => l.source === 'turnoff');
+
   return {
     pitchType,
     pitchTypeLabel: pitchTypeLabel(pitchType, cards.length),
@@ -225,7 +237,10 @@ function scoreAs(pitchType: PitchTypeId, input: PitchInput, rng: Rng): PitchResu
     budget: buyer.budget,
     cappedByBudget,
     offerLines: finalized.offerLines,
-    offer: Math.max(0, Math.round(finalized.offer)),
+    baseOffer,
+    buzzMult,
+    pleased,
+    offer: Math.round(baseOffer * buzzMult),
   };
 }
 

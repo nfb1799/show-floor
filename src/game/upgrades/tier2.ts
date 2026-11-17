@@ -106,14 +106,22 @@ export const TIER_2: readonly UpgradeDef[] = [
     'tableExtension',
     'Folding Table Extension',
     380,
-    'Display Case gains 3 slots, but you lose a turn-away.',
+    'Display Case gains 3 slots, but every buyer waits through one sale fewer.',
     {
       onShowStart: (_ctx, fx) => {
         fx.addDisplayCaseSlots(3, 'Table Extension');
-        fx.addTurnAways(-1, 'Table Extension');
+        fx.addPatience(-1, 'Table Extension');
       },
     },
   ),
+
+  upgrade('handTruck', 'Hand Truck', 300, 'Bring up one more card from the box after every sale.', {
+    onShowStart: (_ctx, fx) => fx.addRestock(1, 'Hand Truck'),
+  }),
+
+  upgrade('velvetRope', 'Velvet Rope', 360, 'A fourth buyer can stand at your table.', {
+    onShowStart: (_ctx, fx) => fx.addSeats(1, 'Velvet Rope'),
+  }),
 
   upgrade('crowdBarrier', 'Crowd Barrier', 220, 'The crowd starts each show with +2 goodwill.', {
     onShowStart: (_ctx, fx) => fx.addGoodwill(2, 'Crowd Barrier'),

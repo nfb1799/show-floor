@@ -51,6 +51,7 @@ export function ShowResultScreen() {
             {show.stats.cardsSold === 1 ? '' : 's'}.
             {show.stats.buyersWalked > 0 &&
               ` ${show.stats.buyersWalked} buyer${show.stats.buyersWalked === 1 ? '' : 's'} walked.`}
+            {show.stats.peakBuzz > 0 && ` Buzz peaked at ${show.stats.peakBuzz}.`}
           </p>
 
           <div style={{ margin: '22px 0' }}>
@@ -157,7 +158,7 @@ export function TitleScreen() {
 
       <div className={styles.centerSheet} style={{ marginTop: 8 }}>
         <p className={styles.sub} style={{ margin: 0, fontSize: 17 }}>
-          You rent a table at a card show and sell to whoever walks up. Read the buyer, pitch the
+          You rent a table at a card show and a crowd turns up. Read the buyers, pitch the
           right cards, and clear the quota before closing.
         </p>
 
@@ -165,7 +166,7 @@ export function TitleScreen() {
           <div className={styles.tourOffer}>
             <div className={styles.tourOfferText}>
               <strong>First time?</strong> Play one short show with the game explaining itself as
-              you go. Three buyers, then the shop — about three minutes.
+              you go. Three buyers at one table, then the shop — about three minutes.
             </div>
             <div className={styles.tourOfferButtons}>
               <button className={styles.btn} data-ink="gold" onClick={startTour}>

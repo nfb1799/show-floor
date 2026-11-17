@@ -96,7 +96,7 @@ export function SetupScreen() {
                   </span>
                 </div>
                 <div className={`${styles.ledgerRow} ${styles.dotted}`}>
-                  <span style={{ fontSize: 15, color: 'var(--body)' }}>Buyers at the table</span>
+                  <span style={{ fontSize: 15, color: 'var(--body)' }}>Buyers coming through</span>
                   <span
                     style={{
                       fontFamily: "'Barlow Semi Condensed', sans-serif",
@@ -232,7 +232,7 @@ export function SetupScreen() {
               {canOpen ? (
                 <>
                   Clear <strong style={{ color: 'var(--ink)' }}>{formatMoney(config.quota)}</strong>{' '}
-                  across {config.buyerCount} buyers to advance. Come up short and the run's over.
+                  from the {config.buyerCount} buyers coming through to advance. Come up short and the run's over.
                 </>
               ) : inventory.length === 0 ? (
                 'Nothing left to sell. The run ends here.'

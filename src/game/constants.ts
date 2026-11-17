@@ -210,8 +210,8 @@ export const SELL_ONLINE_RATE = 0.7;
  * *after* the cap and is the only channel that can pay past a buyer's budget.
  * Budget growth deliberately stays below quota growth to create that demand.
  *
- * After the playtest retune quota growth (1.38) only slightly outpaces budget
- * growth (1.35), and the softened growth after show 12 (1.30) is below it, so
+ * Quota growth (QUOTA_GROWTH) only slightly outpaces budget growth (1.35), and
+ * the softened growth after QUOTA_SOFTEN_AFTER_SHOW (1.30) is below it, so
  * the arithmetic requirement peaks near 0.41x of the theoretical ceiling and
  * then recedes. Cap-breaking is now how a strong run pulls ahead rather than a
  * toll every run must pay; the binding pressure is inventory drain.
@@ -249,17 +249,50 @@ export const INVESTOR_MIN_GRADE = 8;
 export const BULK_GUY_MIN_CARDS = 4;
 
 /**
- * Goodwill is a single pool for the whole show, not a per-buyer allowance, and
- * both things you can do with a buyer come out of it: making them wait while
- * you dig, or waving them off entirely.
+ * Goodwill is a single pool for the whole show, and both things it buys are
+ * about making people wait: digging through the box for a card, or asking one
+ * buyer to hang on a little longer.
  *
- * One pool for both is what makes either one a decision. A pass used to cost
- * only a counter, so waving people off until the queue looked right was simply
- * correct; now it is two digs you will not get to make later.
+ * One pool for both is what makes either one a decision. A dig spent fetching
+ * the perfect card is a hold you cannot use to keep the big spender at the
+ * table while you serve the impatient one first.
  */
-export const SHOW_GOODWILL = 6;
+export const SHOW_GOODWILL = 5;
 export const GOODWILL_COST_DIG = 1;
-export const GOODWILL_COST_PASS = 2;
+export const GOODWILL_COST_HOLD = 1;
+/** Sales a held buyer agrees to sit through on top of what they had left. */
+export const HOLD_PATIENCE = 2;
+
+/**
+ * How many sales to *other* people a buyer will stand through before walking.
+ *
+ * Buyers used to come one at a time, which made every pitch an isolated
+ * puzzle: one buyer, eight cards, and a best answer that beat the runner-up by
+ * 1.5%. Several of them now stand at the table at once and share one case, so
+ * the question is who gets which cards and in what order — and patience is the
+ * clock on that question. The kid will not wait; the investor will.
+ */
+export const BUYER_PATIENCE: Record<BuyerArchetypeId, number> = {
+  kid: 2,
+  bulkGuy: 3,
+  setBuilder: 3,
+  personalCollector: 3,
+  typeCollector: 3,
+  grader: 4,
+  nostalgia: 4,
+  investor: 4,
+};
+
+/**
+ * Buzz is the crowd around your table. Send a buyer away with something they
+ * came for and it grows; let one walk off empty-handed and it thins out.
+ *
+ * Every level adds BUZZ_STEP to what the next sale pays, after the buyer's
+ * budget, so it is the show's own arc: small, well-aimed sales early are what
+ * make the big pitch at the end worth making. It resets every show.
+ */
+export const BUZZ_MAX = 5;
+export const BUZZ_STEP = 0.2;
 
 /** Relative frequency of each archetype in the buyer queue. */
 export const ARCHETYPE_WEIGHTS: Record<BuyerArchetypeId, number> = {
@@ -318,29 +351,19 @@ export const DRAW_AFFINITY_RUN_SPAN = 2;
 export const DISPLAY_CASE_SIZE = 8;
 
 /**
- * Three buyers, not four. Every pitch is a quarter of the show rather than a
- * fifth, which is most of what makes one worth thinking about — and it is why
- * the quota base had to come down with it.
+ * Six buyers pass through a show, three at the table at any one time. Not all
+ * six will be served: patience runs out, and choosing who walks is part of it.
  */
-export const BUYERS_PER_SHOW = 3;
+export const BUYERS_PER_SHOW = 6;
+export const TABLE_SEATS = 3;
 
 /**
- * A ceiling on passes, on top of what GOODWILL_COST_PASS can afford. Goodwill
- * is the binding constraint at the default numbers (6 goodwill, 2 a pass); this
- * is here so an upgrade granting extra passes still has something to grant.
+ * Cards brought up from the box after each sale. Deliberately not "refill the
+ * case": a five-card pitch used to cost nothing, because the case was whole
+ * again a moment later, and the sim sold 4.65 cards a sale. Now a big pitch
+ * leaves the table thinner for whoever is served next.
  */
-export const TURN_AWAYS_PER_SHOW = 3;
-
-/**
- * Turning a buyer away replaces them with a fresh buyer rather than consuming
- * the buyer slot. Consuming the slot would leave three buyers minus three
- * passes = no sales, which makes the button a trap against a hard quota.
- */
-export const TURN_AWAY_CONSUMES_BUYER_SLOT = false;
-
-// A compounding budget penalty on replacements was tried here and replaced by
-// GOODWILL_COST_PASS. It priced the pass correctly but invisibly: the player
-// saw a fresh buyer with a smaller wallet and no way to connect the two.
+export const RESTOCK_PER_SALE = 3;
 
 /**
  * Quota growth sits just above budget growth, not far above it.
@@ -351,11 +374,16 @@ export const TURN_AWAY_CONSUMES_BUYER_SLOT = false;
  * the doc asks for — "a constant race between your inventory draining and the
  * quota climbing" — comes from cards being gone forever, not from a number the
  * player cannot reach.
+ *
+ * Retuned for the crowd: six buyers and Buzz roughly double what a show takes,
+ * so the base rose from 240 to 460 to keep the sim clearing show 1 at about
+ * 2.7x. Growth is a little steeper early and softens sooner (show 8, not 12),
+ * which spreads the bot's deaths over shows 9 to 11 instead of one wall.
  */
-export const QUOTA_BASE = 240;
-export const QUOTA_GROWTH = 1.38;
+export const QUOTA_BASE = 460;
+export const QUOTA_GROWTH = 1.42;
 export const QUOTA_SOFT_GROWTH = 1.3;
-export const QUOTA_SOFTEN_AFTER_SHOW = 12;
+export const QUOTA_SOFTEN_AFTER_SHOW = 8;
 
 export const TABLE_FEE_BASE = 50;
 export const TABLE_FEE_GROWTH = 1.4;
@@ -364,7 +392,8 @@ export const BUYER_BUDGET_GROWTH = 1.35;
 
 /** Must at least cover show 1's table fee or the run ends before it starts. */
 export const STARTING_BANKROLL = 100;
-export const STARTING_INVENTORY_SIZE = 32;
+/** A show sells about 19 cards now, so 32 ran thin by show 3. */
+export const STARTING_INVENTORY_SIZE = 40;
 
 /**
  * Collection depth: hold enough of one franchise and its cards pitch harder.

@@ -41,7 +41,7 @@ function playShow(state: ShowState, deps: ShowDeps): ShowState {
     for (const card of sellable.slice(0, 5)) next = toggleSelection(next, card.id);
     if (next.selection.length === 0) break;
 
-    show = pitch(next, deps);
+    show = pitch(next, deps, show.seats[0]!.buyer.id);
   }
   return show;
 }
@@ -49,7 +49,8 @@ function playShow(state: ShowState, deps: ShowDeps): ShowState {
 describe('a full run', () => {
   it('plays several shows end to end with upgrades and conditions live', () => {
     const rng = createRng('full-run');
-    let inventory: Card[] = generateCards(rng, 60, 'start');
+    // Enough stock for four shows of six buyers each taking five cards.
+    let inventory: Card[] = generateCards(rng, 160, 'start');
     let stats = EMPTY_STATS;
     const equipped = ['uvDisplayCase', 'foldingChair', 'loudNeighbor'];
 
@@ -161,7 +162,7 @@ describe('save round trip', () => {
     expect(round.displayCase).toEqual(show.displayCase);
     expect(round.queue).toEqual(show.queue);
     expect(round.config).toEqual(show.config);
-    expect(round.buyer).toEqual(show.buyer);
+    expect(round.seats).toEqual(show.seats);
   });
 
   it('rehydrates modifiers from ids alone', () => {

@@ -50,14 +50,15 @@ import {
 } from '../game/run/walkthrough';
 import type { Card, PitchResult, RawCard } from '../game/types';
 import {
+  closeUp as engineCloseUp,
   createShow,
   digFromStock,
+  holdBuyer,
   planShow,
   previewPitch,
   pitch as enginePitch,
   remainingInventory,
   toggleSelection,
-  turnAway as engineTurnAway,
   type ShowDeps,
   type ShowState,
 } from '../game/show/showEngine';
@@ -83,12 +84,16 @@ export interface RunState extends Omit<RunSnapshot, 'rngState'> {
   startShow: () => void;
 
   toggleCard: (cardId: string) => void;
-  /** Sells the current selection to the buyer at the table. */
-  pitch: () => void;
-  turnAway: () => void;
+  /** Sells the current selection to one of the buyers at the table. */
+  pitch: (buyerId: string) => void;
+  /** Asks a buyer to wait a little longer, for a goodwill pip. */
+  hold: (buyerId: string) => void;
+  /** Ends the show now and takes whatever is unsold home. */
+  closeUp: () => void;
   /** Swap a case card for a named card from stock, for a goodwill pip. */
   dig: (outCardId: string, inCardId: string) => void;
-  preview: () => PitchResult | null;
+  /** What one seated buyer would pay for the current selection. */
+  preview: (buyerId: string) => PitchResult | null;
 
   collectShow: () => void;
   leaveShop: () => void;
@@ -393,13 +398,14 @@ export const useRun = create<RunState>((set, get) => {
     // -- In show ------------------------------------------------------------
 
     toggleCard: (cardId) => applyShow((s) => toggleSelection(s, cardId)),
-    pitch: () => applyShow(enginePitch),
-    turnAway: () => applyShow(engineTurnAway),
+    pitch: (buyerId) => applyShow((st, d) => enginePitch(st, d, buyerId)),
+    hold: (buyerId) => applyShow((st) => holdBuyer(st, buyerId)),
+    closeUp: () => applyShow(engineCloseUp),
     dig: (outCardId, inCardId) => applyShow((st) => digFromStock(st, outCardId, inCardId)),
 
-    preview: () => {
+    preview: (buyerId) => {
       const { show } = get();
-      return show ? previewPitch(show, deps()) : null;
+      return show ? previewPitch(show, deps(), buyerId) : null;
     },
 
     collectShow: () => {

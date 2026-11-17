@@ -230,7 +230,7 @@ export function ShopScreen() {
                       className={styles.btnSm}
                       disabled={guidesFull || spendable < PRICE_GUIDE_COST}
                       onClick={buyPriceGuide}
-                      title="Reveals the next show's four buyers - their budgets and what they want - before you pay the table fee. Spent on that show."
+                      title="Reveals the kinds of buyer coming to the next show before you pay the table fee. Spent on that show."
                     >
                       {guidesFull
                         ? 'PRICE GUIDE · HELD'

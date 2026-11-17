@@ -182,6 +182,16 @@ export const TIER_3: readonly UpgradeDef[] = [
     },
   }),
 
+  upgrade(
+    'hypeMan',
+    'The Hype Man',
+    620,
+    'Each level of Buzz is worth +30% instead of +20%.',
+    {
+      onShowStart: (_ctx, fx) => fx.addBuzzStep(0.1, 'The Hype Man'),
+    },
+  ),
+
   upgrade('theGrinder', 'The Grinder', 380, 'The crowd starts each show with +3 goodwill.', {
     onShowStart: (_ctx, fx) => fx.addGoodwill(3, 'The Grinder'),
   }),

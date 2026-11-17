@@ -2,27 +2,40 @@ import { describe, expect, it } from 'vitest';
 import { createRng } from '../rng';
 import { generateCards } from '../cards/generate';
 import {
-  canTurnAway,
+  buzzMultiplier,
+  canHold,
+  closeUp,
   createShow,
   digFromStock,
+  holdBuyer,
   previewPitch,
   pitch,
   quotaForShow,
   remainingInventory,
+  remainingQueue,
   tableFeeForShow,
   toggleSelection,
-  turnAway,
   type ShowDeps,
   type ShowState,
 } from './showEngine';
 import {
-  DISPLAY_CASE_SIZE,
   BUYERS_PER_SHOW,
+  BUYER_PATIENCE,
+  BUZZ_MAX,
+  BUZZ_STEP,
+  DISPLAY_CASE_SIZE,
   GOODWILL_COST_DIG,
-  GOODWILL_COST_PASS,
+  GOODWILL_COST_HOLD,
+  HOLD_PATIENCE,
   MAX_PITCH_CARDS,
-  TURN_AWAYS_PER_SHOW,
+  QUOTA_BASE,
+  QUOTA_GROWTH,
+  RESTOCK_PER_SALE,
+  SHOW_GOODWILL,
+  TABLE_SEATS,
 } from '../constants';
+import { buyer, raw } from '../testing/factories';
+import type { Buyer } from '../types';
 
 function deps(seed = 'show-test'): ShowDeps {
   return { rng: createRng(seed), upgrades: [], conditions: [] };
@@ -43,10 +56,37 @@ function selectFirst(state: ShowState, n: number): ShowState {
   return next;
 }
 
+/** The buyer who has been at the table longest. */
+const first = (state: ShowState): string => state.seats[0]!.buyer.id;
+
+/** Sells `n` cards to whoever has waited longest. */
+function sellToFirst(state: ShowState, d: ShowDeps, n: number): ShowState {
+  return pitch(selectFirst(state, n), d, first(state));
+}
+
+/**
+ * A show with a hand-built table, for the rules that depend on exactly who is
+ * standing there. Buyers default to inert: no wants, no refusals.
+ */
+function tableOf(buyers: readonly Buyer[], patience: readonly number[], line: readonly Buyer[] = []) {
+  const { state, deps: d } = newShow('table');
+  const seated: ShowState = {
+    ...state,
+    config: { ...state.config, buyerCount: buyers.length + line.length, seats: buyers.length },
+    queue: [...buyers, ...line],
+    queueIndex: buyers.length,
+    seats: buyers.map((b, i) => ({ buyer: b, patience: patience[i] ?? 3 })),
+  };
+  return { state: seated, deps: d };
+}
+
+const pleasedBy = (id: string): Buyer =>
+  buyer({ id, label: id, wants: [{ kind: 'volume', minCards: 1, interestPerCard: 1 }] });
+
 describe('escalation', () => {
   it('grows the quota and the table fee from show 1', () => {
-    expect(quotaForShow(1)).toBe(240);
-    expect(quotaForShow(2)).toBe(331);
+    expect(quotaForShow(1)).toBe(QUOTA_BASE);
+    expect(quotaForShow(2)).toBe(Math.round(QUOTA_BASE * QUOTA_GROWTH));
     expect(tableFeeForShow(1)).toBe(50);
     expect(tableFeeForShow(2)).toBe(70);
   });
@@ -58,14 +98,23 @@ describe('escalation', () => {
 });
 
 describe('show setup', () => {
-  it('fills the display case and seats the first buyer', () => {
+  it('fills the case and the table, and leaves the rest in line', () => {
     const { state } = newShow();
 
     expect(state.displayCase).toHaveLength(DISPLAY_CASE_SIZE);
-    expect(state.buyer).not.toBeNull();
+    expect(state.seats).toHaveLength(TABLE_SEATS);
     expect(state.config.buyerCount).toBe(BUYERS_PER_SHOW);
-    expect(state.turnAwaysLeft).toBe(TURN_AWAYS_PER_SHOW);
+    expect(remainingQueue(state)).toHaveLength(BUYERS_PER_SHOW - TABLE_SEATS);
+    expect(state.buzz).toBe(0);
+    expect(state.goodwill).toBe(SHOW_GOODWILL);
     expect(state.phase).toBe('pitching');
+  });
+
+  it('seats each buyer with the patience of their kind', () => {
+    const { state } = newShow();
+    for (const seat of state.seats) {
+      expect(seat.patience).toBe(BUYER_PATIENCE[seat.buyer.archetype]);
+    }
   });
 
   it('runs the case short rather than failing when inventory is thin', () => {
@@ -83,172 +132,260 @@ describe('selection', () => {
 
   it('toggles a card back off', () => {
     const { state } = newShow();
-    const first = state.displayCase[0]!;
-    const on = toggleSelection(state, first.id);
-    expect(toggleSelection(on, first.id).selection).toEqual([]);
+    const card = state.displayCase[0]!;
+    const on = toggleSelection(state, card.id);
+    expect(toggleSelection(on, card.id).selection).toEqual([]);
   });
 });
 
-describe('resolving a buyer', () => {
-  it('pays out, refills the case and seats the next buyer in one step', () => {
-    const { state, deps: d } = newShow();
-    const selected = selectFirst(state, 3);
-    const expected = previewPitch(selected, d)!.offer;
+describe('pricing the same cards for everyone at the table', () => {
+  it('quotes each seated buyer separately', () => {
+    const collector = buyer({
+      id: 'collector',
+      wants: [{ kind: 'franchise', franchiseId: 'pocketBeasts', interestPerCard: 4 }],
+    });
+    const nobody = buyer({ id: 'nobody' });
+    const { state, deps: d } = tableOf([collector, nobody], [3, 3]);
 
-    const after = pitch(selected, d);
+    const withCard: ShowState = {
+      ...state,
+      displayCase: [raw({ id: 'beast', franchise: 'pocketBeasts', rarity: 'rare' })],
+      selection: ['beast'],
+    };
 
-    expect(after.phase).toBe('pitching');
-    expect(after.earned).toBe(expected);
-    expect(after.queueIndex).toBe(1);
-    expect(after.selection).toEqual([]);
-    expect(after.displayCase).toHaveLength(DISPLAY_CASE_SIZE);
-    expect(after.buyer!.id).not.toBe(state.buyer!.id);
+    const wanted = previewPitch(withCard, d, 'collector')!;
+    const shrugged = previewPitch(withCard, d, 'nobody')!;
+    expect(wanted.offer).toBeGreaterThan(shrugged.offer);
+    expect(wanted.pleased).toBe(true);
+    expect(shrugged.pleased).toBe(false);
   });
 
-  it('records the sale so the table can animate the change', () => {
+  it('has nothing to quote for someone who is not at the table', () => {
+    const { state, deps: d } = newShow();
+    expect(previewPitch(selectFirst(state, 2), d, 'not-here')).toBeNull();
+    expect(previewPitch(state, d, first(state))).toBeNull();
+  });
+});
+
+describe('making a sale', () => {
+  it('pays the previewed offer, with no second decision in between', () => {
+    // Haggling used to sit here: an offer you could push on for a goodwill
+    // pip. It was cut because the offer is visible before you commit, so the
+    // push asked the player to decide twice on the same information.
     const { state, deps: d } = newShow();
     const selected = selectFirst(state, 3);
-    const after = pitch(selected, d);
+    const expected = previewPitch(selected, d, first(state))!.offer;
+
+    const after = pitch(selected, d, first(state));
+
+    expect(after.earned).toBe(expected);
+    expect(after.selection).toEqual([]);
+    expect(after.stats.buyersServed).toBe(1);
+  });
+
+  it('sends the served buyer off and brings the next one up from the line', () => {
+    const { state, deps: d } = newShow();
+    const served = first(state);
+    const nextInLine = remainingQueue(state)[0]!.id;
+
+    const after = sellToFirst(state, d, 2);
+
+    const ids = after.seats.map((s) => s.buyer.id);
+    expect(ids).not.toContain(served);
+    expect(ids).toContain(nextInLine);
+    expect(after.seats).toHaveLength(TABLE_SEATS);
+    expect(remainingQueue(after)).toHaveLength(BUYERS_PER_SHOW - TABLE_SEATS - 1);
+  });
+
+  it('records the sale so the table can replay it', () => {
+    const { state, deps: d } = newShow();
+    const label = state.seats[0]!.buyer.label;
+    const after = sellToFirst(state, d, 3);
 
     expect(after.lastSale).not.toBeNull();
     expect(after.lastSale!.cards).toHaveLength(3);
     expect(after.lastSale!.amount).toBe(after.earned);
-    expect(after.lastSale!.buyerLabel).toBe(state.buyer!.label);
+    expect(after.lastSale!.buyerLabel).toBe(label);
+    expect(after.lastSale!.result.offer).toBe(after.earned);
   });
 
   it('removes sold cards from the run permanently', () => {
     const { state, deps: d } = newShow();
     const selected = selectFirst(state, 3);
     const soldIds = selected.selection;
-    const after = pitch(selected, d);
+    const after = pitch(selected, d, first(state));
 
     const surviving = remainingInventory(after).map((c) => c.id);
     for (const id of soldIds) expect(surviving).not.toContain(id);
     expect(after.sold.map((c) => c.id).sort()).toEqual([...soldIds].sort());
   });
-});
 
-describe('selling outright', () => {
-  it('takes the previewed offer, with no second decision in between', () => {
-    // Haggling used to sit here: an offer you could push on for a goodwill
-    // pip. It was cut because the offer is visible before you commit, so the
-    // push asked the player to decide twice on the same information — and
-    // against a capped buyer the only right answer was always to take it.
+  it('does nothing without a selection, or without that buyer', () => {
     const { state, deps: d } = newShow();
-    const selected = selectFirst(state, 3);
-
-    expect(pitch(selected, d).earned).toBe(previewPitch(selected, d)!.offer);
-  });
-
-  it('leaves the goodwill pool for digging', () => {
-    const { state, deps: d } = newShow();
-    const after = pitch(selectFirst(state, 3), d);
-    expect(after.goodwill).toBe(state.goodwill);
-  });
-
-  it('does nothing without a selection', () => {
-    const { state, deps: d } = newShow();
-    expect(pitch(state, d)).toBe(state);
+    expect(pitch(state, d, first(state))).toBe(state);
+    const selected = selectFirst(state, 2);
+    expect(pitch(selected, d, 'not-here')).toBe(selected);
   });
 });
 
-describe('turning a buyer away', () => {
-  it('does not consume a buyer slot', () => {
+describe('restocking', () => {
+  it('brings up a few cards after a sale rather than refilling the case', () => {
+    // A five-card pitch used to cost nothing: the case was whole again a
+    // moment later. Now it leaves the table thinner for whoever is next.
     const { state, deps: d } = newShow();
-    const after = turnAway(state, d);
-
-    expect(after.queueIndex).toBe(0);
-    expect(after.turnAwaysLeft).toBe(TURN_AWAYS_PER_SHOW - 1);
-    expect(after.buyer).not.toBeNull();
+    const after = sellToFirst(state, d, 5);
+    expect(after.displayCase).toHaveLength(DISPLAY_CASE_SIZE - 5 + RESTOCK_PER_SALE);
   });
 
-  it('swaps the selected cards back into the inventory and redraws', () => {
+  it('never overfills the case after a small sale', () => {
     const { state, deps: d } = newShow();
-    const selected = selectFirst(state, 3);
-    const swappedIds = selected.selection;
-    const after = turnAway(selected, d);
+    expect(sellToFirst(state, d, 1).displayCase).toHaveLength(DISPLAY_CASE_SIZE);
+  });
+});
 
-    expect(after.displayCase).toHaveLength(DISPLAY_CASE_SIZE);
-    for (const id of swappedIds) {
-      expect(after.inventory.map((c) => c.id)).toContain(id);
-    }
-    expect(after.selection).toEqual([]);
+describe('patience', () => {
+  it('costs everyone else a pip when somebody is served', () => {
+    const { state, deps: d } = tableOf([buyer({ id: 'a' }), buyer({ id: 'b' })], [3, 3]);
+    const after = pitch(selectFirst(state, 1), d, 'a');
+
+    expect(after.seats.map((s) => s.buyer.id)).toEqual(['b']);
+    expect(after.seats[0]!.patience).toBe(2);
   });
 
-  it('costs goodwill, out of the same pool digging spends', () => {
-    // The mulligan used to be free: nothing in a show could be lost by being
-    // greedy, so waving people off until the queue looked good was strictly
-    // correct. A pass is now two digs the player will not get to make.
-    const { state, deps: d } = newShow();
-    const once = turnAway(state, d);
+  it('walks a buyer who runs out, and counts them', () => {
+    const { state, deps: d } = tableOf(
+      [buyer({ id: 'a' }), buyer({ id: 'b', label: 'Fed Up' }), buyer({ id: 'c' })],
+      [3, 1, 3],
+    );
+    const after = pitch(selectFirst(state, 1), d, 'a');
 
-    expect(once.goodwill).toBe(state.goodwill - GOODWILL_COST_PASS);
-    expect(GOODWILL_COST_PASS).toBeGreaterThan(GOODWILL_COST_DIG);
+    expect(after.seats.map((s) => s.buyer.id)).toEqual(['c']);
+    expect(after.stats.buyersWalked).toBe(1);
+    expect(after.lastSale!.walked).toEqual(['Fed Up']);
+    expect(after.log.some((l) => l.tone === 'walk' && l.text.includes('Fed Up'))).toBe(true);
+  });
+
+  it('gives the freed place to the next person in line', () => {
+    const { state, deps: d } = tableOf(
+      [buyer({ id: 'a' }), buyer({ id: 'b' })],
+      [3, 1],
+      [buyer({ id: 'c' }), buyer({ id: 'e' })],
+    );
+    const after = pitch(selectFirst(state, 1), d, 'a');
+    // One served, one walked: both places are refilled.
+    expect(after.seats.map((s) => s.buyer.id)).toEqual(['c', 'e']);
+  });
+});
+
+describe('holding a buyer', () => {
+  it('buys patience with goodwill', () => {
+    const { state } = tableOf([buyer({ id: 'a' }), buyer({ id: 'b' })], [1, 3]);
+    const after = holdBuyer(state, 'a');
+
+    expect(after.seats[0]!.patience).toBe(1 + HOLD_PATIENCE);
+    expect(after.goodwill).toBe(state.goodwill - GOODWILL_COST_HOLD);
+  });
+
+  it('draws on the same pool digging does, so the two really compete', () => {
+    const { state } = newShow();
+    const held = holdBuyer(state, first(state));
+    const dug = digFromStock(state, state.displayCase[0]!.id, state.inventory[0]!.id);
+    expect(held.goodwill).toBe(dug.goodwill);
   });
 
   it('is refused when the goodwill for it is gone', () => {
-    const { state, deps: d } = newShow();
-    const broke: ShowState = { ...state, goodwill: GOODWILL_COST_PASS - 1 };
+    const { state } = newShow();
+    const broke: ShowState = { ...state, goodwill: 0 };
+    expect(canHold(broke, first(broke))).toBe(false);
+    expect(holdBuyer(broke, first(broke))).toBe(broke);
+  });
+});
 
-    expect(canTurnAway(broke)).toBe(false);
-    expect(turnAway(broke, d)).toBe(broke);
+describe('buzz', () => {
+  it('grows when a buyer leaves with something they came for', () => {
+    const { state, deps: d } = tableOf([pleasedBy('a'), buyer({ id: 'b' })], [3, 3]);
+    const after = pitch(selectFirst(state, 1), d, 'a');
+    expect(after.buzz).toBe(1);
+    expect(after.stats.peakBuzz).toBe(1);
   });
 
-  it('leaves digging affordable after a pass, so the two really compete', () => {
-    // If one pass emptied the pool the choice would be fake: the player has to
-    // be able to feel both sides of the trade in the same show.
-    const { state, deps: d } = newShow();
-    expect(turnAway(state, d).goodwill).toBeGreaterThanOrEqual(GOODWILL_COST_DIG);
+  it('stays put on a sale the buyer did not care about', () => {
+    const { state, deps: d } = tableOf([buyer({ id: 'a' }), buyer({ id: 'b' })], [3, 3]);
+    expect(pitch(selectFirst(state, 1), d, 'a').buzz).toBe(0);
   });
 
-  it('is refused once the allowance is gone', () => {
-    const { state, deps: d } = newShow();
-    let next = state;
-    for (let i = 0; i < TURN_AWAYS_PER_SHOW; i++) next = turnAway(next, d);
+  it('thins out when a buyer walks off empty-handed', () => {
+    const { state, deps: d } = tableOf([buyer({ id: 'a' }), buyer({ id: 'b' }), buyer({ id: 'c' })], [3, 1, 3]);
+    const after = pitch(selectFirst({ ...state, buzz: 3 }, 1), d, 'a');
+    expect(after.buzz).toBe(2);
+  });
 
-    expect(next.turnAwaysLeft).toBe(0);
-    expect(turnAway(next, d)).toBe(next);
+  it('never leaves its range', () => {
+    const top = tableOf([pleasedBy('a'), buyer({ id: 'b' })], [3, 3]);
+    expect(pitch(selectFirst({ ...top.state, buzz: BUZZ_MAX }, 1), top.deps, 'a').buzz).toBe(BUZZ_MAX);
+
+    const bottom = tableOf([buyer({ id: 'a' }), buyer({ id: 'b' })], [3, 1]);
+    expect(pitch(selectFirst(bottom.state, 1), bottom.deps, 'a').buzz).toBe(0);
+  });
+
+  it('multiplies what the next sale pays', () => {
+    const { state, deps: d } = tableOf([buyer({ id: 'a' }), buyer({ id: 'b' })], [3, 3]);
+    const selected = selectFirst(state, 3);
+    const quiet = previewPitch(selected, d, 'a')!;
+    const packed = previewPitch({ ...selected, buzz: 3 }, d, 'a')!;
+
+    expect(packed.buzzMult).toBeCloseTo(buzzMultiplier(3));
+    expect(buzzMultiplier(3)).toBeCloseTo(1 + 3 * BUZZ_STEP);
+    expect(packed.baseOffer).toBe(quiet.baseOffer);
+    expect(packed.offer).toBe(Math.round(quiet.baseOffer * buzzMultiplier(3)));
   });
 });
 
 describe('show completion', () => {
-  it('ends after the buyer count and judges against the quota', () => {
+  it('ends once everybody has been served or has walked', () => {
     const { state, deps: d } = newShow();
     let next = state;
+    let guard = 0;
+    while (next.phase !== 'over' && guard++ < 30) next = sellToFirst(next, d, 2);
 
-    while (next.phase !== 'over') {
-      next = pitch(selectFirst(next, 5), d);
-    }
-
-    expect(next.queueIndex).toBe(BUYERS_PER_SHOW);
-    expect(next.buyer).toBeNull();
+    expect(next.phase).toBe('over');
+    expect(next.seats).toHaveLength(0);
+    expect(remainingQueue(next)).toHaveLength(0);
+    expect(next.stats.buyersServed + next.stats.buyersWalked).toBe(BUYERS_PER_SHOW);
     expect(next.outcome).toBe(next.earned >= next.config.quota ? 'cleared' : 'failed');
   });
 
-  it('ends the show when the case and inventory both run dry', () => {
+  it('ends the show when there is nothing left to put on the table', () => {
     // Two cards, sold in one pitch: no case, no inventory, no legal action left.
     const d = deps('soldout');
     const inventory = generateCards(createRng('soldout-inv'), 2, 'inv');
     const state = createShow(1, inventory, d);
     expect(state.displayCase).toHaveLength(2);
 
-    const after = pitch(selectFirst(state, 2), d);
+    const after = sellToFirst(state, d, 2);
 
     expect(after.phase).toBe('over');
-    expect(after.queueIndex).toBeLessThan(after.config.buyerCount);
     expect(after.log.some((l) => l.text.includes('sold out'))).toBe(true);
+  });
+
+  it('can be packed up early, keeping what is unsold', () => {
+    const { state, deps: d } = newShow();
+    const owned = remainingInventory(state).length;
+    const after = closeUp(state, d);
+
+    expect(after.phase).toBe('over');
+    expect(after.outcome).toBe('failed');
+    expect(remainingInventory(after)).toHaveLength(owned);
   });
 
   it('refuses further actions once the show is over', () => {
     const { state, deps: d } = newShow();
-    let next = state;
-    while (next.phase !== 'over') {
-      next = pitch(selectFirst(next, 5), d);
-    }
+    const over = closeUp(state, d);
 
-    expect(pitch(next, d)).toBe(next);
-    expect(turnAway(next, d)).toBe(next);
-    expect(previewPitch(next, d)).toBeNull();
+    expect(pitch(selectFirst(over, 1), d, first(state))).toBe(over);
+    expect(holdBuyer(over, first(state))).toBe(over);
+    expect(closeUp(over, d)).toBe(over);
+    expect(previewPitch(over, d, first(state))).toBeNull();
   });
 });
 
@@ -257,9 +394,8 @@ describe('determinism', () => {
     const play = () => {
       const { state, deps: d } = newShow('replay');
       let next = state;
-      while (next.phase !== 'over') {
-        next = pitch(selectFirst(next, 4), d);
-      }
+      let guard = 0;
+      while (next.phase !== 'over' && guard++ < 30) next = sellToFirst(next, d, 3);
       return next;
     };
 
@@ -269,7 +405,7 @@ describe('determinism', () => {
 });
 
 describe('digging through the box', () => {
-  it('swaps a chosen case card for a chosen stock card without losing the buyer', () => {
+  it('swaps a chosen case card for a chosen stock card without costing anyone patience', () => {
     const { state } = newShow();
     const out = state.displayCase[0]!;
     const wanted = state.inventory[0]!;
@@ -279,15 +415,14 @@ describe('digging through the box', () => {
     expect(after.displayCase.map((c) => c.id)).toContain(wanted.id);
     expect(after.displayCase.map((c) => c.id)).not.toContain(out.id);
     expect(after.inventory.map((c) => c.id)).toContain(out.id);
-    // The whole point: the buyer you are fetching for is still standing there.
-    expect(after.buyer!.id).toBe(state.buyer!.id);
-    expect(after.queueIndex).toBe(state.queueIndex);
+    // The whole point: everyone you might be fetching for is still there.
+    expect(after.seats).toEqual(state.seats);
   });
 
   it('spends goodwill from the show pool', () => {
     const { state } = newShow();
     const after = digFromStock(state, state.displayCase[0]!.id, state.inventory[0]!.id);
-    expect(after.goodwill).toBe(state.goodwill - 1);
+    expect(after.goodwill).toBe(state.goodwill - GOODWILL_COST_DIG);
   });
 
   it('is refused with no goodwill left', () => {
